@@ -107,6 +107,8 @@
   }
   .theme-toggle:hover{ border-color:var(--gold); color:var(--gold); }
   .file-status{ font-size:12px; color:#9AA1BC; }
+  .header-menu-btn{ display:none; }
+  .upload-zone-extra{ display:contents; }
   input[type="file"]{ display:none; }
 
   main{ max-width:1180px; margin:0 auto; padding:28px 32px 60px; }
@@ -230,6 +232,55 @@
   .elig-icon.pass{ background:var(--green-soft); color:var(--green); }
   .elig-icon.fail{ background:var(--rust-soft); color:var(--rust); }
   .elig-icon.na{ background:var(--paper); color:var(--ink-mute); }
+  .tabbar{
+    display:none; position:fixed; left:0; right:0; bottom:0; z-index:500;
+    background:var(--card); border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    box-shadow:0 -2px 14px rgba(16,24,43,0.08);
+  }
+  .tabbar-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:9px 4px 8px; background:none; border:none; cursor:pointer;
+    color:var(--ink-mute); font-family:'IBM Plex Sans','Noto Sans Devanagari',sans-serif;
+    font-size:11px; font-weight:500;
+  }
+  .tabbar-btn svg{ width:21px; height:21px; stroke:var(--ink-mute); fill:none; stroke-width:1.7; }
+  .tabbar-btn.active{ color:var(--gold); }
+  .tabbar-btn.active svg{ stroke:var(--gold); }
+  .recent-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 0; border-bottom:1px solid var(--line-soft); cursor:pointer;
+  }
+  .recent-item:last-child{ border-bottom:none; }
+  .recent-item:hover{ background:var(--paper); margin:0 -8px; padding:11px 8px; border-radius:8px; }
+  .recent-name{ font-size:13.5px; font-weight:500; color:var(--ink); margin:0 0 2px; }
+  .recent-meta{ font-size:11.5px; color:var(--ink-mute); margin:0; }
+  @media (max-width: 820px){
+    body{ padding-bottom: calc(70px + env(safe-area-inset-bottom,0px)); }
+    .tabbar{ display:flex; }
+    .tab-section.tab-hidden{ display:none; }
+
+    .band{ flex-direction:row; align-items:center; flex-wrap:nowrap; gap:10px; padding:12px 14px; position:relative; }
+    .band{ padding-top:max(12px, env(safe-area-inset-top)); }
+    .brand{ gap:9px; min-width:0; flex:1; }
+    .brand-mark{ width:30px; height:30px; flex-shrink:0; }
+    .brand-title{ font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .brand-sub{ display:none; }
+    .upload-zone{ flex-wrap:nowrap; gap:7px; flex-shrink:0; }
+    .theme-toggle{ width:34px; height:34px; font-size:14px; }
+    #langToggle{ padding:0 10px; min-height:34px; font-size:12px; }
+    .header-menu-btn{ display:flex; align-items:center; justify-content:center; font-size:18px; }
+    .upload-zone-extra{
+      display:none; position:absolute; top:100%; right:14px; left:14px; margin-top:8px;
+      background:var(--navy-deep); border:1px solid rgba(255,255,255,0.15); border-radius:12px;
+      padding:14px; z-index:600; flex-direction:column; align-items:stretch; gap:10px;
+      box-shadow:0 14px 30px rgba(0,0,0,0.4);
+    }
+    .upload-zone-extra.open{ display:flex; }
+    .upload-zone-extra .file-status{ width:100%; order:0; }
+    .upload-zone-extra .file-label,
+    .upload-zone-extra .demo-btn{ width:100%; text-align:center; }
+  }
   .table-scroll{
     overflow-x:auto; -webkit-overflow-scrolling:touch;
     overscroll-behavior-x:contain;
@@ -428,11 +479,14 @@
   <div class="upload-zone">
     <button class="theme-toggle" id="themeToggle" type="button" title="Toggle light/dark theme" data-i18n-title="themeTitle">🌙</button>
     <button class="demo-btn" id="langToggle" type="button" title="Switch language" data-i18n-title="langTitle">मराठी</button>
-    <span class="file-status" id="fileStatus">Showing demo data — 50 entries</span>
-    <button class="demo-btn" id="clearBtn" type="button" data-i18n="clearData">Clear data</button>
-    <label class="file-label" for="fileInput" data-i18n="chooseFile">Choose file (.xlsx / .csv)</label>
-    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
-    <button class="file-label" id="processBtn" type="button" disabled style="opacity:.5; cursor:not-allowed;" data-i18n="processFile">Process file</button>
+    <button class="theme-toggle header-menu-btn" id="headerMenuBtn" type="button" title="More options">&#8942;</button>
+    <div class="upload-zone-extra" id="headerMenuPanel">
+      <span class="file-status" id="fileStatus">Showing demo data — 50 entries</span>
+      <button class="demo-btn" id="clearBtn" type="button" data-i18n="clearData">Clear data</button>
+      <label class="file-label" for="fileInput" data-i18n="chooseFile">Choose file (.xlsx / .csv)</label>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      <button class="file-label" id="processBtn" type="button" disabled style="opacity:.5; cursor:not-allowed;" data-i18n="processFile">Process file</button>
+    </div>
   </div>
 </div>
 
@@ -446,7 +500,7 @@
 
   <div id="dashboardContent">
 
-  <section class="ledger-section" id="overviewSection">
+  <section class="ledger-section tab-section" id="overviewSection">
     <div class="ledger-head">
       <span class="ledger-index">I</span>
       <h2 class="ledger-title" data-i18n-html="ovHead">Overview<span>portfolio totals</span></h2>
@@ -481,7 +535,7 @@
     </div>
   </section>
 
-  <section class="ledger-section" id="depositsSection">
+  <section class="ledger-section tab-section" id="depositsSection">
     <div class="ledger-head">
       <span class="ledger-index">II</span>
       <h2 class="ledger-title" data-i18n-html="depHead">Member deposits &amp; profile<span>society savings, monthly collection &amp; per-member view</span></h2>
@@ -587,7 +641,16 @@
       </div>
     </div>
 
-    <div class="member-card" id="eligibilityCard" style="margin-top:20px;">
+  </section>
+
+  <section class="ledger-section tab-section" id="eligibilitySection">
+    <div class="ledger-head">
+      <span class="ledger-index">III</span>
+      <h2 class="ledger-title" data-i18n-html="eligHead">Loan eligibility<span>check a member against the society's loan rules</span></h2>
+      <div class="ledger-rule"></div>
+    </div>
+
+    <div class="member-card" id="eligibilityCard">
       <div style="margin-bottom:14px;">
         <h3 style="margin:0 0 4px; font-family:'Source Serif 4','Noto Serif Devanagari', serif; font-size:17px; font-weight:600; color:var(--ink);" data-i18n="eligTitle">Loan eligibility checker</h3>
         <p style="margin:0; font-size:13px; color:var(--ink-soft);" data-i18n="eligSub">Enter an applicant and the loan amount requested to check eligibility against the society's loan rules.</p>
@@ -621,6 +684,15 @@
 
       <div id="eligResult" style="margin-top:18px; display:none;"></div>
     </div>
+
+    <div class="member-card" id="recentChecksCard" style="margin-top:20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <h3 style="margin:0; font-family:'Source Serif 4','Noto Serif Devanagari', serif; font-size:15px; font-weight:600; color:var(--ink);" data-i18n="recentTitle">Recent checks</h3>
+        <button type="button" id="recentClearBtn" data-i18n="recentClear" style="background:none; border:none; cursor:pointer; color:var(--gold); font-size:12px; font-weight:500; padding:4px;">Clear history</button>
+      </div>
+      <div id="recentList"></div>
+      <p class="member-empty" id="recentEmptyMsg" data-i18n="recentEmpty" style="display:none;">No checks yet — run a check above to see it here.</p>
+    </div>
   </section>
 
   </div>
@@ -628,6 +700,21 @@
 </main>
 
 <footer data-i18n="footer">WITH US Society Register &middot; upload a register file to replace the demo entries</footer>
+
+<div class="tabbar" id="tabbar">
+  <button class="tabbar-btn active" data-tab="overview" type="button">
+    <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    <span data-i18n="tabOverview">Overview</span>
+  </button>
+  <button class="tabbar-btn" data-tab="deposits" type="button">
+    <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M3 11h18"/><circle cx="7.5" cy="15" r="1"/></svg>
+    <span data-i18n="tabDeposits">Deposits</span>
+  </button>
+  <button class="tabbar-btn" data-tab="eligibility" type="button">
+    <svg viewBox="0 0 24 24"><path d="M9 12.5 11 14.5 15.5 10"/><circle cx="12" cy="12" r="9"/></svg>
+    <span data-i18n="tabEligibility">Eligibility</span>
+  </button>
+</div>
 
 <script>
 (function(){
@@ -646,13 +733,22 @@
     if(allMembers && allMembers.members && allMembers.members.length){ renderDepositCharts(); }
   });
 
+  document.getElementById('headerMenuBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    document.getElementById('headerMenuPanel').classList.toggle('open');
+  });
+  document.getElementById('headerMenuPanel').addEventListener('click', function(e){ e.stopPropagation(); });
+  document.addEventListener('click', function(){
+    document.getElementById('headerMenuPanel').classList.remove('open');
+  });
+
 
   /* ---------- Language (English / Marathi) ---------- */
 
   var LANG = 'en';
   try{ var savedLang = localStorage.getItem('withusLang'); if(savedLang === 'mr' || savedLang === 'en') LANG = savedLang; }catch(e){}
 
-  var I18N = { en: {"brandTitle": "WITH US Society Register", "brandSub": "Applicant & guarantor ledger — disbursement, repayment & fine tracking", "themeTitle": "Toggle light/dark theme", "langTitle": "Switch language", "clearData": "Clear data", "chooseFile": "Choose file (.xlsx / .csv)", "processFile": "Process file", "emptyTitle": "No data loaded", "emptyBody": "Upload a register file or load the demo data to see the dashboard.", "ovHead": "Overview<span>portfolio totals</span>", "kpiDisbursed": "Total disbursed (Loan Taken Amount)", "kpiRepaid": "Total repaid (Loan Repayment Amount)", "kpiOutstanding": "Current in process", "kpiFine": "Fines accrued", "kpiRate": "Repayment rate", "footAcrossLoans": "across {n} loans", "footPctDisbursed": "{n}% of disbursed", "footInProcess": "{n} loans in process", "footAcrossEntries": "across {n} entries", "footActiveClosed": "{a} active · {c} closed", "depHead": "Member deposits &amp; profile<span>society savings, monthly collection &amp; per-member view</span>", "depKpiMembers": "Total members", "depKpiMembersFoot": "with deposit records", "depKpiBalance": "Total deposit balance", "depKpiBalanceFoot": "current society corpus", "depKpiCollected": "Collected this year", "depKpiCollectedFoot": "monthly contributions to date", "depKpiNew": "New members", "depKpiNewFoot": "joined this year", "month": "Month", "allMonths": "All months", "depEmpty": "Select a month to see who deposited and who's pending.", "searchMember": "Search member", "phMember": "Type a member name…", "profileEmpty": "Search a member to see their deposits and active loans.", "clearSel": "Clear selection", "stPaid": "Members paid", "stPending": "Members pending", "stCollected": "Amount collected", "thMember": "Member", "thJoin": "Date of joining", "thMonthDep": "Month's deposit", "thBalance": "Current balance", "thStatus": "Status", "depTag": "{p} paid · {q} pending", "pfDeposit": "Deposit 2026 balance", "pfDuration": "Duration", "pfActiveLoans": "Active (In Process) loans", "thSr": "Sr no.", "thGuarantor": "Guarantor", "thTakenDate": "Taken date", "thTaken": "Amount taken", "thRepaid": "Amount repaid", "thFine": "Fine", "profTagSince": "Member since {d}", "profTagNone": "Joining date not on record", "lApplicant": "Applicant", "lRepayDate": "Repayment date", "lSuspended": "Suspended", "emptyNoActiveLoans": "No Active Loans for selected member.", "emptyNoMemberData": "No member data available.", "noMatchMembers": "No matching members", "v_active": "Active", "v_closed": "Closed", "v_inprocess": "In Process", "v_paid": "Paid", "v_pending": "Pending", "v_yes": "Yes", "v_no": "No", "v_notspec": "Not specified", "eligTitle": "Loan eligibility checker", "eligSub": "Enter an applicant and the loan amount requested to check eligibility against the society's loan rules.", "phApplicant": "Type applicant name…", "eligAmountLabel": "Loan amount requested", "selectAmount": "Select amount", "guarantor": "Guarantor", "phGuarantor": "Type guarantor name…", "checkBtn": "Check eligibility", "eligNeedInput": "Please enter an applicant name and select a loan amount first.", "eligYes": "Eligible for {amt}", "eligNo": "Not eligible for {amt}", "c_member": "Registered society member", "c_memberYes": "Member since {d}", "c_memberNo": "No matching member record found", "c_dur": "Membership duration (needs at least {req} for {amt})", "c_durNone": "Join date not on record", "c_durVal": "{dur} as a member", "c_open": "No outstanding loan", "c_openYes": "Existing loan of {amt} not yet fully repaid", "c_openNo": "No unpaid loans on record", "c_susp": "Not currently suspended from the loan system", "c_suspUntil": "Suspended until {d}", "c_suspNo": "No active suspension", "c_due": "Not in the repayment month of an existing loan", "c_dueYes": "An existing loan is due for repayment this month", "c_dueNo": "No repayment due this month", "c_cancel": "Membership not cancelled (3 consecutive missed months)", "c_cancelNone": "Insufficient deposit history to verify", "c_cancelYes": "Last 3 months of contribution are missing", "c_cancelNo": "Contribution history in order", "c_quota": "Monthly quota for {amt} (max {n}/month)", "c_quotaVal": "{a} of {b} already issued this month", "c_g": "Guarantor{i} — registered & at least {req} membership", "c_gNeed": "Guarantor name required", "c_gNotFound": "\"{name}\" not found in member records", "c_gNoJoin": "Join date not on record for {name}", "c_gVal": "{name} — {dur} as a member", "c_gAct": "Guarantor{i} not already guarantor for another active loan", "c_gActEnter": "Enter a guarantor name to check", "c_gActYes": "Already guarantor for {amt} loan taken by {name}", "c_gActNo": "No other active loans guaranteed", "footer": "WITH US Society Register · upload a register file to replace the demo entries", "fsNone": "No data loaded", "fsSelected": "{f} selected — click Process file", "fsProcessing": "Processing {f}…", "fsReadErr": "Could not read {f}. Please try again.", "fsNoRows": "No loan rows found in {f}.", "fsParseErr": "Could not parse {f} — check it is a valid .xlsx or .csv file.", "fsLoaded": "{src} — {n} loan entries, {m} members", "fsDemo": "Showing demo data", "u_year": "Year", "u_years": "Years", "u_month": "Month", "u_months": "Months", "c_durFail": "{req} not completed as a member", "c_gFail": "{name} — {req} not completed as a member"}, mr: {"brandTitle": "WITH US सोसायटी रजिस्टर", "brandSub": "अर्जदार आणि जामीनदारांची नोंदवही — लोन वाटप, परतफेड आणि दंडाचा हिशोब", "themeTitle": "लाईट/डार्क थीम बदला", "langTitle": "भाषा बदला", "clearData": "डेटा हटवा", "chooseFile": "फाईल निवडा (.xlsx / .csv)", "processFile": "फाईल प्रोसेस करा", "emptyTitle": "डेटा लोड केलेला नाही", "emptyBody": "डॅशबोर्ड बघण्यासाठी रजिस्टर फाईल अपलोड करा किंवा डेमो डेटा लोड करा.", "ovHead": "आढावा<span>सगळ्या लोनची एकूण बेरीज</span>", "kpiDisbursed": "एकूण वाटलेले लोन (घेतलेली रक्कम)", "kpiRepaid": "एकूण परत आलेले (परतफेडीची रक्कम)", "kpiOutstanding": "सध्या प्रोसेसमध्ये असलेले", "kpiFine": "जमा झालेला दंड", "kpiRate": "परतफेडीचे प्रमाण", "footAcrossLoans": "एकूण {n} लोन", "footPctDisbursed": "वाटलेल्या रकमेपैकी {n}%", "footInProcess": "{n} लोन प्रोसेसमध्ये", "footAcrossEntries": "एकूण {n} नोंदी", "footActiveClosed": "{a} चालू · {c} बंद", "depHead": "मेंबरची डिपॉझिट आणि माहिती<span>सोसायटीची बचत, महिन्याचे कलेक्शन आणि प्रत्येक मेंबरची माहिती</span>", "depKpiMembers": "एकूण मेंबर", "depKpiMembersFoot": "डिपॉझिटची नोंद असलेले", "depKpiBalance": "एकूण डिपॉझिट शिल्लक", "depKpiBalanceFoot": "सोसायटीचा सध्याचा फंड", "depKpiCollected": "या वर्षी जमा झालेले", "depKpiCollectedFoot": "आतापर्यंतचे महिन्याचे योगदान", "depKpiNew": "नवीन मेंबर", "depKpiNewFoot": "या वर्षी सामील झालेले", "month": "महिना", "allMonths": "सगळे महिने", "depEmpty": "कोणी पैसे भरले आणि कोणाचे बाकी आहेत ते बघण्यासाठी महिना निवडा.", "searchMember": "मेंबर शोधा", "phMember": "मेंबरचे नाव टाका…", "profileEmpty": "मेंबरची डिपॉझिट आणि चालू लोन बघण्यासाठी नाव शोधा.", "clearSel": "निवड काढा", "stPaid": "पैसे भरलेले मेंबर", "stPending": "पैसे बाकी असलेले मेंबर", "stCollected": "जमा झालेली रक्कम", "thMember": "मेंबर", "thJoin": "सामील झाल्याची तारीख", "thMonthDep": "या महिन्याची डिपॉझिट", "thBalance": "सध्याची शिल्लक", "thStatus": "स्थिती", "depTag": "{p} भरले · {q} बाकी", "pfDeposit": "2026 ची डिपॉझिट शिल्लक", "pfDuration": "मेंबरशिपचा कालावधी", "pfActiveLoans": "चालू (प्रोसेसमध्ये) असलेली लोन", "thSr": "क्र.", "thGuarantor": "जामीनदार", "thTakenDate": "लोन घेतल्याची तारीख", "thTaken": "घेतलेली रक्कम", "thRepaid": "परत केलेली रक्कम", "thFine": "दंड", "profTagSince": "{d} पासून मेंबर", "profTagNone": "सामील होण्याची तारीख नोंदलेली नाही", "lApplicant": "अर्जदार", "lRepayDate": "परतफेडीची तारीख", "lSuspended": "सस्पेंड", "emptyNoActiveLoans": "निवडलेल्या मेंबरचे कोणतेही चालू लोन नाही.", "emptyNoMemberData": "मेंबरचा डेटा उपलब्ध नाही.", "noMatchMembers": "असा कोणताही मेंबर सापडला नाही", "v_active": "चालू", "v_closed": "बंद", "v_inprocess": "प्रोसेसमध्ये", "v_paid": "भरले", "v_pending": "बाकी", "v_yes": "हो", "v_no": "नाही", "v_notspec": "नमूद नाही", "eligTitle": "लोनसाठी पात्रता तपासा", "eligSub": "अर्जदार आणि हवी असलेली लोनची रक्कम टाका, म्हणजे सोसायटीच्या नियमांप्रमाणे तो पात्र आहे का ते कळेल.", "phApplicant": "अर्जदाराचे नाव टाका…", "eligAmountLabel": "हवी असलेली लोनची रक्कम", "selectAmount": "रक्कम निवडा", "guarantor": "जामीनदार", "phGuarantor": "जामीनदाराचे नाव टाका…", "checkBtn": "पात्रता तपासा", "eligNeedInput": "आधी अर्जदाराचे नाव टाका आणि लोनची रक्कम निवडा.", "eligYes": "{amt} च्या लोनसाठी पात्र", "eligNo": "{amt} च्या लोनसाठी पात्र नाही", "c_member": "सोसायटीचा मेंबर आहे का", "c_memberYes": "{d} पासून मेंबर", "c_memberNo": "या नावाचा मेंबर सापडला नाही", "c_dur": "मेंबरशिपचा कालावधी ({amt} साठी किमान {req} आवश्यक)", "c_durNone": "सामील होण्याची तारीख नोंदलेली नाही", "c_durVal": "मेंबर होऊन {dur} झाले", "c_open": "आधीचे लोन बाकी नाही", "c_openYes": "{amt} चे आधीचे लोन अजून पूर्ण फेडलेले नाही", "c_openNo": "कोणतेही लोन बाकी नाही", "c_susp": "लोन मिळण्यापासून सध्या सस्पेंड नाही", "c_suspUntil": "{d} पर्यंत सस्पेंड", "c_suspNo": "सस्पेन्शन नाही", "c_due": "आधीच्या लोनच्या परतफेडीचा महिना नाही", "c_dueYes": "आधीचे लोन याच महिन्यात फेडायचे आहे", "c_dueNo": "या महिन्यात कोणतीही परतफेड बाकी नाही", "c_cancel": "मेंबरशिप रद्द झालेली नाही (सलग 3 महिने पैसे न भरल्यास रद्द होते)", "c_cancelNone": "तपासण्याइतकी डिपॉझिटची नोंद नाही", "c_cancelYes": "मागच्या 3 महिन्यांचे योगदान भरलेले नाही", "c_cancelNo": "योगदानाची नोंद ठीक आहे", "c_quota": "{amt} चा महिन्याचा कोटा (महिन्याला जास्तीत जास्त {n})", "c_quotaVal": "या महिन्यात {b} पैकी {a} आधीच दिले आहेत", "c_g": "जामीनदार{i} — मेंबर असलेला आणि किमान {req} मेंबरशिप", "c_gNeed": "जामीनदाराचे नाव लागेल", "c_gNotFound": "\"{name}\" मेंबरच्या नोंदीत सापडला नाही", "c_gNoJoin": "{name} ची सामील होण्याची तारीख नोंदलेली नाही", "c_gVal": "{name} — मेंबर होऊन {dur} झाले", "c_gAct": "जामीनदार{i} आधीच दुसऱ्या चालू लोनला जामीनदार नाही", "c_gActEnter": "तपासण्यासाठी जामीनदाराचे नाव टाका", "c_gActYes": "{name} ने घेतलेल्या {amt} च्या लोनला आधीच जामीनदार आहे", "c_gActNo": "दुसऱ्या कोणत्याही चालू लोनला जामीनदार नाही", "footer": "WITH US सोसायटी रजिस्टर · डेमो नोंदींच्या जागी तुमची रजिस्टर फाईल अपलोड करा", "fsNone": "डेटा लोड केलेला नाही", "fsSelected": "{f} निवडली — \"फाईल प्रोसेस करा\" वर क्लिक करा", "fsProcessing": "{f} प्रोसेस होत आहे…", "fsReadErr": "{f} वाचता आली नाही. परत प्रयत्न करा.", "fsNoRows": "{f} मध्ये लोनच्या नोंदी सापडल्या नाहीत.", "fsParseErr": "{f} उघडता आली नाही — ती बरोबर .xlsx किंवा .csv फाईल आहे का ते तपासा.", "fsLoaded": "{src} — लोनच्या {n} नोंदी, {m} मेंबर", "fsDemo": "डेमो डेटा दाखवला आहे", "u_year": "वर्ष", "u_years": "वर्ष", "u_month": "महिना", "u_months": "महिने", "c_durFail": "मेंबर म्हणून अजून {req} पूर्ण झालेले नाहीत", "c_gFail": "{name} — अजून {req} पूर्ण झालेले नाहीत"} };
+  var I18N = { en: {"brandTitle": "WITH US Society Register", "brandSub": "Applicant & guarantor ledger — disbursement, repayment & fine tracking", "themeTitle": "Toggle light/dark theme", "langTitle": "Switch language", "clearData": "Clear data", "chooseFile": "Choose file (.xlsx / .csv)", "processFile": "Process file", "emptyTitle": "No data loaded", "emptyBody": "Upload a register file or load the demo data to see the dashboard.", "ovHead": "Overview<span>portfolio totals</span>", "kpiDisbursed": "Total disbursed (Loan Taken Amount)", "kpiRepaid": "Total repaid (Loan Repayment Amount)", "kpiOutstanding": "Current in process", "kpiFine": "Fines accrued", "kpiRate": "Repayment rate", "footAcrossLoans": "across {n} loans", "footPctDisbursed": "{n}% of disbursed", "footInProcess": "{n} loans in process", "footAcrossEntries": "across {n} entries", "footActiveClosed": "{a} active · {c} closed", "depHead": "Member deposits &amp; profile<span>society savings, monthly collection &amp; per-member view</span>", "depKpiMembers": "Total members", "depKpiMembersFoot": "with deposit records", "depKpiBalance": "Total deposit balance", "depKpiBalanceFoot": "current society corpus", "depKpiCollected": "Collected this year", "depKpiCollectedFoot": "monthly contributions to date", "depKpiNew": "New members", "depKpiNewFoot": "joined this year", "month": "Month", "allMonths": "All months", "depEmpty": "Select a month to see who deposited and who's pending.", "searchMember": "Search member", "phMember": "Type a member name…", "profileEmpty": "Search a member to see their deposits and active loans.", "clearSel": "Clear selection", "stPaid": "Members paid", "stPending": "Members pending", "stCollected": "Amount collected", "thMember": "Member", "thJoin": "Date of joining", "thMonthDep": "Month's deposit", "thBalance": "Current balance", "thStatus": "Status", "depTag": "{p} paid · {q} pending", "pfDeposit": "Deposit 2026 balance", "pfDuration": "Duration", "pfActiveLoans": "Active (In Process) loans", "thSr": "Sr no.", "thGuarantor": "Guarantor", "thTakenDate": "Taken date", "thTaken": "Amount taken", "thRepaid": "Amount repaid", "thFine": "Fine", "profTagSince": "Member since {d}", "profTagNone": "Joining date not on record", "lApplicant": "Applicant", "lRepayDate": "Repayment date", "lSuspended": "Suspended", "emptyNoActiveLoans": "No Active Loans for selected member.", "emptyNoMemberData": "No member data available.", "noMatchMembers": "No matching members", "v_active": "Active", "v_closed": "Closed", "v_inprocess": "In Process", "v_paid": "Paid", "v_pending": "Pending", "v_yes": "Yes", "v_no": "No", "v_notspec": "Not specified", "eligTitle": "Loan eligibility checker", "eligSub": "Enter an applicant and the loan amount requested to check eligibility against the society's loan rules.", "phApplicant": "Type applicant name…", "eligAmountLabel": "Loan amount requested", "selectAmount": "Select amount", "guarantor": "Guarantor", "phGuarantor": "Type guarantor name…", "checkBtn": "Check eligibility", "eligNeedInput": "Please enter an applicant name and select a loan amount first.", "eligYes": "Eligible for {amt}", "eligNo": "Not eligible for {amt}", "c_member": "Registered society member", "c_memberYes": "Member since {d}", "c_memberNo": "No matching member record found", "c_dur": "Membership duration (needs at least {req} for {amt})", "c_durNone": "Join date not on record", "c_durVal": "{dur} as a member", "c_open": "No outstanding loan", "c_openYes": "Existing loan of {amt} not yet fully repaid", "c_openNo": "No unpaid loans on record", "c_susp": "Not currently suspended from the loan system", "c_suspUntil": "Suspended until {d}", "c_suspNo": "No active suspension", "c_due": "Not in the repayment month of an existing loan", "c_dueYes": "An existing loan is due for repayment this month", "c_dueNo": "No repayment due this month", "c_cancel": "Membership not cancelled (3 consecutive missed months)", "c_cancelNone": "Insufficient deposit history to verify", "c_cancelYes": "Last 3 months of contribution are missing", "c_cancelNo": "Contribution history in order", "c_quota": "Monthly quota for {amt} (max {n}/month)", "c_quotaVal": "{a} of {b} already issued this month", "c_g": "Guarantor{i} — registered & at least {req} membership", "c_gNeed": "Guarantor name required", "c_gNotFound": "\"{name}\" not found in member records", "c_gNoJoin": "Join date not on record for {name}", "c_gVal": "{name} — {dur} as a member", "c_gAct": "Guarantor{i} not already guarantor for another active loan", "c_gActEnter": "Enter a guarantor name to check", "c_gActYes": "Already guarantor for {amt} loan taken by {name}", "c_gActNo": "No other active loans guaranteed", "footer": "WITH US Society Register · upload a register file to replace the demo entries", "fsNone": "No data loaded", "fsSelected": "{f} selected — click Process file", "fsProcessing": "Processing {f}…", "fsReadErr": "Could not read {f}. Please try again.", "fsNoRows": "No loan rows found in {f}.", "fsParseErr": "Could not parse {f} — check it is a valid .xlsx or .csv file.", "fsLoaded": "{src} — {n} loan entries, {m} members", "fsDemo": "Showing demo data", "u_year": "Year", "u_years": "Years", "u_month": "Month", "u_months": "Months", "c_durFail": "{req} not completed as a member", "c_gFail": "{name} — {req} not completed as a member", "eligHead": "Loan eligibility<span>check a member against the society's loan rules</span>", "tabOverview": "Overview", "tabDeposits": "Deposits", "tabEligibility": "Eligibility", "recentTitle": "Recent checks", "recentClear": "Clear history", "recentEmpty": "No checks yet — run a check above to see it here.", "recentPass": "Eligible", "recentFail": "Not eligible", "fsSavedNote": " — saved on this device", "fsNotSavedNote": " — could not be saved for next time (private browsing or storage full); you may need to upload it again later", "fsPrivateWarning": "This browser is not saving data between visits (often caused by private/incognito browsing). Your uploaded file will need to be re-uploaded next time."}, mr: {"brandTitle": "WITH US सोसायटी रजिस्टर", "brandSub": "अर्जदार आणि जामीनदारांची नोंदवही — लोन वाटप, परतफेड आणि दंडाचा हिशोब", "themeTitle": "लाईट/डार्क थीम बदला", "langTitle": "भाषा बदला", "clearData": "डेटा हटवा", "chooseFile": "फाईल निवडा (.xlsx / .csv)", "processFile": "फाईल प्रोसेस करा", "emptyTitle": "डेटा लोड केलेला नाही", "emptyBody": "डॅशबोर्ड बघण्यासाठी रजिस्टर फाईल अपलोड करा किंवा डेमो डेटा लोड करा.", "ovHead": "आढावा<span>सगळ्या लोनची एकूण बेरीज</span>", "kpiDisbursed": "एकूण वाटलेले लोन (घेतलेली रक्कम)", "kpiRepaid": "एकूण परत आलेले (परतफेडीची रक्कम)", "kpiOutstanding": "सध्या प्रोसेसमध्ये असलेले", "kpiFine": "जमा झालेला दंड", "kpiRate": "परतफेडीचे प्रमाण", "footAcrossLoans": "एकूण {n} लोन", "footPctDisbursed": "वाटलेल्या रकमेपैकी {n}%", "footInProcess": "{n} लोन प्रोसेसमध्ये", "footAcrossEntries": "एकूण {n} नोंदी", "footActiveClosed": "{a} चालू · {c} बंद", "depHead": "मेंबरची डिपॉझिट आणि माहिती<span>सोसायटीची बचत, महिन्याचे कलेक्शन आणि प्रत्येक मेंबरची माहिती</span>", "depKpiMembers": "एकूण मेंबर", "depKpiMembersFoot": "डिपॉझिटची नोंद असलेले", "depKpiBalance": "एकूण डिपॉझिट शिल्लक", "depKpiBalanceFoot": "सोसायटीचा सध्याचा फंड", "depKpiCollected": "या वर्षी जमा झालेले", "depKpiCollectedFoot": "आतापर्यंतचे महिन्याचे योगदान", "depKpiNew": "नवीन मेंबर", "depKpiNewFoot": "या वर्षी सामील झालेले", "month": "महिना", "allMonths": "सगळे महिने", "depEmpty": "कोणी पैसे भरले आणि कोणाचे बाकी आहेत ते बघण्यासाठी महिना निवडा.", "searchMember": "मेंबर शोधा", "phMember": "मेंबरचे नाव टाका…", "profileEmpty": "मेंबरची डिपॉझिट आणि चालू लोन बघण्यासाठी नाव शोधा.", "clearSel": "निवड काढा", "stPaid": "पैसे भरलेले मेंबर", "stPending": "पैसे बाकी असलेले मेंबर", "stCollected": "जमा झालेली रक्कम", "thMember": "मेंबर", "thJoin": "सामील झाल्याची तारीख", "thMonthDep": "या महिन्याची डिपॉझिट", "thBalance": "सध्याची शिल्लक", "thStatus": "स्थिती", "depTag": "{p} भरले · {q} बाकी", "pfDeposit": "2026 ची डिपॉझिट शिल्लक", "pfDuration": "मेंबरशिपचा कालावधी", "pfActiveLoans": "चालू (प्रोसेसमध्ये) असलेली लोन", "thSr": "क्र.", "thGuarantor": "जामीनदार", "thTakenDate": "लोन घेतल्याची तारीख", "thTaken": "घेतलेली रक्कम", "thRepaid": "परत केलेली रक्कम", "thFine": "दंड", "profTagSince": "{d} पासून मेंबर", "profTagNone": "सामील होण्याची तारीख नोंदलेली नाही", "lApplicant": "अर्जदार", "lRepayDate": "परतफेडीची तारीख", "lSuspended": "सस्पेंड", "emptyNoActiveLoans": "निवडलेल्या मेंबरचे कोणतेही चालू लोन नाही.", "emptyNoMemberData": "मेंबरचा डेटा उपलब्ध नाही.", "noMatchMembers": "असा कोणताही मेंबर सापडला नाही", "v_active": "चालू", "v_closed": "बंद", "v_inprocess": "प्रोसेसमध्ये", "v_paid": "भरले", "v_pending": "बाकी", "v_yes": "हो", "v_no": "नाही", "v_notspec": "नमूद नाही", "eligTitle": "लोनसाठी पात्रता तपासा", "eligSub": "अर्जदार आणि हवी असलेली लोनची रक्कम टाका, म्हणजे सोसायटीच्या नियमांप्रमाणे तो पात्र आहे का ते कळेल.", "phApplicant": "अर्जदाराचे नाव टाका…", "eligAmountLabel": "हवी असलेली लोनची रक्कम", "selectAmount": "रक्कम निवडा", "guarantor": "जामीनदार", "phGuarantor": "जामीनदाराचे नाव टाका…", "checkBtn": "पात्रता तपासा", "eligNeedInput": "आधी अर्जदाराचे नाव टाका आणि लोनची रक्कम निवडा.", "eligYes": "{amt} च्या लोनसाठी पात्र", "eligNo": "{amt} च्या लोनसाठी पात्र नाही", "c_member": "सोसायटीचा मेंबर आहे का", "c_memberYes": "{d} पासून मेंबर", "c_memberNo": "या नावाचा मेंबर सापडला नाही", "c_dur": "मेंबरशिपचा कालावधी ({amt} साठी किमान {req} आवश्यक)", "c_durNone": "सामील होण्याची तारीख नोंदलेली नाही", "c_durVal": "मेंबर होऊन {dur} झाले", "c_open": "आधीचे लोन बाकी नाही", "c_openYes": "{amt} चे आधीचे लोन अजून पूर्ण फेडलेले नाही", "c_openNo": "कोणतेही लोन बाकी नाही", "c_susp": "लोन मिळण्यापासून सध्या सस्पेंड नाही", "c_suspUntil": "{d} पर्यंत सस्पेंड", "c_suspNo": "सस्पेन्शन नाही", "c_due": "आधीच्या लोनच्या परतफेडीचा महिना नाही", "c_dueYes": "आधीचे लोन याच महिन्यात फेडायचे आहे", "c_dueNo": "या महिन्यात कोणतीही परतफेड बाकी नाही", "c_cancel": "मेंबरशिप रद्द झालेली नाही (सलग 3 महिने पैसे न भरल्यास रद्द होते)", "c_cancelNone": "तपासण्याइतकी डिपॉझिटची नोंद नाही", "c_cancelYes": "मागच्या 3 महिन्यांचे योगदान भरलेले नाही", "c_cancelNo": "योगदानाची नोंद ठीक आहे", "c_quota": "{amt} चा महिन्याचा कोटा (महिन्याला जास्तीत जास्त {n})", "c_quotaVal": "या महिन्यात {b} पैकी {a} आधीच दिले आहेत", "c_g": "जामीनदार{i} — मेंबर असलेला आणि किमान {req} मेंबरशिप", "c_gNeed": "जामीनदाराचे नाव लागेल", "c_gNotFound": "\"{name}\" मेंबरच्या नोंदीत सापडला नाही", "c_gNoJoin": "{name} ची सामील होण्याची तारीख नोंदलेली नाही", "c_gVal": "{name} — मेंबर होऊन {dur} झाले", "c_gAct": "जामीनदार{i} आधीच दुसऱ्या चालू लोनला जामीनदार नाही", "c_gActEnter": "तपासण्यासाठी जामीनदाराचे नाव टाका", "c_gActYes": "{name} ने घेतलेल्या {amt} च्या लोनला आधीच जामीनदार आहे", "c_gActNo": "दुसऱ्या कोणत्याही चालू लोनला जामीनदार नाही", "footer": "WITH US सोसायटी रजिस्टर · डेमो नोंदींच्या जागी तुमची रजिस्टर फाईल अपलोड करा", "fsNone": "डेटा लोड केलेला नाही", "fsSelected": "{f} निवडली — \"फाईल प्रोसेस करा\" वर क्लिक करा", "fsProcessing": "{f} प्रोसेस होत आहे…", "fsReadErr": "{f} वाचता आली नाही. परत प्रयत्न करा.", "fsNoRows": "{f} मध्ये लोनच्या नोंदी सापडल्या नाहीत.", "fsParseErr": "{f} उघडता आली नाही — ती बरोबर .xlsx किंवा .csv फाईल आहे का ते तपासा.", "fsLoaded": "{src} — लोनच्या {n} नोंदी, {m} मेंबर", "fsDemo": "डेमो डेटा दाखवला आहे", "u_year": "वर्ष", "u_years": "वर्ष", "u_month": "महिना", "u_months": "महिने", "c_durFail": "मेंबर म्हणून अजून {req} पूर्ण झालेले नाहीत", "c_gFail": "{name} — अजून {req} पूर्ण झालेले नाहीत", "eligHead": "लोन पात्रता<span>सोसायटीच्या नियमांनुसार मेंबरची पात्रता तपासा</span>", "tabOverview": "आढावा", "tabDeposits": "डिपॉझिट", "tabEligibility": "पात्रता", "recentTitle": "अलीकडील तपासण्या", "recentClear": "इतिहास पुसा", "recentEmpty": "अजून कोणतीही तपासणी केलेली नाही — वर तपासणी केल्यावर ती इथे दिसेल.", "recentPass": "पात्र", "recentFail": "पात्र नाही", "fsSavedNote": " — या डिव्हाइसवर जतन झाले", "fsNotSavedNote": " — पुढच्या वेळेसाठी जतन होऊ शकले नाही (खाजगी ब्राउझिंग किंवा स्टोरेज फुल्ल); पुढच्या वेळी पुन्हा अपलोड करावी लागेल", "fsPrivateWarning": "हा ब्राउझर भेटीदरम्यान डेटा जतन करत नाहीये (बऱ्याचदा खाजगी/incognito ब्राउझिंगमुळे होते). अपलोड केलेली फाईल पुढच्या वेळी पुन्हा अपलोड करावी लागेल."} };
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
                      'paid':'v_paid', 'pending':'v_pending', 'yes':'v_yes', 'no':'v_no', 'not specified':'v_notspec' };
@@ -679,9 +775,13 @@
   function renderFileStatus(){
     var v = {}; for(var k in fileStatusState.vars) v[k] = fileStatusState.vars[k];
     if(v.demo) v.src = t('fsDemo');
-    document.getElementById('fileStatus').textContent = t(fileStatusState.key, v);
+    var text = t(fileStatusState.key, v);
+    if(fileStatusState.key === 'fsLoaded' && !v.demo){
+      text += t(fileStatusState.saved === false ? 'fsNotSavedNote' : 'fsSavedNote');
+    }
+    document.getElementById('fileStatus').textContent = text;
   }
-  function setFileStatus(key, vars){ fileStatusState = { key:key, vars:vars || {} }; renderFileStatus(); }
+  function setFileStatus(key, vars, saved){ fileStatusState = { key:key, vars:vars || {}, saved:saved }; renderFileStatus(); }
 
   function applyStaticText(){
     document.documentElement.lang = LANG === 'mr' ? 'mr' : 'en';
@@ -710,7 +810,8 @@
     g1 = document.getElementById('eligGuarantor1Input'); g2 = document.getElementById('eligGuarantor2Input');
     if(g1) g1.value = g1v;
     if(g2) g2.value = g2v;
-    if(document.getElementById('eligResult').style.display !== 'none') runEligibilityCheck();
+    if(document.getElementById('eligResult').style.display !== 'none') runEligibilityCheck({ log:false });
+    renderRecentChecks();
   }
 
   var INR = new Intl.NumberFormat('en-IN', { style:'currency', currency:'INR', maximumFractionDigits:0 });
@@ -1427,7 +1528,7 @@
     if(g2) g2.value = state.g2 || '';
 
     if(state.applicant && LOAN_TIERS[selectedEligAmount]){
-      runEligibilityCheck();
+      runEligibilityCheck({ log:false });
     } else {
       document.getElementById('eligResult').style.display = 'none';
     }
@@ -1607,7 +1708,8 @@
     }).length;
   }
 
-  function runEligibilityCheck(){
+  function runEligibilityCheck(opts){
+    opts = opts || {};
     var applicantName = document.getElementById('eligApplicantInput').value.trim();
     var tier = LOAN_TIERS[selectedEligAmount];
     var resultEl = document.getElementById('eligResult');
@@ -1706,6 +1808,13 @@
 
     var eligible = checks.every(function(c){ return c.pass !== false; });
 
+    var recGuarantors = [];
+    for(var gi=1; gi<=tier.guarantors; gi++){
+      var giInput = document.getElementById('eligGuarantor' + gi + 'Input');
+      recGuarantors.push(giInput ? giInput.value.trim() : '');
+    }
+    if(opts.log !== false){ saveRecentCheck({ ts: Date.now(), applicant: applicantName, amount: selectedEligAmount, guarantors: recGuarantors, eligible: eligible }); }
+
     var html = '<div class="elig-badge ' + (eligible?'pass':'fail') + '">' + esc(eligible ? t('eligYes', {amt: tier.label}) : t('eligNo', {amt: tier.label})) + '</div>';
     html += '<ul class="elig-list">';
     checks.forEach(function(c){
@@ -1722,6 +1831,104 @@
   document.getElementById('eligCheckBtn').addEventListener('click', function(){ closeAllDropdowns(); runEligibilityCheck(); });
   document.getElementById('eligClearBtn').addEventListener('click', function(){ closeAllDropdowns(); clearEligState(); resetEligibilityForm(); });
 
+  /* ---------- Bottom tab navigation (mobile app-shell) ---------- */
+
+  var TAB_SECTIONS = { overview:'overviewSection', deposits:'depositsSection', eligibility:'eligibilitySection' };
+  var TAB_STORAGE_KEY = 'withusActiveTab';
+
+  function showTab(tab){
+    if(!TAB_SECTIONS[tab]) tab = 'overview';
+    Object.keys(TAB_SECTIONS).forEach(function(k){
+      var el = document.getElementById(TAB_SECTIONS[k]);
+      if(el) el.classList.toggle('tab-hidden', k !== tab);
+    });
+    document.querySelectorAll('.tabbar-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-tab') === tab);
+    });
+    try{ localStorage.setItem(TAB_STORAGE_KEY, tab); }catch(e){}
+  }
+
+  document.querySelectorAll('.tabbar-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){ showTab(btn.getAttribute('data-tab')); });
+  });
+
+  function restoreActiveTab(){
+    var saved = 'overview';
+    try{ saved = localStorage.getItem(TAB_STORAGE_KEY) || 'overview'; }catch(e){}
+    showTab(saved);
+  }
+
+  /* ---------- Recent eligibility checks ---------- */
+
+  var RECENT_STORAGE_KEY = 'withusRecentChecks';
+  var RECENT_MAX = 20;
+
+  function loadRecentChecks(){
+    try{
+      var raw = localStorage.getItem(RECENT_STORAGE_KEY);
+      var list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list : [];
+    }catch(e){ return []; }
+  }
+
+  function saveRecentCheck(record){
+    try{
+      var list = loadRecentChecks();
+      list.unshift(record);
+      if(list.length > RECENT_MAX) list = list.slice(0, RECENT_MAX);
+      localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(list));
+    }catch(e){}
+    renderRecentChecks();
+  }
+
+  function renderRecentChecks(){
+    var listEl = document.getElementById('recentList');
+    var emptyEl = document.getElementById('recentEmptyMsg');
+    if(!listEl || !emptyEl) return;
+    var list = loadRecentChecks();
+    if(!list.length){
+      listEl.innerHTML = '';
+      emptyEl.style.display = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = list.map(function(r, idx){
+      var tier = LOAN_TIERS[r.amount];
+      var amtLabel = tier ? tier.label : (r.amount || '');
+      var dateLabel = fmtDate(new Date(r.ts));
+      var badgeCls = r.eligible ? 'green' : 'rust';
+      var badgeText = r.eligible ? t('recentPass') : t('recentFail');
+      return '<div class="recent-item" data-idx="' + idx + '">' +
+        '<div><p class="recent-name">' + esc(r.applicant) + '</p>' +
+        '<p class="recent-meta">' + esc(amtLabel) + ' &middot; ' + esc(dateLabel) + '</p></div>' +
+        '<span class="status-pill" style="background:var(--' + badgeCls + '-soft); color:var(--' + badgeCls + ');">' + esc(badgeText) + '</span>' +
+        '</div>';
+    }).join('');
+    listEl.querySelectorAll('.recent-item').forEach(function(row){
+      row.addEventListener('click', function(){
+        var idx = parseInt(row.getAttribute('data-idx'), 10);
+        var rec = loadRecentChecks()[idx];
+        if(!rec) return;
+        document.getElementById('eligApplicantInput').value = rec.applicant || '';
+        selectedEligAmount = rec.amount || '';
+        buildDropdown('eligAmountDropdown', 'eligAmountMenu', 'eligAmountBtnLabel', eligAmountItems(), t('selectAmount'), selectedEligAmount, pickEligAmount);
+        renderGuarantorInputs();
+        var g1 = document.getElementById('eligGuarantor1Input'), g2 = document.getElementById('eligGuarantor2Input');
+        if(g1) g1.value = (rec.guarantors && rec.guarantors[0]) || '';
+        if(g2) g2.value = (rec.guarantors && rec.guarantors[1]) || '';
+        saveEligState();
+        showTab('eligibility');
+        if(LOAN_TIERS[selectedEligAmount]) runEligibilityCheck({ log:false });
+      });
+    });
+  }
+
+  document.getElementById('recentClearBtn').addEventListener('click', function(){
+    try{ localStorage.removeItem(RECENT_STORAGE_KEY); }catch(e){}
+    renderRecentChecks();
+  });
+
+
   /* ---------- Data loading ---------- */
 
   function initDashboard(){
@@ -1731,14 +1938,104 @@
     renderDepositCharts();
     populateProfileSearch();
     populateEligibility();
+    renderRecentChecks();
+    restoreActiveTab();
   }
+
+  /* ---------- Persist the uploaded register across reloads / tab switches ---------- */
+
+  var DATASET_STORAGE_KEY = 'withusDataset';
+
+  // Some browsers (private/incognito mode, or storage already full) silently refuse to
+  // write to localStorage. Test once at startup so we can tell the user honestly instead
+  // of pretending the upload was saved when it was not.
+  var STORAGE_AVAILABLE = (function(){
+    try{
+      var k = '__withusStorageTest__';
+      localStorage.setItem(k, '1');
+      localStorage.removeItem(k);
+      return true;
+    }catch(e){ return false; }
+  })();
+
+  function serializeRow(r){
+    return {
+      applicant: r.applicant, guarantor: r.guarantor,
+      takenDate: r.takenDate ? r.takenDate.toISOString() : null,
+      repayDate: r.repayDate ? r.repayDate.toISOString() : null,
+      takenAmt: r.takenAmt, repayAmt: r.repayAmt, fine: r.fine,
+      status: r.status, suspended: r.suspended
+    };
+  }
+  function deserializeRow(o){
+    return {
+      applicant: o.applicant, guarantor: o.guarantor,
+      takenDate: o.takenDate ? new Date(o.takenDate) : null,
+      repayDate: o.repayDate ? new Date(o.repayDate) : null,
+      takenAmt: o.takenAmt, repayAmt: o.repayAmt, fine: o.fine,
+      status: o.status, suspended: o.suspended
+    };
+  }
+  function serializeMember(m){
+    return {
+      name: m.name, joinDate: m.joinDate ? m.joinDate.toISOString() : null,
+      duration: m.duration, depositPrior: m.depositPrior, depositCurrent: m.depositCurrent,
+      months: m.months
+    };
+  }
+  function deserializeMember(o){
+    return {
+      name: o.name, joinDate: o.joinDate ? new Date(o.joinDate) : null,
+      duration: o.duration, depositPrior: o.depositPrior, depositCurrent: o.depositCurrent,
+      months: o.months || []
+    };
+  }
+
+  function saveDatasetToStorage(rows, sourceLabel, memberData){
+    try{
+      var payload = {
+        sourceLabel: sourceLabel,
+        rows: rows.map(serializeRow),
+        memberData: {
+          monthCols: (memberData && memberData.monthCols) || [],
+          members: ((memberData && memberData.members) || []).map(serializeMember)
+        }
+      };
+      var json = JSON.stringify(payload);
+      localStorage.setItem(DATASET_STORAGE_KEY, json);
+      // Browsers that are silently out of quota can accept setItem without throwing
+      // yet fail to actually store the value — verify by reading it straight back.
+      return localStorage.getItem(DATASET_STORAGE_KEY) === json;
+    }catch(e){ return false; }
+  }
+
+  function loadDatasetFromStorage(){
+    try{
+      var raw = localStorage.getItem(DATASET_STORAGE_KEY);
+      if(!raw) return null;
+      var payload = JSON.parse(raw);
+      if(!payload || !payload.rows || !payload.rows.length) return null;
+      return {
+        sourceLabel: payload.sourceLabel,
+        rows: payload.rows.map(deserializeRow),
+        memberData: {
+          monthCols: (payload.memberData && payload.memberData.monthCols) || [],
+          members: ((payload.memberData && payload.memberData.members) || []).map(deserializeMember)
+        }
+      };
+    }catch(e){ return null; }
+  }
+
+  function clearDatasetStorage(){ try{ localStorage.removeItem(DATASET_STORAGE_KEY); }catch(e){} }
 
   function loadData(rows, sourceLabel, memberData){
     allRows = rows;
     allMembers = memberData || { members: [], monthCols: [] };
     document.getElementById('dashboardContent').style.display = '';
     document.getElementById('emptyState').style.display = 'none';
-    setFileStatus('fsLoaded', {demo: sourceLabel === '__demo__', src: sourceLabel, n: fmtNum(rows.length), m: fmtNum(allMembers.members.length)});
+    var saved = null;
+    if(sourceLabel !== '__demo__'){ saved = saveDatasetToStorage(rows, sourceLabel, allMembers); }
+    setFileStatus('fsLoaded', {demo: sourceLabel === '__demo__', src: sourceLabel, n: fmtNum(rows.length), m: fmtNum(allMembers.members.length)}, saved);
     initDashboard();
   }
 
@@ -1755,6 +2052,7 @@
     document.getElementById('dashboardContent').style.display = 'none';
     document.getElementById('emptyState').style.display = '';
     setFileStatus('fsNone');
+    clearDatasetStorage();
   }
 
   document.getElementById('clearBtn').addEventListener('click', clearData);
@@ -1822,7 +2120,14 @@
   });
 
   applyStaticText();
-  loadData(generateSampleData(), '__demo__', generateSampleMemberData());
+  (function(){
+    var restored = loadDatasetFromStorage();
+    if(restored && restored.rows.length){
+      loadData(restored.rows, restored.sourceLabel, restored.memberData);
+    } else {
+      loadData(generateSampleData(), '__demo__', generateSampleMemberData());
+    }
+  })();
 })();
 </script>
 <script>

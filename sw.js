@@ -1,6 +1,6 @@
 /* WITH US Society Register — service worker
    Bump CACHE_VERSION whenever you publish a new index.html so phones pick it up. */
-var CACHE_VERSION = 'withus-v2';
+var CACHE_VERSION = 'withus-v4';
 var SHELL = ['./', 'index.html', 'manifest.webmanifest',
              'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png',
              'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
