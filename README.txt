@@ -15,4 +15,4 @@ SHARED DATA (so everyone sees the latest uploaded data)
   Upload the Excel once as admin (enter the passcode set in Code.gs); everyone else sees the shared data.
 
 UPDATING
-  After changing index.html, bump CACHE ('withus-v3' -> 'withus-v4') in sw.js so installed apps refresh.
+  After changing index.html, bump CACHE ('withus-v6' -> 'withus-v7') in sw.js so installed apps refresh.
