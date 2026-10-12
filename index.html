@@ -483,6 +483,54 @@
   @media (min-width:901px){ .kpi-card{ aspect-ratio:1/.8; } }
   @media (max-width:380px){ .kpi-card{ aspect-ratio:auto; min-height:120px; } }
 
+  .mc-monthnav{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+  .mc-monthlabel{ font-family:'Source Serif 4','Noto Serif Devanagari',serif; font-size:19px; font-weight:600; color:var(--ink); text-align:center; flex:1; }
+  .mc-nav{ width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:22px; line-height:1; cursor:pointer; }
+  .mc-nav:disabled{ opacity:.35; cursor:not-allowed; }
+  .mc-stats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+  .mc-stat{ background:var(--paper); border:1px solid var(--line-soft); border-radius:16px; padding:12px 12px 10px; }
+  .mc-stat b{ display:block; font-family:'Source Serif 4','Noto Serif Devanagari',serif; font-size:22px; font-weight:600; margin-top:2px; }
+  .mc-stat span{ font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-mute); }
+  .mc-stat.paid b{ color:var(--green); } .mc-stat.pend b{ color:var(--rust); }
+  .mc-bar{ height:8px; border-radius:999px; background:var(--line-soft); overflow:hidden; margin:12px 0 4px; }
+  .mc-bar i{ display:block; height:8px; border-radius:999px; background:var(--green); }
+  .mc-msg{ min-height:18px; margin:8px 2px 0; font-size:12.5px; color:var(--ink-mute); }
+  .mc-msg.ok{ color:var(--green); } .mc-msg.bad{ color:var(--rust); } .mc-msg.warn{ color:var(--gold); }
+  .mc-search input{ width:100%; box-sizing:border-box; height:48px; border-radius:16px; border:1px solid var(--line); background:var(--card); color:var(--ink); padding:0 14px; font:inherit; font-size:15px; margin-top:8px; }
+  .mc-chips{ display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
+  .mc-chip{ min-height:44px; padding:0 18px; border-radius:999px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+  .mc-chip.active{ background:var(--ink); color:var(--card); border-color:var(--ink); }
+  .mc-undo{ display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--ink); color:var(--card); border-radius:14px; padding:6px 8px 6px 14px; font-size:13px; margin-bottom:10px; }
+  .mc-undo button{ min-height:44px; padding:0 14px; border:0; background:transparent; color:var(--gold-soft,#F0CF8A); font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+  .mc-list{ max-height:min(60vh,520px); overflow-y:auto; border:1px solid var(--line-soft); border-radius:18px; }
+  .mc-row{ display:flex; align-items:center; gap:10px; padding:8px 12px 8px 14px; min-height:60px; box-sizing:border-box; border-bottom:1px solid var(--line-soft); }
+  .mc-row:last-child{ border-bottom:0; }
+  .mc-n{ width:30px; flex:none; font-size:12px; color:var(--ink-mute); }
+  .mc-name{ flex:1; min-width:0; font-size:13.5px; font-weight:500; line-height:1.3; color:var(--ink); }
+  .mc-btn{ flex:none; display:inline-flex; align-items:center; justify-content:center; gap:5px; min-width:104px; min-height:44px; padding:0 12px; border-radius:999px; font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--ink); background:var(--card); color:var(--ink); }
+  .mc-btn.paid{ border-color:var(--green); background:var(--green-soft); color:var(--green); }
+  .mc-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .mc-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .mc-pre{ white-space:pre-wrap; word-break:break-word; margin:10px 0 0; padding:14px; border-radius:16px; background:var(--paper); border:1px solid var(--line-soft); font:inherit; font-size:13px; line-height:1.5; max-height:340px; overflow-y:auto; color:var(--ink); }
+  .mc-import{ margin-top:18px; }
+  .mc-import summary{ cursor:pointer; font-size:13.5px; font-weight:600; color:var(--ink); min-height:44px; display:flex; align-items:center; }
+  .mc-import textarea{ width:100%; box-sizing:border-box; min-height:120px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--ink); padding:10px; font:inherit; font-size:13px; margin:8px 0; }
+  .mc-month{ display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; text-align:left; padding:12px 14px; margin-top:8px; border:1px solid var(--line-soft); border-radius:16px; background:var(--card); color:var(--ink); font:inherit; cursor:pointer; min-height:56px; }
+  .mc-month.sel{ border-color:var(--gold); }
+  .mc-month small{ display:block; color:var(--ink-mute); font-size:12px; margin-top:2px; }
+  .mc-switch{ display:grid; grid-template-columns:1fr 1fr; gap:6px; background:var(--paper); border:1px solid var(--line); border-radius:18px; padding:6px; margin-bottom:16px; }
+  .mc-seg{ min-height:44px; border-radius:13px; border:0; background:transparent; color:var(--ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+  .mc-seg.active{ background:var(--ink); color:var(--card); }
+  .rp-card{ background:var(--card); border:1px solid var(--line-soft); border-radius:22px; padding:14px; margin-top:10px; box-shadow:0 4px 14px rgba(16,24,43,.06); }
+  .rp-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+  .rp-name{ font-size:14.5px; font-weight:600; line-height:1.3; color:var(--ink); }
+  .rp-pill{ flex:none; font-size:12px; font-weight:600; border-radius:999px; padding:4px 10px; background:var(--rust-soft); color:var(--rust); }
+  .rp-pill.ok{ background:var(--green-soft); color:var(--green); }
+  .rp-ret{ margin-top:8px; font-size:13px; color:var(--ink-soft); }
+  .rp-ret strong{ font-size:17px; color:var(--ink); margin-left:4px; }
+  .rp-meta{ margin-top:6px; font-size:12.5px; line-height:1.5; color:var(--ink-soft); }
+  .rp-btn{ width:100%; min-height:44px; margin-top:10px; border-radius:14px; font:inherit; font-size:14px; font-weight:600; cursor:pointer; border:0; background:var(--green); color:#fff; }
+  .rp-btn.undo{ background:var(--card); color:var(--ink); border:1.5px solid var(--ink); }
   .copy-btn{ display:inline-flex; align-items:center; gap:6px; font:inherit; font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:999px;
     border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; white-space:nowrap; }
   .copy-btn:hover{ border-color:var(--gold); }
@@ -789,6 +837,94 @@
     </div>
   </section>
 
+  <section class="ledger-section tab-section" id="monthlySection">
+    <div class="ledger-head">
+      <span class="ledger-index">V</span>
+      <h2 class="ledger-title" data-i18n-html="monHead">Monthly contribution<span>₹500 per member · mark as paid, then generate the list</span></h2>
+      <div class="ledger-rule"></div>
+    </div>
+
+    <div class="member-card" id="monCard">
+      <div class="mc-switch">
+        <button type="button" class="mc-seg active" data-pane="contrib" data-i18n="monSwContrib">Contribution</button>
+        <button type="button" class="mc-seg" data-pane="loan" data-i18n="monSwLoan">Loan repayment</button>
+      </div>
+      <div id="monPaneContrib">
+      <div class="mc-monthnav">
+        <button type="button" class="mc-nav" id="monPrev" aria-label="Previous month">&#8249;</button>
+        <span class="mc-monthlabel" id="monMonthLabel"></span>
+        <button type="button" class="mc-nav" id="monNext" aria-label="Next month">&#8250;</button>
+      </div>
+      <div class="mc-stats" id="monStats"></div>
+      <div class="mc-bar"><i id="monBar" style="width:0%"></i></div>
+      <p class="mc-msg" id="monMsg" role="status" aria-live="polite"></p>
+
+      <div class="mc-search"><input type="text" id="monSearch" data-i18n-ph="monSearchPh" placeholder="Search member name" autocomplete="off"></div>
+      <div class="mc-chips">
+        <button type="button" class="mc-chip active" data-f="all" data-i18n="monAll">All</button>
+        <button type="button" class="mc-chip" data-f="unpaid" data-i18n="monUnpaid">Unpaid</button>
+        <button type="button" class="mc-chip" data-f="paid" data-i18n="monPaidF">Paid</button>
+      </div>
+      <div id="monUndo"></div>
+      <div class="mc-list" id="monList"></div>
+
+      <div class="mc-actions">
+        <button type="button" class="clear-filter-btn" id="monGenAll" style="background:var(--ink); color:var(--card); border-color:var(--ink);" data-i18n="monGenAll">Generate list</button>
+        <button type="button" class="clear-filter-btn" id="monGenUnpaid" data-i18n="monGenUnpaid">Unpaid list</button>
+      </div>
+      <div id="monListResult" style="display:none;"></div>
+
+      <details class="mc-import">
+        <summary data-i18n="monImportTitle">Import paid members from a WhatsApp list</summary>
+        <p style="font-size:12.5px; color:var(--ink-soft); margin:4px 0 0;" data-i18n="monImportHint">Paste a list like “1. NAME - 500”.</p>
+        <textarea id="monImportText" aria-label="WhatsApp list"></textarea>
+        <button type="button" class="clear-filter-btn" id="monImportBtn" data-i18n="monImportBtn">Import</button>
+        <p id="monImportOut" style="font-size:12.5px; color:var(--ink-soft); margin:8px 0 0;"></p>
+      </details>
+
+      <h4 style="margin:22px 0 0; font-size:14px; color:var(--ink);" data-i18n="monMonthsHead">All months</h4>
+      <div id="monMonths"></div>
+      </div>
+
+      <div id="monPaneLoan" style="display:none;">
+        <div class="mc-monthnav">
+          <button type="button" class="mc-nav" id="rpPrev" aria-label="Previous month">&#8249;</button>
+          <span class="mc-monthlabel" id="rpMonthLabel"></span>
+          <button type="button" class="mc-nav" id="rpNext" aria-label="Next month">&#8250;</button>
+        </div>
+        <div class="mc-stats" id="rpStats"></div>
+        <div class="mc-bar"><i id="rpBar" style="width:0%"></i></div>
+        <p class="mc-msg" id="rpMsg" role="status" aria-live="polite"></p>
+
+        <div class="mc-search"><input type="text" id="rpSearch" data-i18n-ph="monSearchPh" placeholder="Search member name" autocomplete="off"></div>
+        <div class="mc-chips">
+          <button type="button" class="mc-chip rp-chip active" data-f="all" data-i18n="monAll">All</button>
+          <button type="button" class="mc-chip rp-chip" data-f="pending" data-i18n="rpPending">Pending</button>
+          <button type="button" class="mc-chip rp-chip" data-f="received" data-i18n="rpReceived">Received</button>
+        </div>
+        <div id="rpUndo"></div>
+        <div class="mc-list" id="rpList" style="padding:0 10px 10px;"></div>
+
+        <div class="mc-actions">
+          <button type="button" class="clear-filter-btn" id="rpGenAll" style="background:var(--ink); color:var(--card); border-color:var(--ink);" data-i18n="rpGenAll">Generate list</button>
+          <button type="button" class="clear-filter-btn" id="rpGenPending" data-i18n="rpGenPending">Pending list</button>
+        </div>
+        <div id="rpListResult" style="display:none;"></div>
+
+        <details class="mc-import">
+          <summary data-i18n="rpImportTitle">Import received loans from a WhatsApp list</summary>
+          <p style="font-size:12.5px; color:var(--ink-soft); margin:4px 0 0;" data-i18n="rpImportHint">Paste the list you posted.</p>
+          <textarea id="rpImportText" aria-label="WhatsApp list"></textarea>
+          <button type="button" class="clear-filter-btn" id="rpImportBtn" data-i18n="monImportBtn">Import</button>
+          <p id="rpImportOut" style="font-size:12.5px; color:var(--ink-soft); margin:8px 0 0;"></p>
+        </details>
+
+        <h4 style="margin:22px 0 0; font-size:14px; color:var(--ink);" data-i18n="monMonthsHead">All months</h4>
+        <div id="rpMonths"></div>
+      </div>
+    </div>
+  </section>
+
   </div>
 
 </main>
@@ -811,6 +947,10 @@
   <button class="tabbar-btn" data-tab="lists" type="button">
     <svg viewBox="0 0 24 24"><path d="M8 6h11"/><path d="M8 12h11"/><path d="M8 18h11"/><circle cx="4" cy="6" r="1.4"/><circle cx="4" cy="12" r="1.4"/><circle cx="4" cy="18" r="1.4"/></svg>
     <span data-i18n="tabLists">Lists</span>
+  </button>
+  <button class="tabbar-btn" data-tab="monthly" type="button">
+    <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M4 10h16"/><path d="M9 15l2 2 4-4"/></svg>
+    <span data-i18n="tabMonthly">Monthly</span>
   </button>
 </div>
 
@@ -846,7 +986,7 @@
   var LANG = 'en';
   try{ var savedLang = localStorage.getItem('withusLang'); if(savedLang === 'mr' || savedLang === 'en') LANG = savedLang; }catch(e){}
 
-  var I18N = { en: {"brandTitle": "WITH US Society Register", "brandSub": "Applicant & guarantor ledger — disbursement, repayment & fine tracking", "themeTitle": "Toggle light/dark theme", "langTitle": "Switch language", "clearData": "Clear data", "chooseFile": "Choose file (.xlsx / .csv)", "processFile": "Process file", "emptyTitle": "No data loaded", "emptyBody": "Upload a register file or load the demo data to see the dashboard.", "ovHead": "Overview<span>portfolio totals</span>", "kpiDisbursed": "Total disbursed (Loan Taken Amount)", "kpiRepaid": "Total repaid (Loan Repayment Amount)", "kpiOutstanding": "Current in process", "kpiFine": "Fines accrued", "kpiRate": "Repayment rate", "footAcrossLoans": "across {n} loans", "footPctDisbursed": "{n}% of disbursed", "footInProcess": "{n} loans in process", "footAcrossEntries": "across {n} entries", "footActiveClosed": "{a} active · {c} closed", "depHead": "Member deposits &amp; profile<span>society savings, monthly collection &amp; per-member view</span>", "depKpiMembers": "Total members", "depKpiMembersFoot": "with deposit records", "depKpiBalance": "Total deposit balance", "depKpiBalanceFoot": "current society corpus", "depKpiCollected": "Collected this year", "depKpiCollectedFoot": "monthly contributions to date", "depKpiNew": "New members", "depKpiNewFoot": "joined this year", "month": "Month", "allMonths": "All months", "depEmpty": "Select a month to see who deposited and who's pending.", "searchMember": "Search member", "phMember": "Type a member name…", "profileEmpty": "Search a member to see their deposits and active loans.", "clearSel": "Clear selection", "stPaid": "Members paid", "stPending": "Members pending", "stCollected": "Amount collected", "thMember": "Member", "thJoin": "Date of joining", "thMonthDep": "Month's deposit", "thBalance": "Current balance", "thStatus": "Status", "depTag": "{p} paid · {q} pending", "pfDeposit": "Deposit 2026 balance", "pfDuration": "Duration", "pfActiveLoans": "Active (In Process) loans", "thSr": "Sr no.", "thGuarantor": "Guarantor", "thTakenDate": "Taken date", "thTaken": "Amount taken", "thRepaid": "Amount repaid", "thFine": "Fine", "profTagSince": "Member since {d}", "profTagNone": "Joining date not on record", "lApplicant": "Applicant", "lRepayDate": "Repayment date", "lSuspended": "Suspended", "emptyNoActiveLoans": "No Active Loans for selected member.", "emptyNoMemberData": "No member data available.", "noMatchMembers": "No matching members", "v_active": "Active", "v_closed": "Closed", "v_inprocess": "In Process", "v_paid": "Paid", "v_pending": "Pending", "v_yes": "Yes", "v_no": "No", "v_notspec": "Not specified", "eligTitle": "Loan eligibility checker", "eligSub": "Enter an applicant and the loan amount requested to check eligibility against the society's loan rules.", "phApplicant": "Type applicant name…", "eligAmountLabel": "Loan amount requested", "selectAmount": "Select amount", "guarantor": "Guarantor", "phGuarantor": "Type guarantor name…", "checkBtn": "Check eligibility", "eligNeedInput": "Please enter an applicant name and select a loan amount first.", "eligYes": "Eligible for {amt}", "eligNo": "Not eligible for {amt}", "c_member": "Registered society member", "c_memberYes": "Member since {d}", "c_memberNo": "No matching member record found", "c_dur": "Membership duration (needs at least {req} for {amt})", "c_durNone": "Join date not on record", "c_durVal": "{dur} as a member", "c_open": "No outstanding loan", "c_openYes": "Existing loan of {amt} not yet fully repaid", "c_openNo": "No unpaid loans on record", "c_susp": "Not currently suspended from the loan system", "c_suspUntil": "Suspended until {d}", "c_suspNo": "No active suspension", "c_due": "Not in the repayment month of an existing loan", "c_dueYes": "An existing loan is due for repayment this month", "c_dueNo": "No repayment due this month", "c_cancel": "Membership not cancelled (3 consecutive missed months)", "c_cancelNone": "Insufficient deposit history to verify", "c_cancelYes": "Last 3 months of contribution are missing", "c_cancelNo": "Contribution history in order", "c_quota": "Monthly quota for {amt} (max {n}/month)", "c_quotaVal": "{a} of {b} already issued this month", "c_g": "Guarantor{i} — registered & at least {req} membership", "c_gNeed": "Guarantor name required", "c_gNotFound": "\"{name}\" not found in member records", "c_gNoJoin": "Join date not on record for {name}", "c_gVal": "{name} — {dur} as a member", "c_gAct": "Guarantor{i} not already guarantor for another active loan", "c_gActEnter": "Enter a guarantor name to check", "c_gActYes": "Already guarantor for {amt} loan taken by {name}", "c_gActNo": "No other active loans guaranteed", "footer": "WITH US Society Register · upload a register file to replace the demo entries", "fsNone": "No data loaded", "fsSelected": "{f} selected — click Process file", "fsProcessing": "Processing {f}…", "fsReadErr": "Could not read {f}. Please try again.", "fsNoRows": "No loan rows found in {f}.", "fsParseErr": "Could not parse {f} — check it is a valid .xlsx or .csv file.", "fsLoaded": "{src} — {n} loan entries, {m} members", "fsDemo": "Showing demo data", "u_year": "Year", "u_years": "Years", "u_month": "Month", "u_months": "Months", "c_durFail": "{req} not completed as a member", "c_gFail": "{name} — {req} not completed as a member", "eligHead": "Loan eligibility<span>check a member against the society's loan rules</span>", "tabOverview": "Overview", "tabDeposits": "Deposits", "tabEligibility": "Eligibility", "recentTitle": "Recent checks", "recentClear": "Clear history", "recentEmpty": "No checks yet — run a check above to see it here.", "recentPass": "Eligible", "recentFail": "Not eligible", "fsSavedNote": " — saved on this device", "fsNotSavedNote": " — could not be saved for next time (private browsing or storage full); you may need to upload it again later", "fsPrivateWarning": "This browser is not saving data between visits (often caused by private/incognito browsing). Your uploaded file will need to be re-uploaded next time.", "tabLists": "Lists", "listsHead": "Eligible members<span>who qualifies to apply, and who's free to guarantee</span>", "listTitle": "Eligible members & available guarantors", "listSub": "Tap a button to see the members who qualify for each loan amount, or the members free to stand as guarantor. Every list can be copied.", "copyList": "Copy list", "copyAll": "Copy all lists", "copied": "Copied \u2713", "copyManual": "Your browser blocked automatic copy. The text is selected below: press and hold, then choose Copy \u2014 or use Share.", "copyShare": "Share", "copySelect": "Copy", "copyClose": "Close", "copyFailed": "Copy failed", "copyReason": "Copy reason", "copyReasonHead": "Reasons:", "copyApplicant": "Applicant", "listAllGuarBtn": "Guarantor lists — all amounts", "listAllGuarTitle": "Guarantor List for {amt} Loan Amount", "listAllGuarNone": "No members are currently available as guarantor for this amount.", "listAllGuarNa": "No guarantor is required for this loan amount.", "listNeedAmt": "Please select a loan amount first.", "listEligHead": "Eligible for {amt} ({n})", "listEligNone": "No members currently meet all the requirements for {amt}.", "listGuarHead": "Available guarantors for {amt} ({n})", "listGuarNone": "No members are currently free to guarantor a {amt} loan.", "listGuarNa": "This loan amount does not require a guarantor.", "listColName": "Name", "listColSince": "Member since", "listColMonths": "Months as member", "listNote": "Members with an open loan, an active suspension, a repayment due this month, or missing 3 months of deposits are excluded automatically.", "listAllEligBtn": "Eligible member lists — all amounts", "listAllEligTitle": "Loan Eligible Members List for {amt} Loan Amount", "listAllEligNone": "No members currently qualify to apply for this amount.", "syncLoading": "Loading the latest shared data…", "syncPrompt": "Enter the admin passcode to share this data with everyone:", "sync_pending": " · sharing with everyone…", "sync_ok": " · shared with everyone", "sync_local": " · NOT shared (no passcode entered)", "sync_badpass": " · NOT shared (wrong passcode)", "sync_neterr": " · NOT shared (could not reach the server)", "fineTitle": "Fine details", "fineSub": "Collected, spent and remaining", "fineCollected": "Fine collected", "fineSpent": "Spent from fine", "fineRemaining": "Remaining fine", "fineByYear": "Fine collected by year", "fineByMonth": "Fine collected by month", "fineExpenses": "Expenses paid from fine", "fineEntries": "Entries", "fineYear": "Year", "fineItem": "Item", "fineAmount": "Amount", "fineTotalExp": "Total expense", "allYears": "All years", "fineNoData": "No fines recorded.", "fineNoTable": "Spent and remaining could not be read from the register. Upload the register file again (Choose file, then Process file) so the fine table is read.", "fineMismatch": "Fines listed against the loans add up to {a}. The collected figure above is the total written in the register.", "fineBasis": "Each fine is counted in the month of the loan repayment date (or the loan taken date if there is no repayment date).", "fineAllTime": "All time", "fineMembers": "Members fined", "fineAvg": "Average fine", "fineMax": "Highest fine", "fineShare": "Share of all fines", "fineBusiest": "Busiest month", "fineMonthsN": "Months with fines", "fineOverall": "Overall (all time)", "fineExpN": "Expenses paid from fine ({n})", "fineEntriesN": "{n} entries"}, mr: {"brandTitle": "WITH US सोसायटी रजिस्टर", "brandSub": "अर्जदार आणि जामीनदारांची नोंदवही — लोन वाटप, परतफेड आणि दंडाचा हिशोब", "themeTitle": "लाईट/डार्क थीम बदला", "langTitle": "भाषा बदला", "clearData": "डेटा हटवा", "chooseFile": "फाईल निवडा (.xlsx / .csv)", "processFile": "फाईल प्रोसेस करा", "emptyTitle": "डेटा लोड केलेला नाही", "emptyBody": "डॅशबोर्ड बघण्यासाठी रजिस्टर फाईल अपलोड करा किंवा डेमो डेटा लोड करा.", "ovHead": "आढावा<span>सगळ्या लोनची एकूण बेरीज</span>", "kpiDisbursed": "एकूण वाटलेले लोन (घेतलेली रक्कम)", "kpiRepaid": "एकूण परत आलेले (परतफेडीची रक्कम)", "kpiOutstanding": "सध्या प्रोसेसमध्ये असलेले", "kpiFine": "जमा झालेला दंड", "kpiRate": "परतफेडीचे प्रमाण", "footAcrossLoans": "एकूण {n} लोन", "footPctDisbursed": "वाटलेल्या रकमेपैकी {n}%", "footInProcess": "{n} लोन प्रोसेसमध्ये", "footAcrossEntries": "एकूण {n} नोंदी", "footActiveClosed": "{a} चालू · {c} बंद", "depHead": "मेंबरची डिपॉझिट आणि माहिती<span>सोसायटीची बचत, महिन्याचे कलेक्शन आणि प्रत्येक मेंबरची माहिती</span>", "depKpiMembers": "एकूण मेंबर", "depKpiMembersFoot": "डिपॉझिटची नोंद असलेले", "depKpiBalance": "एकूण डिपॉझिट शिल्लक", "depKpiBalanceFoot": "सोसायटीचा सध्याचा फंड", "depKpiCollected": "या वर्षी जमा झालेले", "depKpiCollectedFoot": "आतापर्यंतचे महिन्याचे योगदान", "depKpiNew": "नवीन मेंबर", "depKpiNewFoot": "या वर्षी सामील झालेले", "month": "महिना", "allMonths": "सगळे महिने", "depEmpty": "कोणी पैसे भरले आणि कोणाचे बाकी आहेत ते बघण्यासाठी महिना निवडा.", "searchMember": "मेंबर शोधा", "phMember": "मेंबरचे नाव टाका…", "profileEmpty": "मेंबरची डिपॉझिट आणि चालू लोन बघण्यासाठी नाव शोधा.", "clearSel": "निवड काढा", "stPaid": "पैसे भरलेले मेंबर", "stPending": "पैसे बाकी असलेले मेंबर", "stCollected": "जमा झालेली रक्कम", "thMember": "मेंबर", "thJoin": "सामील झाल्याची तारीख", "thMonthDep": "या महिन्याची डिपॉझिट", "thBalance": "सध्याची शिल्लक", "thStatus": "स्थिती", "depTag": "{p} भरले · {q} बाकी", "pfDeposit": "2026 ची डिपॉझिट शिल्लक", "pfDuration": "मेंबरशिपचा कालावधी", "pfActiveLoans": "चालू (प्रोसेसमध्ये) असलेली लोन", "thSr": "क्र.", "thGuarantor": "जामीनदार", "thTakenDate": "लोन घेतल्याची तारीख", "thTaken": "घेतलेली रक्कम", "thRepaid": "परत केलेली रक्कम", "thFine": "दंड", "profTagSince": "{d} पासून मेंबर", "profTagNone": "सामील होण्याची तारीख नोंदलेली नाही", "lApplicant": "अर्जदार", "lRepayDate": "परतफेडीची तारीख", "lSuspended": "सस्पेंड", "emptyNoActiveLoans": "निवडलेल्या मेंबरचे कोणतेही चालू लोन नाही.", "emptyNoMemberData": "मेंबरचा डेटा उपलब्ध नाही.", "noMatchMembers": "असा कोणताही मेंबर सापडला नाही", "v_active": "चालू", "v_closed": "बंद", "v_inprocess": "प्रोसेसमध्ये", "v_paid": "भरले", "v_pending": "बाकी", "v_yes": "हो", "v_no": "नाही", "v_notspec": "नमूद नाही", "eligTitle": "लोनसाठी पात्रता तपासा", "eligSub": "अर्जदार आणि हवी असलेली लोनची रक्कम टाका, म्हणजे सोसायटीच्या नियमांप्रमाणे तो पात्र आहे का ते कळेल.", "phApplicant": "अर्जदाराचे नाव टाका…", "eligAmountLabel": "हवी असलेली लोनची रक्कम", "selectAmount": "रक्कम निवडा", "guarantor": "जामीनदार", "phGuarantor": "जामीनदाराचे नाव टाका…", "checkBtn": "पात्रता तपासा", "eligNeedInput": "आधी अर्जदाराचे नाव टाका आणि लोनची रक्कम निवडा.", "eligYes": "{amt} च्या लोनसाठी पात्र", "eligNo": "{amt} च्या लोनसाठी पात्र नाही", "c_member": "सोसायटीचा मेंबर आहे का", "c_memberYes": "{d} पासून मेंबर", "c_memberNo": "या नावाचा मेंबर सापडला नाही", "c_dur": "मेंबरशिपचा कालावधी ({amt} साठी किमान {req} आवश्यक)", "c_durNone": "सामील होण्याची तारीख नोंदलेली नाही", "c_durVal": "मेंबर होऊन {dur} झाले", "c_open": "आधीचे लोन बाकी नाही", "c_openYes": "{amt} चे आधीचे लोन अजून पूर्ण फेडलेले नाही", "c_openNo": "कोणतेही लोन बाकी नाही", "c_susp": "लोन मिळण्यापासून सध्या सस्पेंड नाही", "c_suspUntil": "{d} पर्यंत सस्पेंड", "c_suspNo": "सस्पेन्शन नाही", "c_due": "आधीच्या लोनच्या परतफेडीचा महिना नाही", "c_dueYes": "आधीचे लोन याच महिन्यात फेडायचे आहे", "c_dueNo": "या महिन्यात कोणतीही परतफेड बाकी नाही", "c_cancel": "मेंबरशिप रद्द झालेली नाही (सलग 3 महिने पैसे न भरल्यास रद्द होते)", "c_cancelNone": "तपासण्याइतकी डिपॉझिटची नोंद नाही", "c_cancelYes": "मागच्या 3 महिन्यांचे योगदान भरलेले नाही", "c_cancelNo": "योगदानाची नोंद ठीक आहे", "c_quota": "{amt} चा महिन्याचा कोटा (महिन्याला जास्तीत जास्त {n})", "c_quotaVal": "या महिन्यात {b} पैकी {a} आधीच दिले आहेत", "c_g": "जामीनदार{i} — मेंबर असलेला आणि किमान {req} मेंबरशिप", "c_gNeed": "जामीनदाराचे नाव लागेल", "c_gNotFound": "\"{name}\" मेंबरच्या नोंदीत सापडला नाही", "c_gNoJoin": "{name} ची सामील होण्याची तारीख नोंदलेली नाही", "c_gVal": "{name} — मेंबर होऊन {dur} झाले", "c_gAct": "जामीनदार{i} आधीच दुसऱ्या चालू लोनला जामीनदार नाही", "c_gActEnter": "तपासण्यासाठी जामीनदाराचे नाव टाका", "c_gActYes": "{name} ने घेतलेल्या {amt} च्या लोनला आधीच जामीनदार आहे", "c_gActNo": "दुसऱ्या कोणत्याही चालू लोनला जामीनदार नाही", "footer": "WITH US सोसायटी रजिस्टर · डेमो नोंदींच्या जागी तुमची रजिस्टर फाईल अपलोड करा", "fsNone": "डेटा लोड केलेला नाही", "fsSelected": "{f} निवडली — \"फाईल प्रोसेस करा\" वर क्लिक करा", "fsProcessing": "{f} प्रोसेस होत आहे…", "fsReadErr": "{f} वाचता आली नाही. परत प्रयत्न करा.", "fsNoRows": "{f} मध्ये लोनच्या नोंदी सापडल्या नाहीत.", "fsParseErr": "{f} उघडता आली नाही — ती बरोबर .xlsx किंवा .csv फाईल आहे का ते तपासा.", "fsLoaded": "{src} — लोनच्या {n} नोंदी, {m} मेंबर", "fsDemo": "डेमो डेटा दाखवला आहे", "u_year": "वर्ष", "u_years": "वर्ष", "u_month": "महिना", "u_months": "महिने", "c_durFail": "मेंबर म्हणून अजून {req} पूर्ण झालेले नाहीत", "c_gFail": "{name} — अजून {req} पूर्ण झालेले नाहीत", "eligHead": "लोन पात्रता<span>सोसायटीच्या नियमांनुसार मेंबरची पात्रता तपासा</span>", "tabOverview": "आढावा", "tabDeposits": "डिपॉझिट", "tabEligibility": "पात्रता", "recentTitle": "अलीकडील तपासण्या", "recentClear": "इतिहास पुसा", "recentEmpty": "अजून कोणतीही तपासणी केलेली नाही — वर तपासणी केल्यावर ती इथे दिसेल.", "recentPass": "पात्र", "recentFail": "पात्र नाही", "fsSavedNote": " — या डिव्हाइसवर जतन झाले", "fsNotSavedNote": " — पुढच्या वेळेसाठी जतन होऊ शकले नाही (खाजगी ब्राउझिंग किंवा स्टोरेज फुल्ल); पुढच्या वेळी पुन्हा अपलोड करावी लागेल", "fsPrivateWarning": "हा ब्राउझर भेटीदरम्यान डेटा जतन करत नाहीये (बऱ्याचदा खाजगी/incognito ब्राउझिंगमुळे होते). अपलोड केलेली फाईल पुढच्या वेळी पुन्हा अपलोड करावी लागेल.", "tabLists": "यादी", "listsHead": "पात्र मेंबर<span>अर्ज करण्यास पात्र कोण, आणि जामीनदार होण्यास कोण मोकळे आहे</span>", "listTitle": "पात्र मेंबर आणि उपलब्ध जामीनदार", "listSub": "प्रत्येक लोन रकमेसाठी पात्र मेंबर किंवा जामीनदार होण्यास मोकळे मेंबर पाहण्यासाठी बटण दाबा. प्रत्येक यादी कॉपी करता येते.", "copyList": "यादी कॉपी करा", "copyAll": "सर्व याद्या कॉपी करा", "copied": "कॉपी झाले \u2713", "copyManual": "ब्राउझरने ऑटोमॅटिक कॉपी रोखली. खालील मजकूर निवडलेला आहे: दाबून धरा आणि Copy निवडा \u2014 किंवा Share वापरा.", "copyShare": "शेअर", "copySelect": "कॉपी", "copyClose": "बंद करा", "copyFailed": "कॉपी झाले नाही", "copyReason": "कारण कॉपी करा", "copyReasonHead": "कारणे:", "copyApplicant": "अर्जदार", "listAllGuarBtn": "सगळ्या रकमांसाठी जामीनदार यादी", "listAllGuarTitle": "{amt} लोनसाठी जामीनदार यादी", "listAllGuarNone": "या रकमेसाठी सध्या कोणताही मेंबर जामीनदार म्हणून उपलब्ध नाही.", "listAllGuarNa": "या रकमेच्या लोनसाठी जामीनदार लागत नाही.", "listNeedAmt": "आधी लोनची रक्कम निवडा.", "listEligHead": "{amt} साठी पात्र ({n})", "listEligNone": "{amt} साठी सध्या कोणताही मेंबर सगळ्या अटी पूर्ण करत नाही.", "listGuarHead": "{amt} साठी उपलब्ध जामीनदार ({n})", "listGuarNone": "{amt} च्या लोनसाठी सध्या कोणताही मेंबर जामीनदार होण्यास मोकळा नाही.", "listGuarNa": "या रकमेच्या लोनसाठी जामीनदार लागत नाही.", "listColName": "नाव", "listColSince": "मेंबर झाल्याची तारीख", "listColMonths": "मेंबर होऊन झालेले महिने", "listNote": "ज्या मेंबरचे लोन बाकी आहे, जे सस्पेंड आहेत, ज्यांची या महिन्यात परतफेड बाकी आहे, किंवा ज्यांचे मागचे 3 महिने डिपॉझिट भरलेले नाही असे मेंबर आपोआप वगळले जातात.", "listAllEligBtn": "सगळ्या रकमांसाठी पात्र मेंबर यादी", "listAllEligTitle": "{amt} लोनसाठी पात्र मेंबर यादी", "listAllEligNone": "या रकमेसाठी सध्या कोणताही मेंबर पात्र नाही.", "syncLoading": "सर्वांसाठी जतन केलेला ताजा डेटा लोड होत आहे…", "syncPrompt": "हा डेटा सर्वांना दाखवण्यासाठी अ‍ॅडमिन पासकोड टाका:", "sync_pending": " · सर्वांसाठी जतन होत आहे…", "sync_ok": " · सर्वांसाठी जतन झाले", "sync_local": " · सर्वांसाठी जतन नाही (पासकोड टाकला नाही)", "sync_badpass": " · सर्वांसाठी जतन नाही (चुकीचा पासकोड)", "sync_neterr": " · सर्वांसाठी जतन नाही (सर्व्हरशी संपर्क झाला नाही)", "fineTitle": "दंडाचा तपशील", "fineSub": "जमा, खर्च आणि शिल्लक", "fineCollected": "जमा झालेला दंड", "fineSpent": "दंडातून झालेला खर्च", "fineRemaining": "शिल्लक दंड", "fineByYear": "वर्षानुसार जमा दंड", "fineByMonth": "महिन्यानुसार जमा दंड", "fineExpenses": "दंडातून केलेला खर्च", "fineEntries": "नोंदी", "fineYear": "वर्ष", "fineItem": "तपशील", "fineAmount": "रक्कम", "fineTotalExp": "एकूण खर्च", "allYears": "सर्व वर्षे", "fineNoData": "दंडाची नोंद नाही.", "fineNoTable": "खर्च आणि शिल्लक रजिस्टरमधून वाचता आले नाही. रजिस्टर फाईल पुन्हा अपलोड करा (Choose file, मग Process file).", "fineMismatch": "लोनसमोर नोंदवलेला दंड एकूण {a} होतो. वर दाखवलेली जमा रक्कम रजिस्टरमध्ये लिहिलेली एकूण रक्कम आहे.", "fineBasis": "प्रत्येक दंड लोन परतफेडीच्या तारखेच्या महिन्यात धरला आहे (परतफेडीची तारीख नसल्यास लोन घेतल्याच्या तारखेच्या महिन्यात).", "fineAllTime": "एकूण कालावधी", "fineMembers": "दंड झालेले मेंबर", "fineAvg": "सरासरी दंड", "fineMax": "सर्वाधिक दंड", "fineShare": "एकूण दंडातील वाटा", "fineBusiest": "सर्वाधिक दंडाचा महिना", "fineMonthsN": "दंड झालेले महिने", "fineOverall": "एकूण (सर्व कालावधी)", "fineExpN": "दंडातून केलेला खर्च ({n})", "fineEntriesN": "{n} नोंदी"} };
+  var I18N = { en: {"brandTitle": "WITH US Society Register", "brandSub": "Applicant & guarantor ledger — disbursement, repayment & fine tracking", "themeTitle": "Toggle light/dark theme", "langTitle": "Switch language", "clearData": "Clear data", "chooseFile": "Choose file (.xlsx / .csv)", "processFile": "Process file", "emptyTitle": "No data loaded", "emptyBody": "Upload a register file or load the demo data to see the dashboard.", "ovHead": "Overview<span>portfolio totals</span>", "kpiDisbursed": "Total disbursed (Loan Taken Amount)", "kpiRepaid": "Total repaid (Loan Repayment Amount)", "kpiOutstanding": "Current in process", "kpiFine": "Fines accrued", "kpiRate": "Repayment rate", "footAcrossLoans": "across {n} loans", "footPctDisbursed": "{n}% of disbursed", "footInProcess": "{n} loans in process", "footAcrossEntries": "across {n} entries", "footActiveClosed": "{a} active · {c} closed", "depHead": "Member deposits &amp; profile<span>society savings, monthly collection &amp; per-member view</span>", "depKpiMembers": "Total members", "depKpiMembersFoot": "with deposit records", "depKpiBalance": "Total deposit balance", "depKpiBalanceFoot": "current society corpus", "depKpiCollected": "Collected this year", "depKpiCollectedFoot": "monthly contributions to date", "depKpiNew": "New members", "depKpiNewFoot": "joined this year", "month": "Month", "allMonths": "All months", "depEmpty": "Select a month to see who deposited and who's pending.", "searchMember": "Search member", "phMember": "Type a member name…", "profileEmpty": "Search a member to see their deposits and active loans.", "clearSel": "Clear selection", "stPaid": "Members paid", "stPending": "Members pending", "stCollected": "Amount collected", "thMember": "Member", "thJoin": "Date of joining", "thMonthDep": "Month's deposit", "thBalance": "Current balance", "thStatus": "Status", "depTag": "{p} paid · {q} pending", "pfDeposit": "Deposit 2026 balance", "pfDuration": "Duration", "pfActiveLoans": "Active (In Process) loans", "thSr": "Sr no.", "thGuarantor": "Guarantor", "thTakenDate": "Taken date", "thTaken": "Amount taken", "thRepaid": "Amount repaid", "thFine": "Fine", "profTagSince": "Member since {d}", "profTagNone": "Joining date not on record", "lApplicant": "Applicant", "lRepayDate": "Repayment date", "lSuspended": "Suspended", "emptyNoActiveLoans": "No Active Loans for selected member.", "emptyNoMemberData": "No member data available.", "noMatchMembers": "No matching members", "v_active": "Active", "v_closed": "Closed", "v_inprocess": "In Process", "v_paid": "Paid", "v_pending": "Pending", "v_yes": "Yes", "v_no": "No", "v_notspec": "Not specified", "eligTitle": "Loan eligibility checker", "eligSub": "Enter an applicant and the loan amount requested to check eligibility against the society's loan rules.", "phApplicant": "Type applicant name…", "eligAmountLabel": "Loan amount requested", "selectAmount": "Select amount", "guarantor": "Guarantor", "phGuarantor": "Type guarantor name…", "checkBtn": "Check eligibility", "eligNeedInput": "Please enter an applicant name and select a loan amount first.", "eligYes": "Eligible for {amt}", "eligNo": "Not eligible for {amt}", "c_member": "Registered society member", "c_memberYes": "Member since {d}", "c_memberNo": "No matching member record found", "c_dur": "Membership duration (needs at least {req} for {amt})", "c_durNone": "Join date not on record", "c_durVal": "{dur} as a member", "c_open": "No outstanding loan", "c_openYes": "Existing loan of {amt} not yet fully repaid", "c_openNo": "No unpaid loans on record", "c_susp": "Not currently suspended from the loan system", "c_suspUntil": "Suspended until {d}", "c_suspNo": "No active suspension", "c_due": "Not in the repayment month of an existing loan", "c_dueYes": "An existing loan is due for repayment this month", "c_dueNo": "No repayment due this month", "c_cancel": "Membership not cancelled (3 consecutive missed months)", "c_cancelNone": "Insufficient deposit history to verify", "c_cancelYes": "Last 3 months of contribution are missing", "c_cancelNo": "Contribution history in order", "c_quota": "Monthly quota for {amt} (max {n}/month)", "c_quotaVal": "{a} of {b} already issued this month", "c_g": "Guarantor{i} — registered & at least {req} membership", "c_gNeed": "Guarantor name required", "c_gNotFound": "\"{name}\" not found in member records", "c_gNoJoin": "Join date not on record for {name}", "c_gVal": "{name} — {dur} as a member", "c_gAct": "Guarantor{i} not already guarantor for another active loan", "c_gActEnter": "Enter a guarantor name to check", "c_gActYes": "Already guarantor for {amt} loan taken by {name}", "c_gActNo": "No other active loans guaranteed", "footer": "WITH US Society Register · upload a register file to replace the demo entries", "fsNone": "No data loaded", "fsSelected": "{f} selected — click Process file", "fsProcessing": "Processing {f}…", "fsReadErr": "Could not read {f}. Please try again.", "fsNoRows": "No loan rows found in {f}.", "fsParseErr": "Could not parse {f} — check it is a valid .xlsx or .csv file.", "fsLoaded": "{src} — {n} loan entries, {m} members", "fsDemo": "Showing demo data", "u_year": "Year", "u_years": "Years", "u_month": "Month", "u_months": "Months", "c_durFail": "{req} not completed as a member", "c_gFail": "{name} — {req} not completed as a member", "eligHead": "Loan eligibility<span>check a member against the society's loan rules</span>", "tabOverview": "Overview", "tabDeposits": "Deposits", "tabEligibility": "Eligibility", "recentTitle": "Recent checks", "recentClear": "Clear history", "recentEmpty": "No checks yet — run a check above to see it here.", "recentPass": "Eligible", "recentFail": "Not eligible", "fsSavedNote": " — saved on this device", "fsNotSavedNote": " — could not be saved for next time (private browsing or storage full); you may need to upload it again later", "fsPrivateWarning": "This browser is not saving data between visits (often caused by private/incognito browsing). Your uploaded file will need to be re-uploaded next time.", "tabLists": "Lists", "listsHead": "Eligible members<span>who qualifies to apply, and who's free to guarantee</span>", "listTitle": "Eligible members & available guarantors", "listSub": "Tap a button to see the members who qualify for each loan amount, or the members free to stand as guarantor. Every list can be copied.", "copyList": "Copy list", "monSwContrib": "Contribution", "monSwLoan": "Loan repayment", "rpReceived": "Received", "rpPending": "Pending", "rpToCollect": "To collect", "rpMarkBtn": "Mark received", "rpUndoBtn": "Undo", "rpTaken": "Taken {d}", "rpDue": "Due {d}", "rpToReturn": "to return", "rpMarkedMsg": "Marked received: {name}", "rpClearedMsg": "Cleared: {name}", "rpNoMatch": "No loan matches this search.", "rpNoLoans": "No loans are due in this month.", "rpGenAll": "Generate list", "rpGenPending": "Pending list", "rpReceivedOn": "Received {d}", "rpNoGuar": "No guarantor", "rpOfTotal": "{r} of {t} received", "rpDueCount": "{t} loans due", "rpImportTitle": "Import received loans from a WhatsApp list", "rpImportHint": "Paste the list you posted. Loans whose status says Received are marked received for the selected month.", "rpImportDone": "Marked {n} loans as received.", "rpImportMiss": "Not found: {names}", "rpImportNone": "No loans with status Received were found in the pasted list.", "tabMonthly": "Monthly", "monHead": "Monthly<span>contribution and loan repayment lists</span>", "monPaid": "Paid", "monPending": "Pending", "monCollected": "Collected", "monSearchPh": "Search member name", "monAll": "All", "monUnpaid": "Unpaid", "monPaidF": "Paid", "monMarkBtn": "Mark ₹500", "monPaidBtn": "₹500 paid", "monNoMatch": "No member matches this search.", "monGenAll": "Generate list", "monGenUnpaid": "Unpaid list", "monUndo": "Undo", "monMarkedMsg": "Marked paid: {name}", "monClearedMsg": "Cleared: {name}", "monWrongPass": "Wrong passcode. Nothing was changed.", "monNetErr": "Could not reach the shared store. Nothing was changed.", "monServerOld": "The shared store needs the updated Code.gs (see README). Nothing was changed.", "monLocalOnly": "Saved on this device only (shared store is not set up).", "monSaving": "Saving…", "monSaved": "Saved for everyone.", "monCancelled": "Cancelled. Nothing was changed.", "monImportTitle": "Import paid members from a WhatsApp list", "monImportHint": "Paste a list like “1. NAME - 500”. Members marked 500 are marked paid for the selected month.", "monImportBtn": "Import", "monImportDone": "Marked {n} members as paid.", "monImportMiss": "Not found: {names}", "monImportNone": "No paid lines (with 500) were found.", "monShareWa": "Share to WhatsApp", "monMonthsHead": "All months", "monOfTotal": "{p} of {t} paid", "monPrevAria": "Previous month", "monNextAria": "Next month", "monListHead": "Ready to copy", "copyAll": "Copy all lists", "copied": "Copied \u2713", "copyManual": "Your browser blocked automatic copy. The text is selected below: press and hold, then choose Copy \u2014 or use Share.", "copyShare": "Share", "copySelect": "Copy", "copyClose": "Close", "copyFailed": "Copy failed", "copyReason": "Copy reason", "copyReasonHead": "Reasons:", "copyApplicant": "Applicant", "listAllGuarBtn": "Guarantor lists — all amounts", "listAllGuarTitle": "Guarantor List for {amt} Loan Amount", "listAllGuarNone": "No members are currently available as guarantor for this amount.", "listAllGuarNa": "No guarantor is required for this loan amount.", "listNeedAmt": "Please select a loan amount first.", "listEligHead": "Eligible for {amt} ({n})", "listEligNone": "No members currently meet all the requirements for {amt}.", "listGuarHead": "Available guarantors for {amt} ({n})", "listGuarNone": "No members are currently free to guarantor a {amt} loan.", "listGuarNa": "This loan amount does not require a guarantor.", "listColName": "Name", "listColSince": "Member since", "listColMonths": "Months as member", "listNote": "Members with an open loan, an active suspension, a repayment due this month, or missing 3 months of deposits are excluded automatically.", "listAllEligBtn": "Eligible member lists — all amounts", "listAllEligTitle": "Loan Eligible Members List for {amt} Loan Amount", "listAllEligNone": "No members currently qualify to apply for this amount.", "syncLoading": "Loading the latest shared data…", "syncPrompt": "Enter the admin passcode to share this data with everyone:", "sync_pending": " · sharing with everyone…", "sync_ok": " · shared with everyone", "sync_local": " · NOT shared (no passcode entered)", "sync_badpass": " · NOT shared (wrong passcode)", "sync_neterr": " · NOT shared (could not reach the server)", "fineTitle": "Fine details", "fineSub": "Collected, spent and remaining", "fineCollected": "Fine collected", "fineSpent": "Spent from fine", "fineRemaining": "Remaining fine", "fineByYear": "Fine collected by year", "fineByMonth": "Fine collected by month", "fineExpenses": "Expenses paid from fine", "fineEntries": "Entries", "fineYear": "Year", "fineItem": "Item", "fineAmount": "Amount", "fineTotalExp": "Total expense", "allYears": "All years", "fineNoData": "No fines recorded.", "fineNoTable": "Spent and remaining could not be read from the register. Upload the register file again (Choose file, then Process file) so the fine table is read.", "fineMismatch": "Fines listed against the loans add up to {a}. The collected figure above is the total written in the register.", "fineBasis": "Each fine is counted in the month of the loan repayment date (or the loan taken date if there is no repayment date).", "fineAllTime": "All time", "fineMembers": "Members fined", "fineAvg": "Average fine", "fineMax": "Highest fine", "fineShare": "Share of all fines", "fineBusiest": "Busiest month", "fineMonthsN": "Months with fines", "fineOverall": "Overall (all time)", "fineExpN": "Expenses paid from fine ({n})", "fineEntriesN": "{n} entries"}, mr: {"brandTitle": "WITH US सोसायटी रजिस्टर", "brandSub": "अर्जदार आणि जामीनदारांची नोंदवही — लोन वाटप, परतफेड आणि दंडाचा हिशोब", "themeTitle": "लाईट/डार्क थीम बदला", "langTitle": "भाषा बदला", "clearData": "डेटा हटवा", "chooseFile": "फाईल निवडा (.xlsx / .csv)", "processFile": "फाईल प्रोसेस करा", "emptyTitle": "डेटा लोड केलेला नाही", "emptyBody": "डॅशबोर्ड बघण्यासाठी रजिस्टर फाईल अपलोड करा किंवा डेमो डेटा लोड करा.", "ovHead": "आढावा<span>सगळ्या लोनची एकूण बेरीज</span>", "kpiDisbursed": "एकूण वाटलेले लोन (घेतलेली रक्कम)", "kpiRepaid": "एकूण परत आलेले (परतफेडीची रक्कम)", "kpiOutstanding": "सध्या प्रोसेसमध्ये असलेले", "kpiFine": "जमा झालेला दंड", "kpiRate": "परतफेडीचे प्रमाण", "footAcrossLoans": "एकूण {n} लोन", "footPctDisbursed": "वाटलेल्या रकमेपैकी {n}%", "footInProcess": "{n} लोन प्रोसेसमध्ये", "footAcrossEntries": "एकूण {n} नोंदी", "footActiveClosed": "{a} चालू · {c} बंद", "depHead": "मेंबरची डिपॉझिट आणि माहिती<span>सोसायटीची बचत, महिन्याचे कलेक्शन आणि प्रत्येक मेंबरची माहिती</span>", "depKpiMembers": "एकूण मेंबर", "depKpiMembersFoot": "डिपॉझिटची नोंद असलेले", "depKpiBalance": "एकूण डिपॉझिट शिल्लक", "depKpiBalanceFoot": "सोसायटीचा सध्याचा फंड", "depKpiCollected": "या वर्षी जमा झालेले", "depKpiCollectedFoot": "आतापर्यंतचे महिन्याचे योगदान", "depKpiNew": "नवीन मेंबर", "depKpiNewFoot": "या वर्षी सामील झालेले", "month": "महिना", "allMonths": "सगळे महिने", "depEmpty": "कोणी पैसे भरले आणि कोणाचे बाकी आहेत ते बघण्यासाठी महिना निवडा.", "searchMember": "मेंबर शोधा", "phMember": "मेंबरचे नाव टाका…", "profileEmpty": "मेंबरची डिपॉझिट आणि चालू लोन बघण्यासाठी नाव शोधा.", "clearSel": "निवड काढा", "stPaid": "पैसे भरलेले मेंबर", "stPending": "पैसे बाकी असलेले मेंबर", "stCollected": "जमा झालेली रक्कम", "thMember": "मेंबर", "thJoin": "सामील झाल्याची तारीख", "thMonthDep": "या महिन्याची डिपॉझिट", "thBalance": "सध्याची शिल्लक", "thStatus": "स्थिती", "depTag": "{p} भरले · {q} बाकी", "pfDeposit": "2026 ची डिपॉझिट शिल्लक", "pfDuration": "मेंबरशिपचा कालावधी", "pfActiveLoans": "चालू (प्रोसेसमध्ये) असलेली लोन", "thSr": "क्र.", "thGuarantor": "जामीनदार", "thTakenDate": "लोन घेतल्याची तारीख", "thTaken": "घेतलेली रक्कम", "thRepaid": "परत केलेली रक्कम", "thFine": "दंड", "profTagSince": "{d} पासून मेंबर", "profTagNone": "सामील होण्याची तारीख नोंदलेली नाही", "lApplicant": "अर्जदार", "lRepayDate": "परतफेडीची तारीख", "lSuspended": "सस्पेंड", "emptyNoActiveLoans": "निवडलेल्या मेंबरचे कोणतेही चालू लोन नाही.", "emptyNoMemberData": "मेंबरचा डेटा उपलब्ध नाही.", "noMatchMembers": "असा कोणताही मेंबर सापडला नाही", "v_active": "चालू", "v_closed": "बंद", "v_inprocess": "प्रोसेसमध्ये", "v_paid": "भरले", "v_pending": "बाकी", "v_yes": "हो", "v_no": "नाही", "v_notspec": "नमूद नाही", "eligTitle": "लोनसाठी पात्रता तपासा", "eligSub": "अर्जदार आणि हवी असलेली लोनची रक्कम टाका, म्हणजे सोसायटीच्या नियमांप्रमाणे तो पात्र आहे का ते कळेल.", "phApplicant": "अर्जदाराचे नाव टाका…", "eligAmountLabel": "हवी असलेली लोनची रक्कम", "selectAmount": "रक्कम निवडा", "guarantor": "जामीनदार", "phGuarantor": "जामीनदाराचे नाव टाका…", "checkBtn": "पात्रता तपासा", "eligNeedInput": "आधी अर्जदाराचे नाव टाका आणि लोनची रक्कम निवडा.", "eligYes": "{amt} च्या लोनसाठी पात्र", "eligNo": "{amt} च्या लोनसाठी पात्र नाही", "c_member": "सोसायटीचा मेंबर आहे का", "c_memberYes": "{d} पासून मेंबर", "c_memberNo": "या नावाचा मेंबर सापडला नाही", "c_dur": "मेंबरशिपचा कालावधी ({amt} साठी किमान {req} आवश्यक)", "c_durNone": "सामील होण्याची तारीख नोंदलेली नाही", "c_durVal": "मेंबर होऊन {dur} झाले", "c_open": "आधीचे लोन बाकी नाही", "c_openYes": "{amt} चे आधीचे लोन अजून पूर्ण फेडलेले नाही", "c_openNo": "कोणतेही लोन बाकी नाही", "c_susp": "लोन मिळण्यापासून सध्या सस्पेंड नाही", "c_suspUntil": "{d} पर्यंत सस्पेंड", "c_suspNo": "सस्पेन्शन नाही", "c_due": "आधीच्या लोनच्या परतफेडीचा महिना नाही", "c_dueYes": "आधीचे लोन याच महिन्यात फेडायचे आहे", "c_dueNo": "या महिन्यात कोणतीही परतफेड बाकी नाही", "c_cancel": "मेंबरशिप रद्द झालेली नाही (सलग 3 महिने पैसे न भरल्यास रद्द होते)", "c_cancelNone": "तपासण्याइतकी डिपॉझिटची नोंद नाही", "c_cancelYes": "मागच्या 3 महिन्यांचे योगदान भरलेले नाही", "c_cancelNo": "योगदानाची नोंद ठीक आहे", "c_quota": "{amt} चा महिन्याचा कोटा (महिन्याला जास्तीत जास्त {n})", "c_quotaVal": "या महिन्यात {b} पैकी {a} आधीच दिले आहेत", "c_g": "जामीनदार{i} — मेंबर असलेला आणि किमान {req} मेंबरशिप", "c_gNeed": "जामीनदाराचे नाव लागेल", "c_gNotFound": "\"{name}\" मेंबरच्या नोंदीत सापडला नाही", "c_gNoJoin": "{name} ची सामील होण्याची तारीख नोंदलेली नाही", "c_gVal": "{name} — मेंबर होऊन {dur} झाले", "c_gAct": "जामीनदार{i} आधीच दुसऱ्या चालू लोनला जामीनदार नाही", "c_gActEnter": "तपासण्यासाठी जामीनदाराचे नाव टाका", "c_gActYes": "{name} ने घेतलेल्या {amt} च्या लोनला आधीच जामीनदार आहे", "c_gActNo": "दुसऱ्या कोणत्याही चालू लोनला जामीनदार नाही", "footer": "WITH US सोसायटी रजिस्टर · डेमो नोंदींच्या जागी तुमची रजिस्टर फाईल अपलोड करा", "fsNone": "डेटा लोड केलेला नाही", "fsSelected": "{f} निवडली — \"फाईल प्रोसेस करा\" वर क्लिक करा", "fsProcessing": "{f} प्रोसेस होत आहे…", "fsReadErr": "{f} वाचता आली नाही. परत प्रयत्न करा.", "fsNoRows": "{f} मध्ये लोनच्या नोंदी सापडल्या नाहीत.", "fsParseErr": "{f} उघडता आली नाही — ती बरोबर .xlsx किंवा .csv फाईल आहे का ते तपासा.", "fsLoaded": "{src} — लोनच्या {n} नोंदी, {m} मेंबर", "fsDemo": "डेमो डेटा दाखवला आहे", "u_year": "वर्ष", "u_years": "वर्ष", "u_month": "महिना", "u_months": "महिने", "c_durFail": "मेंबर म्हणून अजून {req} पूर्ण झालेले नाहीत", "c_gFail": "{name} — अजून {req} पूर्ण झालेले नाहीत", "eligHead": "लोन पात्रता<span>सोसायटीच्या नियमांनुसार मेंबरची पात्रता तपासा</span>", "tabOverview": "आढावा", "tabDeposits": "डिपॉझिट", "tabEligibility": "पात्रता", "recentTitle": "अलीकडील तपासण्या", "recentClear": "इतिहास पुसा", "recentEmpty": "अजून कोणतीही तपासणी केलेली नाही — वर तपासणी केल्यावर ती इथे दिसेल.", "recentPass": "पात्र", "recentFail": "पात्र नाही", "fsSavedNote": " — या डिव्हाइसवर जतन झाले", "fsNotSavedNote": " — पुढच्या वेळेसाठी जतन होऊ शकले नाही (खाजगी ब्राउझिंग किंवा स्टोरेज फुल्ल); पुढच्या वेळी पुन्हा अपलोड करावी लागेल", "fsPrivateWarning": "हा ब्राउझर भेटीदरम्यान डेटा जतन करत नाहीये (बऱ्याचदा खाजगी/incognito ब्राउझिंगमुळे होते). अपलोड केलेली फाईल पुढच्या वेळी पुन्हा अपलोड करावी लागेल.", "tabLists": "यादी", "listsHead": "पात्र मेंबर<span>अर्ज करण्यास पात्र कोण, आणि जामीनदार होण्यास कोण मोकळे आहे</span>", "listTitle": "पात्र मेंबर आणि उपलब्ध जामीनदार", "listSub": "प्रत्येक लोन रकमेसाठी पात्र मेंबर किंवा जामीनदार होण्यास मोकळे मेंबर पाहण्यासाठी बटण दाबा. प्रत्येक यादी कॉपी करता येते.", "copyList": "यादी कॉपी करा", "monSwContrib": "वर्गणी", "monSwLoan": "कर्ज परतफेड", "rpReceived": "मिळाले", "rpPending": "बाकी", "rpToCollect": "वसूल करायचे", "rpMarkBtn": "परतफेड मिळाली", "rpUndoBtn": "मागे घ्या", "rpTaken": "कर्ज घेतले {d}", "rpDue": "परतफेड तारीख {d}", "rpToReturn": "परत करायचे", "rpMarkedMsg": "परतफेड मिळाल्याची नोंद: {name}", "rpClearedMsg": "नोंद काढली: {name}", "rpNoMatch": "या शोधाला कोणतेही कर्ज सापडले नाही.", "rpNoLoans": "या महिन्यात परतफेडीची कर्जे नाहीत.", "rpGenAll": "यादी तयार करा", "rpGenPending": "बाकी कर्ज यादी", "rpReceivedOn": "मिळाले {d}", "rpNoGuar": "जामीनदार नाही", "rpOfTotal": "{t} पैकी {r} मिळाले", "rpDueCount": "{t} कर्जे देय", "rpImportTitle": "WhatsApp यादीतून मिळालेली कर्जे आयात करा", "rpImportHint": "तुम्ही पाठवलेली यादी पेस्ट करा. ज्या कर्जाचे स्टेटस Received आहे ती निवडलेल्या महिन्यासाठी मिळाली म्हणून नोंदवली जातील.", "rpImportDone": "{n} कर्जे मिळाली म्हणून नोंदवली.", "rpImportMiss": "सापडले नाहीत: {names}", "rpImportNone": "पेस्ट केलेल्या यादीत Received स्टेटसचे कोणतेही कर्ज सापडले नाही.", "tabMonthly": "मासिक", "monHead": "मासिक<span>वर्गणी आणि कर्ज परतफेड यादी</span>", "monPaid": "भरले", "monPending": "बाकी", "monCollected": "जमा", "monSearchPh": "मेंबरचे नाव शोधा", "monAll": "सर्व", "monUnpaid": "बाकी", "monPaidF": "भरले", "monMarkBtn": "₹500 भरले", "monPaidBtn": "₹500 भरले ✓", "monNoMatch": "या शोधाला कोणताही मेंबर सापडला नाही.", "monGenAll": "यादी तयार करा", "monGenUnpaid": "बाकी मेंबर यादी", "monUndo": "मागे घ्या", "monMarkedMsg": "भरल्याची नोंद: {name}", "monClearedMsg": "नोंद काढली: {name}", "monWrongPass": "पासकोड चुकीचा आहे. काहीही बदलले नाही.", "monNetErr": "शेअर्ड स्टोअरशी संपर्क होऊ शकला नाही. काहीही बदलले नाही.", "monServerOld": "शेअर्ड स्टोअरमध्ये नवीन Code.gs टाकणे आवश्यक आहे (README पहा). काहीही बदलले नाही.", "monLocalOnly": "फक्त या डिव्हाइसवर सेव्ह झाले (शेअर्ड स्टोअर सेट केलेले नाही).", "monSaving": "सेव्ह होत आहे…", "monSaved": "सर्वांसाठी सेव्ह झाले.", "monCancelled": "रद्द केले. काहीही बदलले नाही.", "monImportTitle": "WhatsApp यादीतून भरलेले मेंबर आयात करा", "monImportHint": "“1. नाव - 500” अशी यादी पेस्ट करा. 500 लिहिलेले मेंबर निवडलेल्या महिन्यासाठी भरले म्हणून नोंदवले जातील.", "monImportBtn": "आयात करा", "monImportDone": "{n} मेंबर भरले म्हणून नोंदवले.", "monImportMiss": "सापडले नाहीत: {names}", "monImportNone": "500 असलेल्या ओळी सापडल्या नाहीत.", "monShareWa": "WhatsApp वर शेअर करा", "monMonthsHead": "सर्व महिने", "monOfTotal": "{t} पैकी {p} भरले", "monPrevAria": "मागील महिना", "monNextAria": "पुढील महिना", "monListHead": "कॉपी करण्यास तयार", "copyAll": "सर्व याद्या कॉपी करा", "copied": "कॉपी झाले \u2713", "copyManual": "ब्राउझरने ऑटोमॅटिक कॉपी रोखली. खालील मजकूर निवडलेला आहे: दाबून धरा आणि Copy निवडा \u2014 किंवा Share वापरा.", "copyShare": "शेअर", "copySelect": "कॉपी", "copyClose": "बंद करा", "copyFailed": "कॉपी झाले नाही", "copyReason": "कारण कॉपी करा", "copyReasonHead": "कारणे:", "copyApplicant": "अर्जदार", "listAllGuarBtn": "सगळ्या रकमांसाठी जामीनदार यादी", "listAllGuarTitle": "{amt} लोनसाठी जामीनदार यादी", "listAllGuarNone": "या रकमेसाठी सध्या कोणताही मेंबर जामीनदार म्हणून उपलब्ध नाही.", "listAllGuarNa": "या रकमेच्या लोनसाठी जामीनदार लागत नाही.", "listNeedAmt": "आधी लोनची रक्कम निवडा.", "listEligHead": "{amt} साठी पात्र ({n})", "listEligNone": "{amt} साठी सध्या कोणताही मेंबर सगळ्या अटी पूर्ण करत नाही.", "listGuarHead": "{amt} साठी उपलब्ध जामीनदार ({n})", "listGuarNone": "{amt} च्या लोनसाठी सध्या कोणताही मेंबर जामीनदार होण्यास मोकळा नाही.", "listGuarNa": "या रकमेच्या लोनसाठी जामीनदार लागत नाही.", "listColName": "नाव", "listColSince": "मेंबर झाल्याची तारीख", "listColMonths": "मेंबर होऊन झालेले महिने", "listNote": "ज्या मेंबरचे लोन बाकी आहे, जे सस्पेंड आहेत, ज्यांची या महिन्यात परतफेड बाकी आहे, किंवा ज्यांचे मागचे 3 महिने डिपॉझिट भरलेले नाही असे मेंबर आपोआप वगळले जातात.", "listAllEligBtn": "सगळ्या रकमांसाठी पात्र मेंबर यादी", "listAllEligTitle": "{amt} लोनसाठी पात्र मेंबर यादी", "listAllEligNone": "या रकमेसाठी सध्या कोणताही मेंबर पात्र नाही.", "syncLoading": "सर्वांसाठी जतन केलेला ताजा डेटा लोड होत आहे…", "syncPrompt": "हा डेटा सर्वांना दाखवण्यासाठी अ‍ॅडमिन पासकोड टाका:", "sync_pending": " · सर्वांसाठी जतन होत आहे…", "sync_ok": " · सर्वांसाठी जतन झाले", "sync_local": " · सर्वांसाठी जतन नाही (पासकोड टाकला नाही)", "sync_badpass": " · सर्वांसाठी जतन नाही (चुकीचा पासकोड)", "sync_neterr": " · सर्वांसाठी जतन नाही (सर्व्हरशी संपर्क झाला नाही)", "fineTitle": "दंडाचा तपशील", "fineSub": "जमा, खर्च आणि शिल्लक", "fineCollected": "जमा झालेला दंड", "fineSpent": "दंडातून झालेला खर्च", "fineRemaining": "शिल्लक दंड", "fineByYear": "वर्षानुसार जमा दंड", "fineByMonth": "महिन्यानुसार जमा दंड", "fineExpenses": "दंडातून केलेला खर्च", "fineEntries": "नोंदी", "fineYear": "वर्ष", "fineItem": "तपशील", "fineAmount": "रक्कम", "fineTotalExp": "एकूण खर्च", "allYears": "सर्व वर्षे", "fineNoData": "दंडाची नोंद नाही.", "fineNoTable": "खर्च आणि शिल्लक रजिस्टरमधून वाचता आले नाही. रजिस्टर फाईल पुन्हा अपलोड करा (Choose file, मग Process file).", "fineMismatch": "लोनसमोर नोंदवलेला दंड एकूण {a} होतो. वर दाखवलेली जमा रक्कम रजिस्टरमध्ये लिहिलेली एकूण रक्कम आहे.", "fineBasis": "प्रत्येक दंड लोन परतफेडीच्या तारखेच्या महिन्यात धरला आहे (परतफेडीची तारीख नसल्यास लोन घेतल्याच्या तारखेच्या महिन्यात).", "fineAllTime": "एकूण कालावधी", "fineMembers": "दंड झालेले मेंबर", "fineAvg": "सरासरी दंड", "fineMax": "सर्वाधिक दंड", "fineShare": "एकूण दंडातील वाटा", "fineBusiest": "सर्वाधिक दंडाचा महिना", "fineMonthsN": "दंड झालेले महिने", "fineOverall": "एकूण (सर्व कालावधी)", "fineExpN": "दंडातून केलेला खर्च ({n})", "fineEntriesN": "{n} नोंदी"} };
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
                      'paid':'v_paid', 'pending':'v_pending', 'yes':'v_yes', 'no':'v_no', 'not specified':'v_notspec' };
@@ -896,6 +1036,7 @@
   function refreshLanguageDependent(){
     renderFileStatus();
     if(document.getElementById('dashboardContent').style.display === 'none') return;
+    renderMonthly();
     renderKpis(allRows);
     renderFineDetails();
     buildDepositMonthDropdown();
@@ -2246,7 +2387,7 @@
 
   // Builds the on-screen lists for every tier plus matching plain text for the copy buttons.
   function renderAllTierLists(titleKey, noneKey, pickFn, skipNa){
-    Object.keys(copyStore).forEach(function(k){ if(k !== 'reason') delete copyStore[k]; });
+    Object.keys(copyStore).forEach(function(k){ if(k === 'all' || k.indexOf('tier') === 0) delete copyStore[k]; });
     var members = (allMembers.members || []).slice().sort(function(a,b){ return a.name.localeCompare(b.name); });
     var body = '', allText = [];
     Object.keys(LOAN_TIERS).forEach(function(key, idx){
@@ -2292,9 +2433,598 @@
   document.getElementById('listClearBtn').addEventListener('click', function(){ closeAllDropdowns(); populateEligList(); });
 
 
+
+  /* ---------- Monthly contribution tracker ---------- */
+
+  var CONTRIB_KEY = 'withusContrib';
+  var CONTRIB_AMOUNT = 500;
+  var MONTH_NAMES_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var MONTH_NAMES_MR = ['जानेवारी','फेब्रुवारी','मार्च','एप्रिल','मे','जून','जुलै','ऑगस्ट','सप्टेंबर','ऑक्टोबर','नोव्हेंबर','डिसेंबर'];
+  var contrib = loadContrib();
+  var contribPending = 0, contribQueue = Promise.resolve(), contribServerOk = false;
+  var monState = { month:null, filter:'all', q:'', last:null };
+
+  function loadContrib(){
+    try{
+      var raw = localStorage.getItem(CONTRIB_KEY), o = raw ? JSON.parse(raw) : null;
+      if(o && o.months) return { updatedAt:o.updatedAt || 0, months:o.months };
+    }catch(e){}
+    return { updatedAt:0, months:{} };
+  }
+  function saveContrib(){ try{ localStorage.setItem(CONTRIB_KEY, JSON.stringify(contrib)); }catch(e){} }
+  function monKey(y, m0){ return y + '-' + ('0' + (m0 + 1)).slice(-2); }
+  function monLabelUI(o){ return (LANG === 'mr' ? MONTH_NAMES_MR : MONTH_NAMES_EN)[o.m0] + ' ' + o.y; }
+
+  function monthsAvailable(){
+    var now = new Date(), curN = now.getFullYear() * 12 + now.getMonth(), start = null, seen = {}, out = [];
+    ((allMembers && allMembers.monthCols) || []).forEach(function(mc){
+      if(mc.year == null || mc.month == null) return;
+      var n = mc.year * 12 + mc.month;
+      if(start === null || n < start) start = n;
+    });
+    Object.keys(contrib.months).forEach(function(k){
+      var m = /^(\d{4})-(\d{2})$/.exec(k);
+      if(m){ var n = (+m[1]) * 12 + (+m[2] - 1); if(n <= curN && (start === null || n < start)) start = n; }
+    });
+    if(start === null || start > curN) start = curN;
+    for(var n = start; n <= curN; n++){
+      var y = Math.floor(n / 12), m0 = n % 12;
+      out.push({ y:y, m0:m0, key:monKey(y, m0) });
+    }
+    return out;
+  }
+
+  function memberMonthPaid(member, mo){
+    var k = normKeyName(member.name), store = contrib.months[mo.key];
+    if(store && (store[k] === true || store[k] === false)) return store[k];
+    var ms = member.months || [];
+    for(var i = 0; i < ms.length; i++){
+      if(ms[i].year === mo.y && ms[i].month === mo.m0) return (ms[i].amount || 0) > 0;
+    }
+    return false;
+  }
+  function activeMembersFor(mo){
+    var end = new Date(mo.y, mo.m0 + 1, 0, 23, 59, 59);
+    return (allMembers.members || []).filter(function(m){ return !m.joinDate || m.joinDate <= end; });
+  }
+  function monthStats(mo){
+    var act = activeMembersFor(mo), paid = 0;
+    act.forEach(function(m){ if(memberMonthPaid(m, mo)) paid++; });
+    return { total:act.length, paid:paid, pending:act.length - paid, amount:paid * CONTRIB_AMOUNT };
+  }
+  function currentMonthObj(){
+    var ms = monthsAvailable();
+    if(!ms.length) return null;
+    if(!monState.month || !ms.some(function(x){ return x.key === monState.month; })) monState.month = ms[ms.length - 1].key;
+    for(var i = 0; i < ms.length; i++) if(ms[i].key === monState.month) return ms[i];
+    return ms[ms.length - 1];
+  }
+  function inr(n){ return '₹' + Number(n).toLocaleString('en-IN'); }
+
+  function monSay(txt, kind){
+    var el = document.getElementById('monMsg');
+    if(!el) return;
+    el.textContent = txt || '';
+    el.className = 'mc-msg' + (kind ? ' ' + kind : '');
+  }
+
+  function renderMonList(){
+    var mo = currentMonthObj(), box = document.getElementById('monList');
+    if(!mo || !box) return;
+    var q = normKeyName(monState.q), html = '', n = 0;
+    activeMembersFor(mo).forEach(function(m, i){
+      var p = memberMonthPaid(m, mo);
+      if(monState.filter === 'paid' && !p) return;
+      if(monState.filter === 'unpaid' && p) return;
+      if(q && normKeyName(m.name).indexOf(q) === -1) return;
+      n++;
+      html += '<div class="mc-row"><span class="mc-n">' + (i + 1) + '</span><span class="mc-name">' + esc(m.name) + '</span>' +
+        '<button type="button" class="mc-btn' + (p ? ' paid' : '') + '" data-key="' + esc(normKeyName(m.name)) + '" data-name="' + esc(m.name) + '" data-paid="' + (p ? '1' : '0') + '">' +
+        (p ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' + esc(t('monPaidBtn')) : esc(t('monMarkBtn'))) + '</button></div>';
+    });
+    box.innerHTML = n ? html : '<p class="member-empty" style="padding:18px 14px;">' + esc(t('monNoMatch')) + '</p>';
+  }
+
+  function renderMonthly(){
+    renderRepay();
+    var mo = currentMonthObj();
+    if(!mo || !document.getElementById('monthlySection')) return;
+    var ms = monthsAvailable(), st = monthStats(mo), idx = 0;
+    ms.forEach(function(x, i){ if(x.key === mo.key) idx = i; });
+    document.getElementById('monMonthLabel').textContent = monLabelUI(mo);
+    document.getElementById('monPrev').disabled = idx === 0;
+    document.getElementById('monNext').disabled = idx === ms.length - 1;
+    document.getElementById('monStats').innerHTML =
+      '<div class="mc-stat paid"><span>' + esc(t('monPaid')) + '</span><b style="white-space:nowrap;">' + st.paid + '<em style="font-style:normal;font-size:12px;font-weight:400;color:var(--ink-mute);"> / ' + st.total + '</em></b></div>' +
+      '<div class="mc-stat pend"><span>' + esc(t('monPending')) + '</span><b>' + st.pending + '</b></div>' +
+      '<div class="mc-stat"><span>' + esc(t('monCollected')) + '</span><b>' + inr(st.amount) + '</b></div>';
+    document.getElementById('monBar').style.width = (st.total ? Math.round(st.paid / st.total * 100) : 0) + '%';
+
+    var u = document.getElementById('monUndo'), L = monState.last;
+    u.innerHTML = (L && L.month === mo.key)
+      ? '<div class="mc-undo"><span>' + esc(t(L.value ? 'monMarkedMsg' : 'monClearedMsg', { name:L.name })) + '</span><button type="button" id="monUndoBtn">' + esc(t('monUndo')) + '</button></div>'
+      : '';
+
+    var mh = '';
+    ms.slice().reverse().forEach(function(x){
+      var s2 = monthStats(x);
+      mh += '<button type="button" class="mc-month' + (x.key === mo.key ? ' sel' : '') + '" data-month="' + x.key + '"><span><strong>' + esc(monLabelUI(x)) + '</strong><small>' +
+        esc(t('monOfTotal', { p:s2.paid, t:s2.total })) + '</small></span><strong>' + inr(s2.amount) + '</strong></button>';
+    });
+    document.getElementById('monMonths').innerHTML = mh;
+    renderMonList();
+  }
+
+  /* ----- shared store ----- */
+  function contribUrl(extra){ return SYNC_URL + (SYNC_URL.indexOf('?') > -1 ? '&' : '?') + 'kind=contrib' + extra + '&_=' + Date.now(); }
+
+  function pullContrib(){
+    if(!syncEnabled() || contribPending > 0) return Promise.resolve(false);
+    return fetch(contribUrl('&since=' + (contrib.updatedAt || 0)))
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if(!res || !res.contrib) return false;          // old Code.gs: ignore
+        contribServerOk = true;
+        if(res.unchanged || res.empty || contribPending > 0) return false;
+        contrib = { updatedAt:res.updatedAt || 0, months:res.months || {} };
+        saveContrib();
+        renderMonthly();
+        return true;
+      }).catch(function(){ return false; });
+  }
+
+  function ensureContribServer(){
+    if(contribServerOk) return Promise.resolve(true);
+    return fetch(contribUrl('&since=0')).then(function(r){ return r.json(); })
+      .then(function(res){ if(res && res.contrib){ contribServerOk = true; return true; } return false; })
+      .catch(function(){ return false; });
+  }
+
+  function getAdminPass(){
+    var p = '';
+    try{ p = localStorage.getItem(SYNC_PASS_KEY) || ''; }catch(e){}
+    if(!p) p = (window.prompt(t('syncPrompt')) || '').trim();
+    return p;
+  }
+
+  // marks: { normalisedName: true|false }. Updates the screen at once, then saves for everyone; reverts if the save fails.
+  function setMarks(month, marks){
+    var keys = Object.keys(marks);
+    function applyLocal(){
+      var m = contrib.months[month] || (contrib.months[month] = {}), prev = {};
+      keys.forEach(function(k){ prev[k] = Object.prototype.hasOwnProperty.call(m, k) ? m[k] : undefined; m[k] = marks[k]; });
+      saveContrib(); renderMonthly();
+      document.getElementById('monListResult').style.display = 'none';
+      return function revert(){
+        var mm = contrib.months[month] || (contrib.months[month] = {});
+        keys.forEach(function(k){ if(prev[k] === undefined) delete mm[k]; else mm[k] = prev[k]; });
+        saveContrib(); renderMonthly();
+      };
+    }
+    if(!syncEnabled()){ applyLocal(); monSay(t('monLocalOnly'), 'warn'); return Promise.resolve(true); }
+    var pass = getAdminPass();
+    if(!pass){ monSay(t('monCancelled'), 'warn'); return Promise.resolve(false); }
+    return ensureContribServer().then(function(ok){
+      if(!ok){ monSay(t('monServerOld'), 'bad'); return false; }
+      var revert = applyLocal();
+      monSay(t('monSaving'));
+      contribPending++;
+      var job = contribQueue.then(function(){
+        return fetch(SYNC_URL, { method:'POST', body:JSON.stringify({ kind:'contrib', passcode:pass, month:month, marks:marks }) }).then(function(r){ return r.json(); });
+      }).then(function(res){
+        contribPending--;
+        if(res && res.ok){
+          try{ localStorage.setItem(SYNC_PASS_KEY, pass); }catch(e){}
+          if(contribPending === 0 && res.months){ contrib = { updatedAt:res.updatedAt || 0, months:res.months }; saveContrib(); renderMonthly(); }
+          monSay(t('monSaved'), 'ok');
+          return true;
+        }
+        revert();
+        if(res && res.error === 'wrong-passcode'){ try{ localStorage.removeItem(SYNC_PASS_KEY); }catch(e){} monSay(t('monWrongPass'), 'bad'); }
+        else monSay(t('monNetErr'), 'bad');
+        return false;
+      }).catch(function(){ contribPending--; revert(); monSay(t('monNetErr'), 'bad'); return false; });
+      contribQueue = job.then(function(){}, function(){});
+      return job;
+    });
+  }
+
+  /* ----- list text (same format that is posted in the WhatsApp group today) ----- */
+  function buildContribText(kind){
+    var mo = currentMonthObj();
+    if(!mo) return '';
+    var act = activeMembersFor(mo), lines = [], n = 0;
+    act.forEach(function(m, i){
+      var p = memberMonthPaid(m, mo);
+      if(kind === 'unpaid'){ if(p) return; n++; lines.push(n + '. ' + m.name + ' - \uD83D\uDEAB'); }
+      else lines.push((i + 1) + '. ' + m.name + ' - ' + (p ? String(CONTRIB_AMOUNT) : '\uD83D\uDEAB'));
+    });
+    var head = kind === 'unpaid'
+      ? 'Society Monthly Contribution - Pending List - ' + MONTH_NAMES_EN[mo.m0] + ' ' + mo.y
+      : 'Society Monthly Contribution List - ' + MONTH_NAMES_EN[mo.m0] + ' ' + mo.y;
+    return head + '\n\n' + lines.join('\n') + '\n\n_Kindly clear your monthly contribution of \u20B9' + CONTRIB_AMOUNT + ' at the earliest._';
+  }
+  function showContribList(kind){
+    var text = buildContribText(kind), box = document.getElementById('monListResult');
+    box.style.display = '';
+    box.innerHTML = '<p class="member-label" style="margin:18px 0 0;">' + esc(t('monListHead')) + '</p>' +
+      '<pre class="mc-pre">' + esc(text) + '</pre>' +
+      '<div class="mc-actions">' + copyBtnHtml('monlist', text, 'copyList') +
+      '<button type="button" class="copy-btn wa-btn" data-wa="monlist">' + esc(t('monShareWa')) + '</button></div>';
+  }
+
+  /* ----- events ----- */
+  document.addEventListener('click', function(e){
+    var wa = e.target.closest ? e.target.closest('.wa-btn') : null;
+    if(wa){
+      var txt = copyStore[wa.getAttribute('data-wa')];
+      if(txt) window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+      return;
+    }
+    var sec = document.getElementById('monthlySection');
+    if(!sec || !sec.contains(e.target)) return;
+    var mb = e.target.closest('.mc-btn');
+    if(mb){
+      var now = mb.getAttribute('data-paid') !== '1', mo = currentMonthObj(), marks = {};
+      marks[mb.getAttribute('data-key')] = now;
+      monState.last = { month:mo.key, key:mb.getAttribute('data-key'), name:mb.getAttribute('data-name'), value:now };
+      setMarks(mo.key, marks).then(function(ok){ if(!ok){ monState.last = null; renderMonthly(); } });
+      return;
+    }
+    if(e.target.id === 'monUndoBtn'){
+      var L = monState.last; if(!L) return;
+      var back = {}; back[L.key] = !L.value;
+      monState.last = null;
+      setMarks(L.month, back);
+      return;
+    }
+    var chip = e.target.closest('.mc-chip');
+    if(chip){
+      monState.filter = chip.getAttribute('data-f');
+      sec.querySelectorAll('.mc-chip').forEach(function(c){ c.classList.toggle('active', c === chip); });
+      renderMonList();
+      return;
+    }
+    var mm = e.target.closest('.mc-month');
+    if(mm){ monState.month = mm.getAttribute('data-month'); monState.last = null; document.getElementById('monListResult').style.display = 'none'; renderMonthly(); return; }
+  });
+  document.getElementById('monPrev').addEventListener('click', function(){ stepMonth(-1); });
+  document.getElementById('monNext').addEventListener('click', function(){ stepMonth(1); });
+  function stepMonth(d){
+    var ms = monthsAvailable(), mo = currentMonthObj(), i = 0;
+    ms.forEach(function(x, j){ if(x.key === mo.key) i = j; });
+    var nx = ms[i + d]; if(!nx) return;
+    monState.month = nx.key; monState.last = null;
+    document.getElementById('monListResult').style.display = 'none';
+    renderMonthly();
+  }
+  document.getElementById('monSearch').addEventListener('input', function(e){ monState.q = e.target.value; renderMonList(); });
+  document.getElementById('monGenAll').addEventListener('click', function(){ showContribList('all'); });
+  document.getElementById('monGenUnpaid').addEventListener('click', function(){ showContribList('unpaid'); });
+
+  document.getElementById('monImportBtn').addEventListener('click', function(){
+    var mo = currentMonthObj(), out = document.getElementById('monImportOut');
+    var lines = document.getElementById('monImportText').value.split(/\r?\n/), byKey = {}, marks = {}, miss = [], n = 0;
+    (allMembers.members || []).forEach(function(m){ byKey[normKeyName(m.name)] = m; });
+    lines.forEach(function(line){
+      var m = /^\s*\d+\s*[.)]\s*(.*?)\s*-\s*(.*)$/.exec(line);
+      if(!m || !/500/.test(m[2])) return;
+      var k = normKeyName(m[1]);
+      if(byKey[k]){ if(!marks[k]){ marks[k] = true; n++; } } else miss.push(m[1].trim());
+    });
+    if(!n){ out.textContent = t('monImportNone'); return; }
+    setMarks(mo.key, marks).then(function(ok){
+      if(!ok){ out.textContent = ''; return; }
+      out.textContent = t('monImportDone', { n:n }) + (miss.length ? ' ' + t('monImportMiss', { names:miss.join(', ') }) : '');
+    });
+  });
+
+
+  /* ---------- Monthly loan repayment list ---------- */
+
+  var REPAY_KEY = 'withusRepay';
+  var REPAY_CHARGE = { 5000:200, 10000:500, 25000:1000, 50000:2000, 100000:4000 };
+  var repay = loadRepay();
+  var repayPending = 0, repayQueue = Promise.resolve(), repayServerOk = false;
+  var rpState = { month:null, filter:'all', q:'', last:null, index:{} };
+
+  function loadRepay(){
+    try{
+      var raw = localStorage.getItem(REPAY_KEY), o = raw ? JSON.parse(raw) : null;
+      if(o && o.months) return { updatedAt:o.updatedAt || 0, months:o.months };
+    }catch(e){}
+    return { updatedAt:0, months:{} };
+  }
+  function saveRepay(){ try{ localStorage.setItem(REPAY_KEY, JSON.stringify(repay)); }catch(e){} }
+  function pad2(n){ return ('0' + n).slice(-2); }
+  function ddmmyyyy(d){ return d ? pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear() : ''; }
+  function todayStr(){ var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function indian(n){ return Number(n).toLocaleString('en-IN'); }
+
+  function loanKey(r){ return normKeyName(r.applicant) + '|' + (dayStr(r.takenDate) || '') + '|' + (r.takenAmt || 0); }
+  // return amount = loan amount + fixed charge (matches every completed loan in the Excel history)
+  function loanReturnAmt(r){
+    var c = REPAY_CHARGE[r.takenAmt];
+    if(c != null) return r.takenAmt + c;
+    return r.repayAmt > 0 ? r.repayAmt : null;
+  }
+  function loanBaseReceived(r){
+    if(/complete|closed|paid|repaid|received/i.test(r.status || '')) return true;
+    return r.repayAmt > 0 && r.takenAmt > 0 && r.repayAmt >= r.takenAmt;
+  }
+  function loanEntry(mo, r){ var m = repay.months[mo.key]; return m ? m[loanKey(r)] : undefined; }
+  function loanReceived(mo, r){
+    var e = loanEntry(mo, r);
+    if(e && (e.v === true || e.v === false)) return e.v;
+    return loanBaseReceived(r);
+  }
+  function loansDueIn(mo){
+    return (allRows || []).filter(function(r){
+      return r.repayDate && r.repayDate.getFullYear() === mo.y && r.repayDate.getMonth() === mo.m0;
+    });
+  }
+  function repayMonths(){
+    var now = new Date(), curN = now.getFullYear() * 12 + now.getMonth(), lo = curN, hi = curN, out = [];
+    (allRows || []).forEach(function(r){
+      if(!r.repayDate || !/in\s*process/i.test(r.status || '')) return;
+      var n = r.repayDate.getFullYear() * 12 + r.repayDate.getMonth();
+      if(n < lo) lo = n; if(n > hi) hi = n;
+    });
+    Object.keys(repay.months).forEach(function(k){
+      var m = /^(\d{4})-(\d{2})$/.exec(k);
+      if(m){ var n = (+m[1]) * 12 + (+m[2] - 1); if(n < lo) lo = n; if(n > hi) hi = n; }
+    });
+    for(var n = lo; n <= hi; n++){ var y = Math.floor(n / 12), m0 = n % 12; out.push({ y:y, m0:m0, key:monKey(y, m0) }); }
+    return out;
+  }
+  function currentRepayMonth(){
+    var ms = repayMonths(), now = new Date(), curKey = monKey(now.getFullYear(), now.getMonth());
+    if(!rpState.month || !ms.some(function(x){ return x.key === rpState.month; })) rpState.month = curKey;
+    for(var i = 0; i < ms.length; i++) if(ms[i].key === rpState.month) return ms[i];
+    return ms[0];
+  }
+  function repayStats(mo){
+    var loans = loansDueIn(mo), rec = 0, due = 0;
+    loans.forEach(function(r){
+      if(loanReceived(mo, r)) rec++; else due += (loanReturnAmt(r) || 0);
+    });
+    return { total:loans.length, received:rec, pending:loans.length - rec, toCollect:due };
+  }
+  function rpSay(txt, kind){
+    var el = document.getElementById('rpMsg');
+    if(!el) return;
+    el.textContent = txt || '';
+    el.className = 'mc-msg' + (kind ? ' ' + kind : '');
+  }
+  function guarantorLines(r){
+    var gs = String(r.guarantor || '').split('/').map(function(x){ return x.trim(); }).filter(Boolean);
+    return gs.map(function(g, i){ return { label: gs.length > 1 ? 'JAMIN' + (i + 1) : 'JAMIN', name: g }; });
+  }
+
+  function renderRepayList(){
+    var box = document.getElementById('rpList'), mo = currentRepayMonth();
+    if(!box || !mo) return;
+    var q = normKeyName(rpState.q), html = '', n = 0, loans = loansDueIn(mo);
+    rpState.index = {};
+    loans.forEach(function(r){
+      var key = loanKey(r), rec = loanReceived(mo, r);
+      rpState.index[key] = r;
+      if(rpState.filter === 'pending' && rec) return;
+      if(rpState.filter === 'received' && !rec) return;
+      if(q && normKeyName(r.applicant).indexOf(q) === -1) return;
+      n++;
+      var ret = loanReturnAmt(r), e = loanEntry(mo, r);
+      var g = guarantorLines(r).map(function(x){ return '<div>' + esc(x.label) + ': ' + esc(x.name) + '</div>'; }).join('') || '<div>' + esc(t('rpNoGuar')) + '</div>';
+      html += '<div class="rp-card"><div class="rp-top"><span class="rp-name">' + esc(r.applicant) + '</span>' +
+        '<span class="rp-pill' + (rec ? ' ok' : '') + '">' + esc(t(rec ? 'rpReceived' : 'rpPending')) + '</span></div>' +
+        '<div class="rp-ret">₹' + indian(r.takenAmt) + ' ' + esc(t('rpToReturn')) + '<strong>' + (ret == null ? '-' : '₹' + indian(ret)) + '</strong></div>' +
+        '<div class="rp-meta">' + esc(t('rpTaken', { d:ddmmyyyy(r.takenDate) })) + ' · ' + esc(t('rpDue', { d:ddmmyyyy(r.repayDate) })) + g +
+        ((rec && e && e.d) ? '<div>' + esc(t('rpReceivedOn', { d:ddmmyyyy(parseDay(e.d)) })) + '</div>' : '') + '</div>' +
+        '<button type="button" class="rp-btn' + (rec ? ' undo' : '') + '" data-key="' + esc(key) + '" data-rec="' + (rec ? '1' : '0') + '">' + esc(t(rec ? 'rpUndoBtn' : 'rpMarkBtn')) + '</button></div>';
+    });
+    box.innerHTML = n ? html : '<p class="member-empty" style="padding:18px 8px;">' + esc(t(loans.length ? 'rpNoMatch' : 'rpNoLoans')) + '</p>';
+  }
+
+  function renderRepay(){
+    var pane = document.getElementById('monPaneLoan');
+    if(!pane || !allRows || !allRows.length) return;
+    var mo = currentRepayMonth(), ms = repayMonths(), st = repayStats(mo), idx = 0;
+    ms.forEach(function(x, i){ if(x.key === mo.key) idx = i; });
+    document.getElementById('rpMonthLabel').textContent = monLabelUI(mo);
+    document.getElementById('rpPrev').disabled = idx === 0;
+    document.getElementById('rpNext').disabled = idx === ms.length - 1;
+    document.getElementById('rpStats').innerHTML =
+      '<div class="mc-stat paid"><span>' + esc(t('rpReceived')) + '</span><b style="white-space:nowrap;">' + st.received +
+        '<em style="font-style:normal;font-size:12px;font-weight:400;color:var(--ink-mute);"> / ' + st.total + '</em></b></div>' +
+      '<div class="mc-stat pend"><span>' + esc(t('rpPending')) + '</span><b>' + st.pending + '</b></div>' +
+      '<div class="mc-stat"><span>' + esc(t('rpToCollect')) + '</span><b style="font-size:19px;white-space:nowrap;">₹' + indian(st.toCollect) + '</b></div>';
+    document.getElementById('rpBar').style.width = (st.total ? Math.round(st.received / st.total * 100) : 0) + '%';
+
+    var L = rpState.last;
+    document.getElementById('rpUndo').innerHTML = (L && L.month === mo.key)
+      ? '<div class="mc-undo"><span>' + esc(t(L.now ? 'rpMarkedMsg' : 'rpClearedMsg', { name:L.name })) + '</span><button type="button" id="rpUndoBtn">' + esc(t('monUndo')) + '</button></div>' : '';
+
+    var mh = '';
+    ms.slice().reverse().forEach(function(x){
+      var s2 = repayStats(x);
+      mh += '<button type="button" class="mc-month' + (x.key === mo.key ? ' sel' : '') + '" data-month="' + x.key + '"><span><strong>' + esc(monLabelUI(x)) + '</strong><small>' +
+        esc(s2.total ? t('rpOfTotal', { r:s2.received, t:s2.total }) : t('rpNoLoans')) + '</small></span><strong>₹' + indian(s2.toCollect) + '</strong></button>';
+    });
+    document.getElementById('rpMonths').innerHTML = mh;
+    renderRepayList();
+  }
+
+  /* ----- shared store ----- */
+  function repayUrl(extra){ return SYNC_URL + (SYNC_URL.indexOf('?') > -1 ? '&' : '?') + 'kind=repay' + extra + '&_=' + Date.now(); }
+
+  function pullRepay(){
+    if(!syncEnabled() || repayPending > 0) return Promise.resolve(false);
+    return fetch(repayUrl('&since=' + (repay.updatedAt || 0)))
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if(!res || !res.repay) return false;               // old Code.gs: ignore
+        repayServerOk = true;
+        if(res.unchanged || res.empty || repayPending > 0) return false;
+        repay = { updatedAt:res.updatedAt || 0, months:res.months || {} };
+        saveRepay(); renderRepay();
+        return true;
+      }).catch(function(){ return false; });
+  }
+  function ensureRepayServer(){
+    if(repayServerOk) return Promise.resolve(true);
+    return fetch(repayUrl('&since=0')).then(function(r){ return r.json(); })
+      .then(function(res){ if(res && res.repay){ repayServerOk = true; return true; } return false; })
+      .catch(function(){ return false; });
+  }
+
+  // marks: { loanKey: {v:true|false, d:'YYYY-MM-DD'} | null }. Updates the screen at once, saves for everyone, reverts if the save fails.
+  function setRepayMarks(month, marks){
+    var keys = Object.keys(marks);
+    function applyLocal(){
+      var m = repay.months[month] || (repay.months[month] = {}), prev = {};
+      keys.forEach(function(k){
+        prev[k] = Object.prototype.hasOwnProperty.call(m, k) ? m[k] : undefined;
+        if(marks[k]) m[k] = marks[k]; else delete m[k];
+      });
+      saveRepay(); renderRepay();
+      document.getElementById('rpListResult').style.display = 'none';
+      return function revert(){
+        var mm = repay.months[month] || (repay.months[month] = {});
+        keys.forEach(function(k){ if(prev[k] === undefined) delete mm[k]; else mm[k] = prev[k]; });
+        saveRepay(); renderRepay();
+      };
+    }
+    if(!syncEnabled()){ applyLocal(); rpSay(t('monLocalOnly'), 'warn'); return Promise.resolve(true); }
+    var pass = getAdminPass();
+    if(!pass){ rpSay(t('monCancelled'), 'warn'); return Promise.resolve(false); }
+    return ensureRepayServer().then(function(ok){
+      if(!ok){ rpSay(t('monServerOld'), 'bad'); return false; }
+      var revert = applyLocal();
+      rpSay(t('monSaving'));
+      repayPending++;
+      var job = repayQueue.then(function(){
+        return fetch(SYNC_URL, { method:'POST', body:JSON.stringify({ kind:'repay', passcode:pass, month:month, marks:marks }) }).then(function(r){ return r.json(); });
+      }).then(function(res){
+        repayPending--;
+        if(res && res.ok){
+          try{ localStorage.setItem(SYNC_PASS_KEY, pass); }catch(e){}
+          if(repayPending === 0 && res.months){ repay = { updatedAt:res.updatedAt || 0, months:res.months }; saveRepay(); renderRepay(); }
+          rpSay(t('monSaved'), 'ok');
+          return true;
+        }
+        revert();
+        if(res && res.error === 'wrong-passcode'){ try{ localStorage.removeItem(SYNC_PASS_KEY); }catch(e){} rpSay(t('monWrongPass'), 'bad'); }
+        else rpSay(t('monNetErr'), 'bad');
+        return false;
+      }).catch(function(){ repayPending--; revert(); rpSay(t('monNetErr'), 'bad'); return false; });
+      repayQueue = job.then(function(){}, function(){});
+      return job;
+    });
+  }
+
+  /* ----- list text (same format that is posted in the WhatsApp group today) ----- */
+  function buildRepayText(kind){
+    var mo = currentRepayMonth(), blocks = [];
+    loansDueIn(mo).forEach(function(r){
+      var rec = loanReceived(mo, r);
+      if(kind === 'pending' && rec) return;
+      var ret = loanReturnAmt(r);
+      var lines = ['Name: ' + r.applicant, 'Loan Taken Date: ' + ddmmyyyy(r.takenDate), 'Loan Amount: ' + indian(r.takenAmt),
+        'Loan Return Date: ' + ddmmyyyy(r.repayDate), 'Loan Return Amount: ' + (ret == null ? '-' : indian(ret))];
+      guarantorLines(r).forEach(function(g){ lines.push(g.label + ': ' + g.name); });
+      lines.push(rec ? 'Status: Loan Repayment Received ✅' : 'Status: Loan Repayment Pending ❌');
+      blocks.push(lines.join('\n'));
+    });
+    return '*' + MONTH_NAMES_EN[mo.m0].toUpperCase() + '-' + mo.y + ' MONTH LOAN REPAYMENT DETAILS*\n\n' + blocks.join('\n\n');
+  }
+  function showRepayList(kind){
+    var text = buildRepayText(kind), box = document.getElementById('rpListResult');
+    box.style.display = '';
+    box.innerHTML = '<p class="member-label" style="margin:18px 0 0;">' + esc(t('monListHead')) + '</p>' +
+      '<pre class="mc-pre">' + esc(text) + '</pre>' +
+      '<div class="mc-actions">' + copyBtnHtml('rplist', text, 'copyList') +
+      '<button type="button" class="copy-btn wa-btn" data-wa="rplist">' + esc(t('monShareWa')) + '</button></div>';
+  }
+
+  /* ----- events ----- */
+  document.addEventListener('click', function(e){
+    var sec = document.getElementById('monthlySection');
+    if(!sec || !sec.contains(e.target)) return;
+    var seg = e.target.closest('.mc-seg');
+    if(seg){
+      var loan = seg.getAttribute('data-pane') === 'loan';
+      document.getElementById('monPaneContrib').style.display = loan ? 'none' : '';
+      document.getElementById('monPaneLoan').style.display = loan ? '' : 'none';
+      sec.querySelectorAll('.mc-seg').forEach(function(b){ b.classList.toggle('active', b === seg); });
+      if(loan){ renderRepay(); pullRepay(); }
+      return;
+    }
+    var pane = document.getElementById('monPaneLoan');
+    if(!pane.contains(e.target)) return;
+    var rb = e.target.closest('.rp-btn');
+    if(rb){
+      var mo = currentRepayMonth(), key = rb.getAttribute('data-key'), r = rpState.index[key];
+      if(!r) return;
+      var wasRec = rb.getAttribute('data-rec') === '1', target = !wasRec, prevEntry = loanEntry(mo, r) || null, marks = {};
+      marks[key] = target ? { v:true, d:todayStr() } : (loanBaseReceived(r) ? { v:false } : null);
+      rpState.last = { month:mo.key, key:key, name:r.applicant, now:target, prev:prevEntry };
+      setRepayMarks(mo.key, marks).then(function(ok){ if(!ok){ rpState.last = null; renderRepay(); } });
+      return;
+    }
+    if(e.target.id === 'rpUndoBtn'){
+      var L = rpState.last; if(!L) return;
+      var back = {}; back[L.key] = L.prev;
+      rpState.last = null;
+      setRepayMarks(L.month, back);
+      return;
+    }
+    var chip = e.target.closest('.rp-chip');
+    if(chip){
+      rpState.filter = chip.getAttribute('data-f');
+      pane.querySelectorAll('.rp-chip').forEach(function(c){ c.classList.toggle('active', c === chip); });
+      renderRepayList();
+      return;
+    }
+    var mm = e.target.closest('.mc-month');
+    if(mm){ rpState.month = mm.getAttribute('data-month'); rpState.last = null; document.getElementById('rpListResult').style.display = 'none'; renderRepay(); }
+  });
+  function stepRepayMonth(d){
+    var ms = repayMonths(), mo = currentRepayMonth(), i = 0;
+    ms.forEach(function(x, j){ if(x.key === mo.key) i = j; });
+    var nx = ms[i + d]; if(!nx) return;
+    rpState.month = nx.key; rpState.last = null;
+    document.getElementById('rpListResult').style.display = 'none';
+    renderRepay();
+  }
+  document.getElementById('rpPrev').addEventListener('click', function(){ stepRepayMonth(-1); });
+  document.getElementById('rpNext').addEventListener('click', function(){ stepRepayMonth(1); });
+  document.getElementById('rpSearch').addEventListener('input', function(e){ rpState.q = e.target.value; renderRepayList(); });
+  document.getElementById('rpGenAll').addEventListener('click', function(){ showRepayList('all'); });
+  document.getElementById('rpGenPending').addEventListener('click', function(){ showRepayList('pending'); });
+
+  document.getElementById('rpImportBtn').addEventListener('click', function(){
+    var mo = currentRepayMonth(), out = document.getElementById('rpImportOut');
+    var byName = {};
+    loansDueIn(mo).forEach(function(r){ var k = normKeyName(r.applicant); (byName[k] = byName[k] || []).push(r); });
+    var marks = {}, miss = [], n = 0;
+    document.getElementById('rpImportText').value.split(/\n\s*\n/).forEach(function(block){
+      var nm = /^\s*\*?\s*Name\s*:\s*(.+)$/im.exec(block), st = /Status\s*:\s*(.+)$/im.exec(block);
+      if(!nm || !st || !(/rec[a-z]*d/i.test(st[1]) || /\u2705/.test(st[1]))) return;
+      var list = byName[normKeyName(nm[1])];
+      if(!list){ miss.push(nm[1].trim()); return; }
+      list.forEach(function(r){
+        if(!loanReceived(mo, r)){ marks[loanKey(r)] = { v:true, d:todayStr() }; n++; }
+      });
+    });
+    if(!n){ out.textContent = t('rpImportNone'); return; }
+    setRepayMarks(mo.key, marks).then(function(ok){
+      out.textContent = ok ? t('rpImportDone', { n:n }) + (miss.length ? ' ' + t('rpImportMiss', { names:miss.join(', ') }) : '') : '';
+    });
+  });
+
   /* ---------- Bottom tab navigation (mobile app-shell) ---------- */
 
-  var TAB_SECTIONS = { overview:'overviewSection', deposits:'depositsSection', eligibility:'eligibilitySection', lists:'eligListsSection' };
+  var TAB_SECTIONS = { overview:'overviewSection', deposits:'depositsSection', eligibility:'eligibilitySection', lists:'eligListsSection', monthly:'monthlySection' };
   var TAB_STORAGE_KEY = 'withusActiveTab';
 
   function showTab(tab){
@@ -2307,6 +3037,7 @@
       b.classList.toggle('active', b.getAttribute('data-tab') === tab);
     });
     try{ localStorage.setItem(TAB_STORAGE_KEY, tab); }catch(e){}
+    if(tab === 'monthly'){ renderMonthly(); pullContrib(); pullRepay(); }
   }
 
   document.querySelectorAll('.tabbar-btn').forEach(function(btn){
@@ -2403,6 +3134,7 @@
     populateEligibility();
     renderRecentChecks();
     populateEligList();
+    renderMonthly(); pullContrib(); pullRepay();
     restoreActiveTab();
   }
 
@@ -2622,8 +3354,8 @@
       loadData(generateSampleData(), '__demo__', generateSampleMemberData());
     }
     if(syncEnabled()){
-      setInterval(pullShared, 120000);
-      document.addEventListener('visibilitychange', function(){ if(!document.hidden) pullShared(); });
+      setInterval(function(){ pullShared(); pullContrib(); pullRepay(); }, 120000);
+      document.addEventListener('visibilitychange', function(){ if(!document.hidden){ pullShared(); pullContrib(); pullRepay(); } });
     }
   })();
 })();
