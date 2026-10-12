@@ -615,6 +615,23 @@
   .dd-row .dd-name{ flex:1; min-width:0; }
   .dd-row .dd-val{ flex:none; font-weight:600; }
 </style>
+<style id="p5css">
+  .mc-resulthead{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:18px 0 0; }
+  .mc-close{ min-height:44px; padding:0 14px; border-radius:999px; border:1px solid var(--line); background:var(--card); color:var(--ink); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .mc-import textarea{ display:block; width:100%; max-width:100%; min-width:0; height:96px; min-height:96px; resize:vertical; }
+  .mc-importbtns{ display:flex; flex-wrap:nowrap; gap:8px; }
+  .mc-importbtns .clear-filter-btn{ flex:1 1 0; min-width:0; width:auto; padding-left:8px; padding-right:8px; }
+  @media (max-width:820px){
+    .band{ gap:8px; padding:8px 12px; padding-top:max(8px, env(safe-area-inset-top)); border-bottom-width:2px; }
+    .brand{ gap:8px; min-width:0; flex:1; }
+    .brand > div{ min-width:0; }
+    .brand-mark{ width:34px; height:34px; }
+    .brand-title{ font-size:15px; line-height:1.15; white-space:normal; overflow:visible; text-overflow:clip; }
+    .upload-zone{ gap:6px; flex:none; }
+    .theme-toggle, .header-menu-btn{ width:38px; height:38px; min-height:38px; padding:0; font-size:16px; }
+    #langToggle{ height:38px; min-height:38px; padding:0 10px; font-size:13px; }
+  }
+</style>
 </head>
 <body>
 
@@ -951,7 +968,7 @@
         <summary data-i18n="monImportTitle">Import paid members from a WhatsApp list</summary>
         <p style="font-size:12.5px; color:var(--ink-soft); margin:4px 0 0;" data-i18n="monImportHint">Paste a list like “1. NAME - 500”.</p>
         <textarea id="monImportText" aria-label="WhatsApp list"></textarea>
-        <div class="mc-importbtns"><button type="button" class="clear-filter-btn" id="monImportBtn" data-i18n="monImportBtn">Import</button><button type="button" class="clear-filter-btn" id="monImportClear" data-i18n="monClear">Clear</button></div>
+        <div class="mc-importbtns"><button type="button" class="clear-filter-btn" id="monImportBtn" data-i18n="monImportBtn">Import</button><button type="button" class="clear-filter-btn" id="monImportClear" data-i18n="monClear">Clear</button><button type="button" class="clear-filter-btn mc-close-details" data-i18n="depClose">Close</button></div>
         <p id="monImportOut" style="font-size:12.5px; color:var(--ink-soft); margin:8px 0 0;"></p>
       </details>
 
@@ -987,7 +1004,7 @@
           <summary data-i18n="rpImportTitle">Import received loans from a WhatsApp list</summary>
           <p style="font-size:12.5px; color:var(--ink-soft); margin:4px 0 0;" data-i18n="rpImportHint">Paste the list you posted.</p>
           <textarea id="rpImportText" aria-label="WhatsApp list"></textarea>
-          <div class="mc-importbtns"><button type="button" class="clear-filter-btn" id="rpImportBtn" data-i18n="monImportBtn">Import</button><button type="button" class="clear-filter-btn" id="rpImportClear" data-i18n="monClear">Clear</button></div>
+          <div class="mc-importbtns"><button type="button" class="clear-filter-btn" id="rpImportBtn" data-i18n="monImportBtn">Import</button><button type="button" class="clear-filter-btn" id="rpImportClear" data-i18n="monClear">Clear</button><button type="button" class="clear-filter-btn mc-close-details" data-i18n="depClose">Close</button></div>
           <p id="rpImportOut" style="font-size:12.5px; color:var(--ink-soft); margin:8px 0 0;"></p>
         </details>
 
@@ -2729,6 +2746,51 @@
     });
   }
 
+
+  /* ----- Marathi names (taken from the lists you posted; other names are written the same way, unknown words are transliterated) ----- */
+  var MR_C = {"ABDULKADIR":"अब्दुलकादिर","SHERPUDDIN":"शेरपुद्दीन","BOBADE":"बोबडे","AHMADRAZA":"अहमदरझा","RAJJAK":"रज्जाक","RAMDUL":"रमदुल","AJIM":"अजीम","ABBAS":"अब्बास","MANAJI":"मनाजी","ALIMUDDIN":"अलीमुद्दीन","RAMJAN":"रमजान","NACHARE":"नाचरे","ALTAF":"अल्ताफ","DILDAR":"दिलदार","TIWALE":"तिवले","YASIN":"यासीन","AMIR":"अमीर","JETHI":"जेठी","ASARAT":"असरत","MAHMAD":"महमद","PATANKAR":"पाटणकर","ASHFAK":"अशफाक","BABALAL":"बाबालाल","ASIF":"असिफ","HASAN":"हसन","BOTHARE":"बोथरे","AZAD":"आझाद","RAJAK":"रझाक","AZARUDDIN":"अजरुद्दीन","HUSSAIN":"हुसैन","DASTAGIR":"दस्तगीर","FAIYAZ":"फैयाज","ABDULRAHIMAN":"अब्दुलरहिमान","FAIYAZALI":"फैयाजअली","FAIZAN":"फैजान","BHIKU":"भिकू","GULAMALI":"गुलामअली","RAFIK":"रफिक","GULAMJILANI":"गुलामजिलानी","IKRAM":"इक्राम","YARALVI":"यारलवी","GULAMNABI":"गुलामनबी","GULAMRASUL":"गुलामरसूल","GULAMSARVAR":"गुलामसरवर","HUSEN":"हुसेन","MAHAMAD":"महमद","IBRAHIM":"इब्राहिम","IMAM":"इमाम","LANJEKAR":"लांजेकर","ISMAIL":"इस्माईल","BASHIR":"बशीर","JALIL":"जलील","KHALIL":"खलील","DILAWAR":"दिलावर","MAINUDDIN":"मैनुद्दीन","GAVAS":"गवस","FARAS":"फरास","MANSUR":"मन्सूर","MOAZZAM":"मोअज्जम","MUSTAK":"मुस्तक","MOHAMMAD":"मोहम्मद","BABASAHEB":"बाबासाहेब","HABIB":"हबीब","KARIM":"करीम","MOHIDDIN":"मोहिद्दीन","USMAN":"उस्मान","THODGE":"थोडगे","MUAJJAM":"मुअज्जम","SAYYAD":"सय्यद","MURAD":"मुराद","AKBAR":"अकबर","MURSHIDALI":"मुर्शिदअली","SHABBIR":"शब्बीर","MUSTAFA":"मुस्तफा","KASIM":"कासीम","MUSTAFIN":"मुस्तफिन","NAWAJ":"नवाज","SADIK":"सादिक","NIYAJ":"नियाज","NURMUHAMMAD":"नूरमुहम्मद","BAKSHA":"बक्षा","REHAN":"रेहान","BADSHAH":"बादशाह","RIYAJ":"रियाज","SAHIL":"साहिल","GAUS":"गौस","SAMAD":"समद","SULTAN":"सुलतान","LORIYA":"लोरिया","SAMIR":"समीर","SARFARAZ":"सरफराज","SATTAR":"सत्तार","KHATBUDDIN":"खतबुद्दीन","SHABAN":"शाबान","MAHMADHANIF":"महमदहनीफ","SHAFIK":"शफिक","SHAMSHUDDIN":"शमसुद्दीन","SOHEL":"सोहेल","TANVEER":"तन्वीर","KASHIM":"कासीम","ZUBER":"झुबेर"};
+  var MR_L = {"AJIM":"अजीम","RAMJAN":"रमजान","BOBADE":"बोबडे","ALLAUDDIN":"अल्लाउद्दीन","SARFARAZ":"सरफराज","MOHAMMAD":"मोहम्मद","TANVEER":"तन्वीर","KASHIM":"कासिम","ASARAT":"असरत","MAHMAD":"महमद","PATANKAR":"पाटणकर","NAWAJ":"नवाज","SADIK":"सादिक","NAJIM":"नजीम","RAMDUL":"रामदूल","SAMIR":"समीर","ABBAS":"अब्बास","MANAJI":"मनाजी","IMAMHUSAIN":"इमामहुसैन","AKBAR":"अकबर","NACHARE":"नाचरे","ALTAF":"अल्ताफ","DILDAR":"दिलदार","TIWALE":"तिवाले","SAMAD":"समद","SULTAN":"सुलतान","LORIYA":"लोरिया","AHMADRAZA":"अहमदरझा","RAJJAK":"रज्जाक","RIYAJ":"रियाज","SHAMSHUDDIN":"शम्सुद्दीन","HUSEN":"हुसेन"};
+  var MR_X = {"ABDUL":"अब्दुल","ADAM":"आदम","AHMADALI":"अहमदअली","ALIASGAR":"अलीअसगर","ALIBA":"अलीबा","AMIN":"अमीन","ASLAM":"अस्लम","BARKAT":"बरकत","CHOCHE":"चोचे","DANISH":"दानिश","DAUD":"दाऊद","FAJAL":"फजल","GANI":"गनी","GULAB":"गुलाब","GULAM":"गुलाम","GULAMAJIM":"गुलामअजीम","GULAMGAUS":"गुलामगौस","GULAMHUSAIN":"गुलामहुसैन","GULAMHUSEN":"गुलामहुसेन","GULAMMEHUB":"गुलाममेहबूब","HAMID":"हमीद","HUSAIN":"हुसैन","HUSENMIYAN":"हुसेनमियाँ","IQBAL":"इक्बाल","IRFAN":"इरफान","ISAK":"इसाक","JABIR":"जाबीर","JAFAR":"जाफर","JAINUDDIN":"जैनुद्दीन","JALAL":"जलाल","JAMIR":"जमीर","KADIR":"कादिर","KAMARUDDIN":"कमरुद्दीन","KHUDABU":"खुदाबू","KHUDBUDDIN":"खुदबुद्दीन","MAJID":"माजिद","MAMAMMADHANIF":"महमदहनीफ","MATIN":"मतीन","MEHERALLI":"मेहेरअली","MHAMULAL":"म्हामुलाल","MOHAMMADALI":"मोहम्मदअली","MOHAMMADHASAN":"मोहम्मदहसन","MOHAMMADHUSAIN":"मोहम्मदहुसैन","MOHASIN":"मोहसीन","MOIN":"मोईन","MUBARAK":"मुबारक","MUKADAM":"मुकादम","MUNAWWAR":"मुनव्वर","NAJARUDDIN":"नजरुद्दीन","NAVALEKAR":"नवलेकर","NIJAMUDDIN":"निजामुद्दीन","NURMAHAMAD":"नूरमहमद","PAKHALI":"पाखली","RASUL":"रसूल","RAZZAK":"रज्जाक","RIZWAN":"रिझवान","SALIM":"सलीम","SATHWILKAR":"साठविलकर","SHAHABUDDIN":"शहाबुद्दीन","SHAKIL":"शकील","SIDDHIK":"सिद्दीक","SIRAJ":"सिराज","TAJUDDIN":"ताजुद्दीन","UMAR":"उमर","WASIM":"वसीम","YUSUF":"युसूफ"};
+  function mrTranslit(w){
+    var C2 = { KH:'ख', GH:'घ', CH:'च', JH:'झ', TH:'थ', DH:'ध', PH:'फ', BH:'भ', SH:'श' };
+    var C1 = { B:'ब', C:'क', D:'द', F:'फ', G:'ग', H:'ह', J:'ज', K:'क', L:'ल', M:'म', N:'न', P:'प', Q:'क', R:'र', S:'स', T:'त', V:'व', W:'व', X:'क्स', Y:'य', Z:'झ' };
+    var V2 = { AA:['आ','ा'], EE:['ई','ी'], OO:['ऊ','ू'], AI:['ऐ','ै'], AU:['औ','ौ'] };
+    var V1 = { A:['अ',''], I:['इ','ि'], U:['उ','ु'], E:['ए','े'], O:['ओ','ो'] };
+    var s = String(w).toUpperCase().replace(/[^A-Z]/g, ''), i = 0, toks = [];
+    while(i < s.length){
+      var d = s.substr(i, 2);
+      if(C2[d]){ toks.push({ c:C2[d] }); i += 2; }
+      else if(V2[d]){ toks.push({ v:V2[d] }); i += 2; }
+      else if(C1[s[i]]){ toks.push({ c:C1[s[i]] }); i++; }
+      else if(V1[s[i]]){ toks.push({ v:V1[s[i]], a:s[i] === 'A', last:i === s.length - 1 }); i++; }
+      else i++;
+    }
+    var out = '', prevC = false;
+    toks.forEach(function(tk, j){
+      if(tk.c){
+        if(prevC) out += '्';
+        out += tk.c; prevC = true;
+      } else {
+        if(prevC){ out += tk.a ? (tk.last ? 'ा' : '') : tk.v[1]; }
+        else out += tk.v[0];
+        prevC = false;
+      }
+    });
+    return out;
+  }
+  function mrName(name, kind){
+    var order = kind === 'loan' ? [MR_L, MR_C, MR_X] : [MR_C, MR_L, MR_X];
+    return String(name || '').trim().split(/\s+/).map(function(w){
+      var k = w.toUpperCase();
+      for(var i = 0; i < order.length; i++) if(order[i][k]) return order[i][k];
+      return mrTranslit(w);
+    }).join(' ');
+  }
+  function listHead(id){
+    return '<div class="mc-resulthead"><p class="member-label" style="margin:0;">' + esc(t('monListHead')) + '</p>' +
+      '<button type="button" class="mc-close" data-close="' + id + '">' + esc(t('depClose')) + ' ✕</button></div>';
+  }
+
   /* ----- list text (same format that is posted in the WhatsApp group today) ----- */
   function buildContribText(kind){
     var mo = currentMonthObj();
@@ -2736,9 +2798,9 @@
     var act = activeMembersFor(mo), lines = [], n = 0;
     if(kind === 'unpaid' && LANG === 'mr'){
       var mlines = [], k = 0;
-      act.forEach(function(m){ if(memberMonthPaid(m, mo)) return; k++; mlines.push(k + '. ' + m.name + ' - \uD83D\uDEAB'); });
-      return '\u0938\u094B\u0938\u093E\u092F\u091F\u0940 \u092E\u093E\u0938\u093F\u0915 \u0935\u0930\u094D\u0917\u0923\u0940 - \u092C\u093E\u0915\u0940 \u092F\u093E\u0926\u0940 - ' + monLabelUI(mo) + '\n\n' + mlines.join('\n') +
-        '\n\n_\u0915\u0943\u092A\u092F\u093E \u0906\u092A\u0932\u0940 \u092E\u093E\u0938\u093F\u0915 \u0935\u0930\u094D\u0917\u0923\u0940 \u20B9' + CONTRIB_AMOUNT + ' \u0932\u0935\u0915\u0930\u093E\u0924 \u0932\u0935\u0915\u0930 \u092D\u0930\u093E\u0935\u0940._';
+      act.forEach(function(m){ if(memberMonthPaid(m, mo)) return; k++; mlines.push(k + '. ' + mrName(m.name, 'contrib')); });
+      return '*' + MONTH_NAMES_MR[mo.m0] + ' मंथली contribution पेंडिंग लिस्ट*\n\n' + mlines.join('\n') +
+        '\n\n_कृपया आपले मासिक योगदान ₹' + CONTRIB_AMOUNT + ' लवकरात लवकर भरा._';
     }
     act.forEach(function(m, i){
       var p = memberMonthPaid(m, mo);
@@ -2753,7 +2815,7 @@
   function showContribList(kind){
     var text = buildContribText(kind), box = document.getElementById('monListResult');
     box.style.display = '';
-    box.innerHTML = '<p class="member-label" style="margin:18px 0 0;">' + esc(t('monListHead')) + '</p>' +
+    box.innerHTML = listHead('monListResult') +
       '<pre class="mc-pre">' + esc(text) + '</pre>' +
       '<div class="mc-actions">' + copyBtnHtml('monlist', text, 'copyList') +
       '<button type="button" class="copy-btn wa-btn" data-wa="monlist">' + esc(t('monShareWa')) + '</button></div>';
@@ -2761,6 +2823,10 @@
 
   /* ----- events ----- */
   document.addEventListener('click', function(e){
+    var clx = e.target.closest ? e.target.closest('.mc-close') : null;
+    if(clx){ var cbox = document.getElementById(clx.getAttribute('data-close')); if(cbox) cbox.style.display = 'none'; return; }
+    var cdt = e.target.closest ? e.target.closest('.mc-close-details') : null;
+    if(cdt){ var dd = cdt.closest('details'); if(dd) dd.open = false; return; }
     var wa = e.target.closest ? e.target.closest('.wa-btn') : null;
     if(wa){
       var txt = copyStore[wa.getAttribute('data-wa')];
@@ -2769,6 +2835,8 @@
     }
     var sec = document.getElementById('monthlySection');
     if(!sec || !sec.contains(e.target)) return;
+    var lpane = document.getElementById('monPaneLoan');
+    if(lpane && lpane.contains(e.target)) return;
     var mb = e.target.closest('.mc-btn');
     if(mb){
       var now = mb.getAttribute('data-paid') !== '1', mo = currentMonthObj(), marks = {};
@@ -3032,6 +3100,16 @@
   /* ----- list text (same format that is posted in the WhatsApp group today) ----- */
   function buildRepayText(kind){
     var mo = currentRepayMonth(), blocks = [], mr = (kind === 'pending' && LANG === 'mr');
+    if(mr){
+      var ml = [], mk = 0, mt = 0;
+      loansDueIn(mo).forEach(function(r){
+        if(loanReceived(mo, r)) return;
+        var ret = loanReturnAmt(r); mk++; mt += (ret || 0);
+        ml.push(mk + '. ' + mrName(r.applicant, 'loan') + ' – ' + (ret == null ? '-' : indian(ret)));
+      });
+      return 'कर्ज परतफेड *Pending* असलेले सदस्य :\n\n' + ml.join('\n') +
+        '\n\n*एकूण Pending सदस्य:* ' + mk + '\n\n*एकूण Pending परतफेड रक्कम:* ' + indian(mt);
+    }
     var L = mr
       ? { name:'नाव', taken:'कर्ज घेतल्याची तारीख', amt:'कर्ज रक्कम', rdate:'कर्ज परतफेड तारीख', ramt:'कर्ज परतफेड रक्कम', status:'स्थिती', pend:'कर्ज परतफेड बाकी ❌', recv:'कर्ज परतफेड मिळाली ✅' }
       : { name:'Name', taken:'Loan Taken Date', amt:'Loan Amount', rdate:'Loan Return Date', ramt:'Loan Return Amount', status:'Status', pend:'Loan Repayment Pending ❌', recv:'Loan Repayment Received ✅' };
@@ -3054,7 +3132,7 @@
   function showRepayList(kind){
     var text = buildRepayText(kind), box = document.getElementById('rpListResult');
     box.style.display = '';
-    box.innerHTML = '<p class="member-label" style="margin:18px 0 0;">' + esc(t('monListHead')) + '</p>' +
+    box.innerHTML = listHead('rpListResult') +
       '<pre class="mc-pre">' + esc(text) + '</pre>' +
       '<div class="mc-actions">' + copyBtnHtml('rplist', text, 'copyList') +
       '<button type="button" class="copy-btn wa-btn" data-wa="rplist">' + esc(t('monShareWa')) + '</button></div>';
