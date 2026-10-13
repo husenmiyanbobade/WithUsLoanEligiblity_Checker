@@ -15,6 +15,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
 var CONTRIB_FILE = 'withus-contributions.json';     // monthly contribution marks
 var REPAY_FILE = 'withus-repayments.json';          // monthly loan repayment marks
+var APPS_FILE = 'withus-applications.json';         // monthly loan application list (from the Eligibility tab)
 
 function out_(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 function file_(name){ var it = DriveApp.getFilesByName(name); return it.hasNext() ? it.next() : null; }
@@ -86,10 +87,9 @@ function doGet(e){
   var p = (e && e.parameter) || {};
   if(!validToken_(p.token)) return out_({ ok:false, error:'login-required' });
   var since = Number(p.since || 0);
-  if(p.kind === 'contrib' || p.kind === 'repay'){
-    var isRepay = p.kind === 'repay';
-    var cf = file_(isRepay ? REPAY_FILE : CONTRIB_FILE);
-    var flag = {}; flag[isRepay ? 'repay' : 'contrib'] = true;
+  if(p.kind === 'contrib' || p.kind === 'repay' || p.kind === 'apply'){
+    var cf = file_(p.kind === 'repay' ? REPAY_FILE : p.kind === 'apply' ? APPS_FILE : CONTRIB_FILE);
+    var flag = {}; flag[p.kind] = true;
     if(!cf){ flag.empty = true; return out_(flag); }
     var c = JSON.parse(cf.getBlob().getDataAsString());
     if(since && since === c.updatedAt){ flag.unchanged = true; flag.updatedAt = c.updatedAt; return out_(flag); }
@@ -113,6 +113,7 @@ function doPost(e){
     if(body.kind === 'check') return out_({ ok:true });
     if(body.kind === 'contrib') return saveMarks_(body, CONTRIB_FILE, false);
     if(body.kind === 'repay') return saveMarks_(body, REPAY_FILE, true);
+    if(body.kind === 'apply') return saveMarks_(body, APPS_FILE, 'apply');
 
     // Excel dataset upload (never write an empty dataset)
     if(!body.dataset || !body.dataset.rows || !body.dataset.rows.length) return out_({ ok:false, error:'no-dataset' });
@@ -126,6 +127,7 @@ function doPost(e){
 // body.month = 'YYYY-MM', body.marks = { key: value | null }   (null removes the mark)
 //   contributions: value is true | false
 //   repayments:    value is { v: true|false, d: 'YYYY-MM-DD' (optional date received) }
+//   applications:  value is an entry { n:name, a:amount, g:[guarantors], gb:[true if that guarantor is rejected], st:'a'|'r', rm:remark, ts:time }
 // Each save is merged into the stored data under a lock, so two phones marking at the same time never overwrite each other.
 function saveMarks_(body, fileName, objectValues){
   if(!/^\d{4}-\d{2}$/.test(String(body.month || ''))) return out_({ ok:false, error:'bad-month' });
@@ -141,7 +143,10 @@ function saveMarks_(body, fileName, objectValues){
     keys.forEach(function(k){
       if(k.length > 200) return;
       var v = marks[k];
-      if(objectValues){
+      if(objectValues === 'apply'){
+        var ao = cleanApp_(v);
+        if(ao) m[k] = ao; else delete m[k];
+      } else if(objectValues){
         if(v && (v.v === true || v.v === false)){
           var o = { v: v.v };
           if(typeof v.d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.d)) o.d = v.d;
@@ -156,4 +161,17 @@ function saveMarks_(body, fileName, objectValues){
     if(cf) cf.setContent(txt); else DriveApp.createFile(fileName, txt, MimeType.PLAIN_TEXT);
     return out_({ ok:true, updatedAt:data.updatedAt, months:data.months });
   } finally { lock.releaseLock(); }
+}
+
+// Keeps only the known fields of a loan application entry (and limits their size). Returns null for anything else.
+function cleanApp_(v){
+  if(!v || typeof v !== 'object' || typeof v.n !== 'string' || !v.n) return null;
+  var amt = Number(v.a);
+  if([10000, 25000, 50000, 100000].indexOf(amt) < 0) return null;
+  var g = [], gb = [];
+  (Array.isArray(v.g) ? v.g : []).slice(0, 2).forEach(function(x, i){
+    g.push(String(x || '').slice(0, 80));
+    gb.push(!!(Array.isArray(v.gb) && v.gb[i]));
+  });
+  return { n: v.n.slice(0, 80), a: amt, g: g, gb: gb, st: v.st === 'r' ? 'r' : 'a', rm: String(v.rm || '').slice(0, 400), ts: Number(v.ts) || Date.now() };
 }
