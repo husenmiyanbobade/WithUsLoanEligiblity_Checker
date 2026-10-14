@@ -173,5 +173,7 @@ function cleanApp_(v){
     g.push(String(x || '').slice(0, 80));
     gb.push(!!(Array.isArray(v.gb) && v.gb[i]));
   });
-  return { n: v.n.slice(0, 80), a: amt, g: g, gb: gb, st: v.st === 'r' ? 'r' : 'a', rm: String(v.rm || '').slice(0, 400), ts: Number(v.ts) || Date.now() };
+  var out = { n: v.n.slice(0, 80), a: amt, g: g, gb: gb, st: v.st === 'r' ? 'r' : 'a', rm: String(v.rm || '').slice(0, 400), ts: Number(v.ts) || Date.now() };
+  if(typeof v.ds === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.ds)) out.ds = v.ds;   // disbursed loan date
+  return out;
 }
