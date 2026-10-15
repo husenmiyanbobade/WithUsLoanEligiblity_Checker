@@ -3802,7 +3802,8 @@
   }
   function apLoanInfo(e){
     var tier = LOAN_TIERS[String(e.a)], d = parseDay(e.ds);
-    return { taken:d, ret:apAddMonths(d, tier ? tier.repayMonths : 0), retAmt:e.a + (REPAY_CHARGE[e.a] || 0) };
+    /* taken = the actual disbursement date; return is always due on the 15th of the repayment month */
+    return { taken:new Date(d.getFullYear(), d.getMonth(), d.getDate()), ret:new Date(d.getFullYear(), d.getMonth() + (tier ? tier.repayMonths : 0), 15), retAmt:e.a + (REPAY_CHARGE[e.a] || 0) };
   }
   function virtHasExcel(r){
     var k = normKeyName(r.applicant);
