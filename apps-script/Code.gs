@@ -20,6 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
+var SCHEMA_VER = 2;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
 var CONTRIB_FILE = 'withus-contributions.json';     // monthly contribution marks
@@ -32,7 +33,7 @@ var ADMIN1 = 'withusadmin1', ADMIN2 = 'withusadmin2';
 // Every tab of the database and its columns. Nothing is ever deleted from money tabs: rows are voided, not removed.
 var TABS = {
   Members: ['MemberID','Name','Mobile','DOB','JoinDate','Status','OpeningDeposit','JoiningFee','PinHash','PinSalt','PinSetAt','FailedTries','LockedUntil','Source','CreatedAt','CreatedBy'],
-  Contributions: ['ContribID','MemberID','Month','Amount','PaidDate','Mode','Ref','Source','EnteredBy','EnteredAt','Voided'],
+  Contributions: ['ContribID','MemberID','Month','Amount','PaidDate','Mode','Ref','Source','EnteredBy','EnteredAt','Voided','ReceiptNo','VoidedBy','VoidedAt'],
   Loans: ['LoanID','MemberID','ApplicantName','Amount','TakenDate','DueDate','ReturnAmount','Fine','LateExtra','Status','Suspended','ClosedDate','Source','CreatedAt'],
   Guarantors: ['LoanID','MemberID','Name','Source'],
   LoanPayments: ['PaymentID','LoanID','Date','Amount','PaidBy','ToPrincipal','ToExtra','ToLateExtra','Mode','Ref','EnteredBy','EnteredAt','Voided'],
@@ -434,6 +435,20 @@ function exportAll_(S){
   return out_({ ok:true, at:nowIso_(), tabs:tabs });
 }
 
+function writeHeader_(sh, n){
+  var h = TABS[n], f = fmts_(n);
+  sh.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold');
+  sh.setFrozenRows(1);
+  for(var c = 0; c < h.length; c++) sh.getRange(1, c + 1, Math.max(sh.getMaxRows(), 2), 1).setNumberFormat(f[c]);
+}
+// Adds missing tabs and new columns after an update, once per schema version.
+function ensureSchema_(){
+  if(!sheetReady_() || Number(props_().getProperty('schemaVer') || 0) >= SCHEMA_VER) return;
+  var book = ss_();
+  Object.keys(TABS).forEach(function(n){ writeHeader_(book.getSheetByName(n) || book.insertSheet(n), n); });
+  props_().setProperty('schemaVer', String(SCHEMA_VER));
+}
+
 /* ---------- one-time setup and backups (run from the script editor) ---------- */
 function setup(){
   var id = props_().getProperty('sheetId'), book, fresh = false;
@@ -442,16 +457,11 @@ function setup(){
   var first = true;
   Object.keys(TABS).forEach(function(n){
     var sh = book.getSheetByName(n);
-    if(!sh){
-      sh = first && fresh ? book.getSheets()[0].setName(n) : book.insertSheet(n);
-    }
+    if(!sh) sh = first && fresh ? book.getSheets()[0].setName(n) : book.insertSheet(n);
     first = false;
-    var h = TABS[n];
-    sh.getRange(1, 1, 1, h.length).setValues([h]).setFontWeight('bold');
-    sh.setFrozenRows(1);
-    var f = fmts_(n);
-    for(var c = 0; c < h.length; c++) sh.getRange(1, c + 1, Math.max(sh.getMaxRows(), 2), 1).setNumberFormat(f[c]);
+    writeHeader_(sh, n);
   });
+  props_().setProperty('schemaVer', String(SCHEMA_VER));
   var set = book.getSheetByName('Settings');
   if(set.getLastRow() < 2){
     var at = nowIso_();
@@ -498,6 +508,314 @@ function installNightlyBackup(){
   Logger.log('Nightly backup installed (about 2 am).');
 }
 
+/* ---------- step 2: members and contributions ---------- */
+var UNDO_SECONDS = 120;      // an admin may void their OWN entry within this time; later only withusadmin1 can
+
+function setting_(key, dflt){
+  var list = rows_('Settings');
+  for(var i = 0; i < list.length; i++) if(String(list[i].Key) === key && list[i].Value !== '' && list[i].Value !== null) return list[i].Value;
+  return dflt;
+}
+function contribAmount_(){ return num_(setting_('ContributionAmount', 500)) || 500; }
+function trackStart_(){ var v = String(setting_('TrackingStartMonth', '2026-01')); return validMonth_(v) ? v : '2026-01'; }
+function curMonth_(){ return todayStr_().slice(0, 7); }
+function validMonth_(m){ return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(m)); }
+function validDate_(s){
+  s = String(s || '');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  var d = new Date(s + 'T00:00:00Z');
+  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+function addMonths_(m, n){
+  var y = Number(m.slice(0, 4)), mo = Number(m.slice(5, 7)) - 1 + n;
+  y += Math.floor(mo / 12); mo = ((mo % 12) + 12) % 12;
+  return y + '-' + pad_(mo + 1, 2);
+}
+function monthsBetween_(a, b){
+  var out = [], m = a, guard = 0;
+  while(m <= b && guard++ < 600){ out.push(m); m = addMonths_(m, 1); }
+  return out;
+}
+function startMonth_(mem){
+  var ts = trackStart_(), j = String(mem.JoinDate || '').slice(0, 7);
+  return (validMonth_(j) && j > ts) ? j : ts;
+}
+function cleanName_(s){ return String(s || '').replace(/[^A-Za-zऀ-ॿ .'\-]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase(); }
+function cleanMobile_(s){
+  var d = String(s || '').replace(/\D/g, '');
+  if(d.length === 12 && d.indexOf('91') === 0) d = d.slice(2);
+  if(d.length === 11 && d.charAt(0) === '0') d = d.slice(1);
+  return /^[6-9]\d{9}$/.test(d) ? d : '';
+}
+function cleanRef_(s){ return String(s || '').replace(/[^A-Za-z0-9 _\-\/]/g, '').trim().slice(0, 40); }
+function lev_(a, b){
+  var m = a.length, n = b.length, d = [], i, j;
+  for(i = 0; i <= m; i++){ d[i] = [i]; }
+  for(j = 1; j <= n; j++) d[0][j] = j;
+  for(i = 1; i <= m; i++) for(j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1));
+  return d[m][n];
+}
+function monthClosed_(month){
+  var list = rows_('MonthClose');
+  for(var i = 0; i < list.length; i++) if(String(list[i].Month) === month) return true;
+  return false;
+}
+function nextReceipt_(){
+  var n = Number(props_().getProperty('receiptSeq') || 0) + 1;
+  props_().setProperty('receiptSeq', String(n));
+  return 'R-' + pad_(n, 5);
+}
+function memberById_(id){
+  var list = rows_('Members');
+  for(var i = 0; i < list.length; i++) if(String(list[i].MemberID) === String(id)) return list[i];
+  return null;
+}
+function nextMemberId_(){
+  var max = 0;
+  rows_('Members').forEach(function(m){ var n = Number(String(m.MemberID).replace(/\D/g, '')); if(n > max) max = n; });
+  return 'M-' + pad_(max + 1, 4);
+}
+
+// memberId -> { 'YYYY-MM': { id, amount, date, mode, receipt, by } } for contributions that are not voided
+function contribIndex_(){
+  var idx = {};
+  rows_('Contributions').forEach(function(c){
+    if(isTrue_(c.Voided)) return;
+    var m = idx[c.MemberID] || (idx[c.MemberID] = {});
+    m[String(c.Month)] = { id:c.ContribID, amount:num_(c.Amount), date:String(c.PaidDate || ''), mode:c.Mode || '', receipt:c.ReceiptNo || '', by:c.EnteredBy || '', at:c.EnteredAt || '', ref:c.Ref || '' };
+  });
+  return idx;
+}
+function depositTotals_(){
+  var t = {};
+  rows_('Ledger').forEach(function(r){ if(r.Pot === 'deposit' && !isTrue_(r.Voided) && r.MemberID) t[r.MemberID] = (t[r.MemberID] || 0) + num_(r.Amount); });
+  return t;
+}
+// Past months not paid (arrears) and whether the current month is still unpaid (due). Exited members owe nothing.
+function standing_(mem, paid, cur){
+  if(String(mem.Status) === 'Exited') return { arrears:[], due:false };
+  var start = startMonth_(mem), arrears = [], due = false;
+  monthsBetween_(start, cur).forEach(function(m){
+    if(paid && paid[m]) return;
+    if(m < cur) arrears.push(m); else due = true;
+  });
+  return { arrears:arrears, due:due };
+}
+function memberPublic_(m, st, deposit){
+  return { id:m.MemberID, name:m.Name, mobile:String(m.Mobile || ''), dob:String(m.DOB || ''), joinDate:String(m.JoinDate || ''), status:m.Status || 'Active',
+    deposit:deposit || 0, arrears:st.arrears, dueNow:st.due, hasPin:!!m.PinHash };
+}
+
+function membersList_(S){
+  var bad = needDb_(); if(bad) return bad;
+  var cur = curMonth_(), ci = contribIndex_(), di = depositTotals_();
+  return out_({ ok:true, month:cur, amount:contribAmount_(), today:todayStr_(), trackStart:trackStart_(), joiningFee:num_(setting_('JoiningFee', 0)), members: rows_('Members').map(function(m){
+    return memberPublic_(m, standing_(m, ci[m.MemberID], cur), di[m.MemberID]);
+  }) });
+}
+
+function receiptObj_(no, mem, months, amount, date, mode, ref, by){
+  return { no:no, memberId:mem.MemberID, name:mem.Name, months:months, amount:amount, date:date, mode:mode, ref:ref, by:by };
+}
+// Writes the contribution and ledger rows. The caller has already checked everything and holds the lock.
+function writeContribs_(S, mem, months, date, mode, ref, source){
+  var amt = contribAmount_(), no = nextReceipt_(), at = nowIso_(), cs = [], ls = [];
+  months.forEach(function(mo){
+    var cid = newId_('C');
+    cs.push({ ContribID:cid, MemberID:mem.MemberID, Month:mo, Amount:amt, PaidDate:date, Mode:mode, Ref:ref, Source:source || 'app', EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+    ls.push({ LedgerID:newId_('L'), Date:date, Pot:'deposit', Type:'contribution', MemberID:mem.MemberID, Amount:amt, Ref:cid, Note:'Receipt ' + no + ' ' + mo, EnteredBy:S.u, EnteredAt:at });
+  });
+  appendMany_('Contributions', cs); appendMany_('Ledger', ls);
+  audit_(S, 'contribution', mem.MemberID, no + ' · ' + months.join(', ') + ' · ' + (amt * months.length) + ' · ' + mode);
+  return receiptObj_(no, mem, months.slice(), amt * months.length, date, mode, ref, S.u);
+}
+
+function contribAdd_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var mem = memberById_(body.memberId);
+    if(!mem) return out_({ ok:false, error:'no-member' });
+    if(String(mem.Status) === 'Exited') return out_({ ok:false, error:'member-exited' });
+    var months = Array.isArray(body.months) ? body.months.map(String) : [];
+    var seen = {}; months = months.filter(function(m){ if(seen[m]) return false; seen[m] = 1; return true; }).sort();
+    if(!months.length || months.length > 12 || !months.every(validMonth_)) return out_({ ok:false, error:'bad-months' });
+    var cur = curMonth_(), today = todayStr_(), date = body.date ? String(body.date) : today;
+    if(!validDate_(date) || date > today) return out_({ ok:false, error:'bad-date' });
+    var mode = ['Cash','Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
+    if(!mode) return out_({ ok:false, error:'bad-mode' });
+    var jm = String(mem.JoinDate || '').slice(0, 7);
+    for(var i = 0; i < months.length; i++){
+      if(validMonth_(jm) && months[i] < jm) return out_({ ok:false, error:'before-join', month:months[i] });
+      if(months[i] > addMonths_(cur, 12)) return out_({ ok:false, error:'too-far', month:months[i] });
+    }
+    if(monthClosed_(date.slice(0, 7))) return out_({ ok:false, error:'month-closed', month:date.slice(0, 7) });
+    var paid = contribIndex_()[mem.MemberID] || {}, dupes = months.filter(function(m){ return !!paid[m]; });
+    if(dupes.length) return out_({ ok:false, error:'already-paid', months:dupes });
+    var rec = writeContribs_(S, mem, months, date, mode, cleanRef_(body.ref), 'app');
+    return out_({ ok:true, receipt:rec });
+  } finally { lock.releaseLock(); }
+}
+
+// Void a receipt (all its months) or one contribution. withusadmin1 any time; the admin who made it, only within UNDO_SECONDS.
+function contribVoid_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var key = String(body.receipt || ''), cid = String(body.contribId || '');
+    if(!key && !cid) return out_({ ok:false, error:'bad-request' });
+    var hit = rows_('Contributions').filter(function(c){ return !isTrue_(c.Voided) && (key ? String(c.ReceiptNo) === key : String(c.ContribID) === cid); });
+    if(!hit.length) return out_({ ok:false, error:'not-found' });
+    var nowMs = Date.now();
+    for(var i = 0; i < hit.length; i++){
+      var c = hit[i];
+      if(monthClosed_(String(c.PaidDate).slice(0, 7))) return out_({ ok:false, error:'month-closed', month:String(c.PaidDate).slice(0, 7) });
+      if(S.r !== 'admin1'){
+        var t = Date.parse(String(c.EnteredAt) + '+05:30');
+        if(String(c.EnteredBy) !== S.u || !isFinite(t) || nowMs - t > UNDO_SECONDS * 1000) return out_({ ok:false, error:'forbidden' });
+      }
+    }
+    var ids = {}, at = nowIso_();
+    hit.forEach(function(c){ ids[c.ContribID] = 1; update_('Contributions', c._row, { Voided:true, VoidedBy:S.u, VoidedAt:at }); });
+    rows_('Ledger').forEach(function(l){ if(ids[l.Ref] && !isTrue_(l.Voided)) update_('Ledger', l._row, { Voided:true, VoidedBy:S.u, VoidedAt:at }); });
+    audit_(S, 'contribution-voided', hit[0].MemberID, (key || cid) + ' · ' + hit.length + ' month(s) · ' + String(body.reason || '').slice(0, 100));
+    return out_({ ok:true, voided:hit.length });
+  } finally { lock.releaseLock(); }
+}
+
+function checkMemberFields_(body, selfId){
+  var f = {}, all = rows_('Members');
+  if(body.name !== undefined){
+    f.Name = cleanName_(body.name);
+    if(f.Name.length < 3 || f.Name.length > 80) return { error:'bad-name' };
+  }
+  if(body.mobile !== undefined){
+    f.Mobile = cleanMobile_(body.mobile);
+    if(!f.Mobile) return { error:'bad-mobile' };
+    for(var i = 0; i < all.length; i++) if(String(all[i].Mobile) === f.Mobile && String(all[i].MemberID) !== String(selfId || '')) return { error:'mobile-exists', member:{ id:all[i].MemberID, name:all[i].Name } };
+  }
+  if(body.dob !== undefined){
+    var d = String(body.dob || '');
+    if(d && (!validDate_(d) || d > todayStr_() || d < '1900-01-01')) return { error:'bad-dob' };
+    f.DOB = d;
+  }
+  if(body.joinDate !== undefined){
+    var j = String(body.joinDate || '');
+    if(!validDate_(j) || j > todayStr_() || j < '1990-01-01') return { error:'bad-join' };
+    f.JoinDate = j;
+  }
+  return { fields:f };
+}
+
+function memberAdd_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var chk = checkMemberFields_({ name:body.name, mobile:body.mobile, dob:body.dob || '', joinDate:body.joinDate || todayStr_() }, '');
+    if(chk.error) return out_({ ok:false, error:chk.error, member:chk.member });
+    var f = chk.fields, fee = body.joiningFee === undefined || body.joiningFee === '' ? num_(setting_('JoiningFee', 0)) : num_(body.joiningFee);
+    if(fee < 0 || fee > 100000) return out_({ ok:false, error:'bad-fee' });
+    var first = body.first === 'now', mode = body.mode;
+    if(first && ['Cash','Bank','UPI'].indexOf(mode) < 0) return out_({ ok:false, error:'bad-mode' });
+    if(!body.confirmDup){
+      var key = nameKey_(f.Name), sim = [];
+      rows_('Members').forEach(function(m){ var k = nameKey_(m.Name); if(k === key || (Math.abs(k.length - key.length) <= 2 && lev_(k, key) <= 2)) sim.push({ id:m.MemberID, name:m.Name }); });
+      if(sim.length) return out_({ ok:false, error:'similar-name', similar:sim.slice(0, 3) });
+    }
+    var jm = f.JoinDate.slice(0, 7);
+    if(monthClosed_(todayStr_().slice(0, 7)) && (fee > 0 || first)) return out_({ ok:false, error:'month-closed', month:todayStr_().slice(0, 7) });
+    var id = nextMemberId_(), at = nowIso_();
+    append_('Members', { MemberID:id, Name:f.Name, Mobile:f.Mobile, DOB:f.DOB, JoinDate:f.JoinDate, Status:'Active', OpeningDeposit:0, JoiningFee:fee, FailedTries:0, Source:'app', CreatedAt:at, CreatedBy:S.u });
+    if(fee > 0) append_('Ledger', { LedgerID:newId_('L'), Date:todayStr_(), Pot:'fine', Type:'joining_fee', MemberID:id, Amount:fee, Ref:id, Note:'Joining fee', EnteredBy:S.u, EnteredAt:at });
+    audit_(S, 'member-added', id, f.Name);
+    var rec = null;
+    if(first) rec = writeContribs_(S, memberById_(id), [jm], todayStr_(), mode, cleanRef_(body.ref), 'app');
+    return out_({ ok:true, member:{ id:id, name:f.Name }, receipt:rec });
+  } finally { lock.releaseLock(); }
+}
+
+function memberEdit_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var mem = memberById_(body.id); if(!mem) return out_({ ok:false, error:'no-member' });
+    var req = {};
+    ['name','mobile','dob','joinDate'].forEach(function(k){ if(body[k] !== undefined) req[k] = body[k]; });
+    var chk = checkMemberFields_(req, mem.MemberID);
+    if(chk.error) return out_({ ok:false, error:chk.error, member:chk.member });
+    var changes = [], upd = {};
+    Object.keys(chk.fields).forEach(function(k){ if(String(mem[k] || '') !== String(chk.fields[k])){ upd[k] = chk.fields[k]; changes.push(k + ': ' + (mem[k] || '-') + ' > ' + (chk.fields[k] || '-')); } });
+    if(!changes.length) return out_({ ok:true, unchanged:true });
+    update_('Members', mem._row, upd);
+    audit_(S, 'member-edited', mem.MemberID, changes.join('; '));
+    return out_({ ok:true });
+  } finally { lock.releaseLock(); }
+}
+
+// Manual suspension (separate from loan suspension). withusadmin1 only. Exit is handled later.
+function memberStatus_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var mem = memberById_(body.id); if(!mem) return out_({ ok:false, error:'no-member' });
+    var to = body.status === 'Suspended' ? 'Suspended' : body.status === 'Active' ? 'Active' : '';
+    if(!to || String(mem.Status) === 'Exited') return out_({ ok:false, error:'bad-status' });
+    if(String(mem.Status) === to) return out_({ ok:true, unchanged:true });
+    update_('Members', mem._row, { Status:to });
+    audit_(S, to === 'Suspended' ? 'member-suspended' : 'member-reactivated', mem.MemberID, mem.Name);
+    return out_({ ok:true, status:to });
+  } finally { lock.releaseLock(); }
+}
+
+function monthView_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var month = String(body.month || curMonth_()); if(!validMonth_(month)) return out_({ ok:false, error:'bad-months' });
+  var ci = contribIndex_(), amt = contribAmount_(), rowsOut = [], expected = 0, paidN = 0, collected = 0;
+  rows_('Members').forEach(function(m){
+    var p = (ci[m.MemberID] || {})[month], elig = String(m.Status) !== 'Exited' && startMonth_(m) <= month;
+    if(!elig && !p) return;
+    if(elig) expected++;
+    if(p){ paidN++; collected += p.amount; }
+    rowsOut.push({ id:m.MemberID, name:m.Name, status:m.Status || 'Active', paid:!!p, amount:p ? p.amount : amt, date:p ? p.date : '', mode:p ? p.mode : '', receipt:p ? p.receipt : '', by:p ? p.by : '', at:p ? p.at : '' });
+  });
+  rowsOut.sort(function(a, b){ return (a.paid === b.paid) ? (a.name < b.name ? -1 : 1) : (a.paid ? 1 : -1); });
+  return out_({ ok:true, month:month, amount:amt, rows:rowsOut, totals:{ expected:expected, paid:paidN, collected:collected, outstanding:Math.max(0, expected - paidN) * amt } });
+}
+
+function memberProfile_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var mem = memberById_(body.id); if(!mem) return out_({ ok:false, error:'no-member' });
+  var cur = curMonth_(), ci = contribIndex_()[mem.MemberID] || {}, di = depositTotals_();
+  var groups = {}, order = [];
+  rows_('Contributions').forEach(function(c){
+    if(c.MemberID !== mem.MemberID || isTrue_(c.Voided)) return;
+    var k = String(c.ReceiptNo || c.ContribID);
+    if(!groups[k]){ groups[k] = { receipt:c.ReceiptNo || '', months:[], amount:0, date:String(c.PaidDate || ''), mode:c.Mode || '', ref:c.Ref || '', by:c.EnteredBy || '', at:c.EnteredAt || '', source:c.Source || '', contribId:c.ContribID }; order.push(k); }
+    groups[k].months.push(String(c.Month)); groups[k].amount += num_(c.Amount);
+  });
+  var recs = order.map(function(k){ groups[k].months.sort(); return groups[k]; });
+  recs.sort(function(a, b){ return (b.months[b.months.length - 1] || '').localeCompare(a.months[a.months.length - 1] || '') || String(b.at).localeCompare(String(a.at)); });
+  var loansById = {}, loans = [];
+  rows_('Loans').forEach(function(l){ loansById[l.LoanID] = l; if(l.MemberID === mem.MemberID) loans.push({ id:l.LoanID, amount:num_(l.Amount), taken:String(l.TakenDate || ''), due:String(l.DueDate || ''), returnAmount:num_(l.ReturnAmount), status:l.Status || '' }); });
+  loans.sort(function(a, b){ return b.taken.localeCompare(a.taken); });
+  var gf = rows_('Guarantors').filter(function(g){ return g.MemberID === mem.MemberID; }).map(function(g){
+    var l = loansById[g.LoanID] || {}; return { loan:g.LoanID, borrower:l.ApplicantName || '', amount:num_(l.Amount), due:String(l.DueDate || ''), status:l.Status || '' };
+  });
+  gf.sort(function(a, b){ return b.due.localeCompare(a.due); });
+  return out_({ ok:true, member:memberPublic_(mem, standing_(mem, ci, cur), di[mem.MemberID]), amount:contribAmount_(), month:cur,
+    paidMonths:Object.keys(ci).sort(), receipts:recs.slice(0, 40), loans:loans.slice(0, 20), loanCount:loans.length, guarantorFor:gf.slice(0, 20), guarantorCount:gf.length });
+}
+
+// Owner-only, from the script editor, for the testing period only: empties every data tab (not Admins, Settings, Audit),
+// so the Excel import can be run again. Needs the exact phrase.  Example: wipeAllData('YES-WIPE-ALL-DATA')
+function wipeAllData(phrase){
+  if(phrase !== 'YES-WIPE-ALL-DATA') throw new Error("Type the exact phrase: wipeAllData('YES-WIPE-ALL-DATA')");
+  ['Members','Contributions','Loans','Guarantors','LoanPayments','Applications','Ledger','Penalties','Suspensions','Expenses','Exits','PaymentClaims','Reconciliations','MonthClose'].forEach(clearRows_);
+  props_().deleteProperty('receiptSeq');
+  audit_({ u:'owner', r:'' }, 'wipe-all-data', 'database', 'from script editor');
+  Logger.log('All data tabs emptied. Sign in as withusadmin1 and import the Excel data again.');
+}
+
 /* ---------- reading (needs a signed-in session) ---------- */
 function doGet(e){
   var p = (e && e.parameter) || {};
@@ -531,6 +849,18 @@ function doPost(e){
     if(!S) return out_({ ok:false, error:'bad-session' });
     if(body.kind === 'check') return out_({ ok:true, user:S.u, role:S.r, mustChange:!!S.mc, db:sheetReady_() });
     if(S.mc && body.kind !== 'changePassword') return out_({ ok:false, error:'must-change' });   // a temporary password must be replaced first
+
+    ensureSchema_();
+
+    // members and contributions
+    if(body.kind === 'members') return membersList_(S);
+    if(body.kind === 'memberProfile') return memberProfile_(S, body);
+    if(body.kind === 'memberAdd') return memberAdd_(S, body);
+    if(body.kind === 'memberEdit') return memberEdit_(S, body);
+    if(body.kind === 'memberStatus') return memberStatus_(S, body);
+    if(body.kind === 'monthView') return monthView_(S, body);
+    if(body.kind === 'contribAdd') return contribAdd_(S, body);
+    if(body.kind === 'contribVoid') return contribVoid_(S, body);
 
     // admin accounts and the database
     if(body.kind === 'changePassword') return changePassword_(S, body, body.token);
