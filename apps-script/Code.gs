@@ -20,7 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
-var SCHEMA_VER = 3;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
+var SCHEMA_VER = 4;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
 var CONTRIB_FILE = 'withus-contributions.json';     // monthly contribution marks
@@ -34,7 +34,7 @@ var ADMIN1 = 'withusadmin1', ADMIN2 = 'withusadmin2';
 var TABS = {
   Members: ['MemberID','Name','Mobile','DOB','JoinDate','Status','OpeningDeposit','JoiningFee','PinHash','PinSalt','PinSetAt','FailedTries','LockedUntil','Source','CreatedAt','CreatedBy'],
   Contributions: ['ContribID','MemberID','Month','Amount','PaidDate','Mode','Ref','Source','EnteredBy','EnteredAt','Voided','ReceiptNo','VoidedBy','VoidedAt'],
-  Loans: ['LoanID','MemberID','ApplicantName','Amount','TakenDate','DueDate','ReturnAmount','Fine','LateExtra','Status','Suspended','ClosedDate','Source','CreatedAt'],
+  Loans: ['LoanID','MemberID','ApplicantName','Amount','TakenDate','DueDate','ReturnAmount','Fine','LateExtra','Status','Suspended','ClosedDate','Source','CreatedAt','LateWaived','WaiveNote'],
   Guarantors: ['LoanID','MemberID','Name','Source'],
   LoanPayments: ['PaymentID','LoanID','Date','Amount','PaidBy','ToPrincipal','ToExtra','ToLateExtra','Mode','Ref','EnteredBy','EnteredAt','Voided'],
   Applications: ['AppID','Month','MemberID','Name','Amount','Guarantors','Status','Remark','CreatedAt'],
@@ -70,7 +70,24 @@ function sheetReady_(){ return !!props_().getProperty('sheetId'); }
 // Speed: opening the spreadsheet and reading a tab are the slow parts of every request, so each is done at most once per
 // request and remembered here. Any write clears the remembered rows of that tab. doPost/doGet start with resetCache_().
 var BOOK_ = null, BOOK_ID_ = '', TABS_ = {}, ROWS_ = {};
-function resetCache_(){ BOOK_ = null; BOOK_ID_ = ''; TABS_ = {}; ROWS_ = {}; }
+var DIRTY_ = false;
+function resetCache_(){ BOOK_ = null; BOOK_ID_ = ''; TABS_ = {}; ROWS_ = {}; DIRTY_ = false; }
+// Answers that are expensive to work out (member list, month view, profile, loan book) are kept for a few minutes. Any write to the
+// Sheet changes 'dataVer', which makes every kept answer stale at once, so a screen never shows old numbers after a change.
+function markDirty_(){ if(DIRTY_) return; DIRTY_ = true; props_().setProperty('dataVer', String(Date.now()) + '-' + Math.floor(Math.random() * 1e6)); }
+function dataVer_(){ return props_().getProperty('dataVer') || '0'; }
+function cachedCall_(name, fn){
+  var cache = CacheService.getScriptCache(), ver = dataVer_(), key = 'rc|' + name + '|' + ver + '|' + todayStr_();
+  if(key.length > 240) return fn();
+  var hit = null; try{ hit = cache.get(key); }catch(e){}
+  if(hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
+  var res = fn();
+  try{
+    var txt = res.getContent();
+    if(txt && txt.indexOf('{"ok":true') === 0 && txt.length < 95000 && dataVer_() === ver) cache.put(key, txt, 600);
+  }catch(e){}
+  return res;
+}
 function ss_(){
   var id = props_().getProperty('sheetId');
   if(!id) throw new Error('not-set-up');
@@ -104,7 +121,7 @@ function rows_(name){
 }
 function appendMany_(name, list){
   if(!list.length) return;
-  delete ROWS_[name];
+  delete ROWS_[name]; markDirty_();
   var s = tab_(name), h = TABS[name], f = fmts_(name), r = s.getLastRow() + 1;
   var vals = list.map(function(o){ return h.map(function(k){ return o[k] === undefined || o[k] === null ? '' : o[k]; }); });
   var rng = s.getRange(r, 1, vals.length, h.length);
@@ -113,14 +130,14 @@ function appendMany_(name, list){
 }
 function append_(name, o){ appendMany_(name, [o]); }
 function update_(name, rowNum, o){
-  delete ROWS_[name];
+  delete ROWS_[name]; markDirty_();
   var s = tab_(name), h = TABS[name], rng = s.getRange(rowNum, 1, 1, h.length);
   var cur = rng.getValues()[0];
   h.forEach(function(k, j){ if(Object.prototype.hasOwnProperty.call(o, k)) cur[j] = o[k]; });
   rng.setValues([cur]);
 }
 function clearRows_(name){
-  delete ROWS_[name];
+  delete ROWS_[name]; markDirty_();
   var s = tab_(name), last = s.getLastRow();
   if(last > 1) s.getRange(2, 1, last - 1, TABS[name].length).clearContent();
 }
@@ -786,8 +803,297 @@ function penaltyWaive_(S, body){
   } finally { lock.releaseLock(); }
 }
 
+
+/* ---------- step 4: loans on the ledger ---------- */
+// Loan sizes: extra charge and months to repay, number of guarantors. 5000 is an old size that is no longer given.
+var LOAN_TIERS_ = { 5000:{ extra:200, months:2, g:0 }, 10000:{ extra:500, months:3, g:0 }, 25000:{ extra:1000, months:4, g:1 }, 50000:{ extra:2000, months:5, g:1 }, 100000:{ extra:4000, months:5, g:2 } };
+var SUSPEND_MONTHS = 6;
+function lastDay_(month){ var y = parseInt(month.slice(0, 4), 10), m = parseInt(month.slice(5, 7), 10); return month + '-' + pad_(new Date(y, m, 0).getDate(), 2); }
+function dayDiff_(a, b){ return Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86400000); }
+function loanClosedText_(l){ return /complete|closed|paid/i.test(String(l.Status || '')) || !!l.ClosedDate; }
+
+// paid parts per loan, from LoanPayments that are not voided
+function loanPaidIndex_(){
+  var idx = {};
+  rows_('LoanPayments').forEach(function(p){
+    if(isTrue_(p.Voided)) return;
+    var o = idx[p.LoanID] || (idx[p.LoanID] = { p:0, e:0, l:0, n:0 });
+    o.p += num_(p.ToPrincipal); o.e += num_(p.ToExtra); o.l += num_(p.ToLateExtra); o.n++;
+  });
+  return idx;
+}
+// All the figures of one loan as of today. Status is worked out from dates, never stored.
+function loanFig_(l, pi, today){
+  var amt = num_(l.Amount), tier = LOAN_TIERS_[amt] || { extra:0 }, extra = num_(l.Fine) > 0 ? num_(l.Fine) : tier.extra;
+  var pd = pi[l.LoanID] || { p:0, e:0, l:0, n:0 }, closed = loanClosedText_(l);
+  var due = String(l.DueDate || ''), dm = due.slice(0, 7), od = dm ? dm + '-16' : '', lastD = dm ? lastDay_(dm) : '';
+  var def = dm ? addMonths_(dm, 1) + '-01' : '';
+  var legacyPaid = closed && pd.n === 0;
+  var status = closed ? 'Closed' : (def && today >= def ? 'Defaulted' : (od && today >= od ? 'Overdue' : 'Active'));
+  var late = isTrue_(l.LateWaived) ? 0 : (num_(l.LateExtra) > 0 ? num_(l.LateExtra) : ((status === 'Overdue' || status === 'Defaulted') ? extra : 0));
+  var total = amt + extra + late, paid = legacyPaid ? num_(l.ReturnAmount) : pd.p + pd.e + pd.l;
+  var oP = Math.max(0, amt - pd.p), oE = Math.max(0, extra - pd.e), oL = Math.max(0, late - pd.l);
+  var out = closed ? 0 : oP + oE + oL;
+  return { id:l.LoanID, memberId:l.MemberID || '', name:l.ApplicantName || '', amount:amt, extra:extra, late:late, lateWaived:isTrue_(l.LateWaived), total:total, paid:paid, outstanding:out, oP:closed ? 0 : oP, oE:closed ? 0 : oE, oL:closed ? 0 : oL,
+    taken:String(l.TakenDate || ''), due:due, closedDate:String(l.ClosedDate || ''), status:status, overdueFrom:od, lastDay:lastD, daysLeft:(status === 'Overdue' && lastD) ? Math.max(0, dayDiff_(today, lastD)) : 0, defaultFrom:def, source:String(l.Source || ''), row:l._row };
+}
+function guarantorsOf_(){
+  var g = {};
+  rows_('Guarantors').forEach(function(x){ (g[x.LoanID] || (g[x.LoanID] = [])).push({ id:x.MemberID || '', name:x.Name || '' }); });
+  return g;
+}
+function principalOut_(figs){ var t = 0; figs.forEach(function(f){ if(f.status !== 'Closed') t += f.oP; }); return t; }
+function depositPot_(){ var d = depositTotals_(), t = 0; Object.keys(d).forEach(function(k){ t += d[k]; }); return t; }
+
+// Once a day (first request of the day): late extra is fixed and the 6-month loan suspension is recorded for every overdue loan.
+function loanSweep_(S, force){
+  var today = todayStr_(), pr = props_();
+  if(!force && pr.getProperty('sweepDate') === today) return 0;
+  var pi = loanPaidIndex_(), sus = rows_('Suspensions'), have = {}, n = 0, at = nowIso_(), news = [];
+  sus.forEach(function(x){ if(x.LoanID) have[x.LoanID] = 1; });
+  rows_('Loans').forEach(function(l){
+    var f = loanFig_(l, pi, today);
+    if(f.status !== 'Overdue' && f.status !== 'Defaulted') return;
+    if(!(num_(l.LateExtra) > 0) && !isTrue_(l.LateWaived) && f.extra > 0){ update_('Loans', l._row, { LateExtra:f.extra }); n++; }
+    if(!have[f.id] && f.memberId){ news.push({ SuspensionID:newId_('S'), MemberID:f.memberId, Reason:'Overdue loan', LoanID:f.id, StartDate:f.overdueFrom, EndDate:addMonths_(f.overdueFrom.slice(0, 7), SUSPEND_MONTHS) + '-' + f.overdueFrom.slice(8, 10) }); n++; }
+  });
+  if(news.length) appendMany_('Suspensions', news);
+  pr.setProperty('sweepDate', today);
+  if(n) audit_(S || { u:'system', r:'' }, 'overdue-rules-applied', 'loans', n + ' change(s)');
+  return n;
+}
+
+function loanView_(f, gs, extraLists){
+  var o = f; o.guarantors = gs || [];
+  return o;
+}
+
+function loansList_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  loanSweep_(S, false);
+  var today = todayStr_(), pi = loanPaidIndex_(), gi = guarantorsOf_(), figs = [], closedN = 0;
+  rows_('Loans').forEach(function(l){
+    if(!num_(l.Amount)) return;
+    var f = loanFig_(l, pi, today);
+    if(f.status === 'Closed'){ closedN++; return; }
+    loanView_(f, gi[f.id]); figs.push(f);
+  });
+  var order = { Defaulted:0, Overdue:1, Active:2 };
+  figs.sort(function(a, b){ return (order[a.status] - order[b.status]) || a.due.localeCompare(b.due) || (a.name < b.name ? -1 : 1); });
+  var pot = depositPot_(), out = principalOut_(figs), counts = { Active:0, Overdue:0, Defaulted:0 };
+  figs.forEach(function(f){ counts[f.status]++; });
+  return out_({ ok:true, today:today, loans:figs, counts:counts, closedCount:closedN, principalOut:out, depositPot:pot, available:pot - out,
+    toCollect:figs.reduce(function(s2, f){ return s2 + f.outstanding; }, 0) });
+}
+
+function loanDetail_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var l = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(body.loanId); })[0];
+  if(!l) return out_({ ok:false, error:'not-found' });
+  var today = todayStr_(), f = loanFig_(l, loanPaidIndex_(), today), gs = guarantorsOf_()[f.id] || [];
+  var pays = rows_('LoanPayments').filter(function(p){ return p.LoanID === f.id && !isTrue_(p.Voided); }).map(function(p){
+    return { receipt:p.Ref && /^R-/.test(String(p.Ref)) ? p.Ref : (p.PaymentID || ''), paymentId:p.PaymentID, date:String(p.Date || ''), amount:num_(p.Amount), by:p.EnteredBy || '', at:p.EnteredAt || '', paidBy:p.PaidBy || '', mode:p.Mode || '', toP:num_(p.ToPrincipal), toE:num_(p.ToExtra), toL:num_(p.ToLateExtra) };
+  });
+  pays.sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); });
+  var sus = rows_('Suspensions').filter(function(x){ return x.LoanID === f.id; }).map(function(x){ return { id:x.SuspensionID, start:String(x.StartDate || ''), end:String(x.EndDate || ''), lifted:x.LiftedBy || '' }; });
+  var dep = depositTotals_();
+  gs = gs.map(function(g){ return { id:g.id, name:g.name, deposit:g.id ? (dep[g.id] || 0) : 0 }; });
+  var res = { ok:true, loan:f, guarantors:gs, payments:pays.slice(0, 30), suspensions:sus, borrowerDeposit:f.memberId ? (dep[f.memberId] || 0) : 0 };
+  return out_(res);
+}
+
+// A payment on a loan, from the borrower or a guarantor. Goes to principal first, then extra, then late extra.
+function loanPay_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var l = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(body.loanId); })[0];
+    if(!l) return out_({ ok:false, error:'not-found' });
+    var today = todayStr_(), date = body.date ? String(body.date) : today;
+    if(!validDate_(date) || date > today) return out_({ ok:false, error:'bad-date' });
+    var mode = ['Cash','Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
+    if(!mode) return out_({ ok:false, error:'bad-mode' });
+    var paidBy = body.paidBy === 'guarantor' ? 'guarantor' : 'borrower';
+    var f = loanFig_(l, loanPaidIndex_(), today);
+    if(f.status === 'Closed') return out_({ ok:false, error:'loan-closed' });
+    var amount = Math.round(num_(body.amount) * 100) / 100;
+    if(!(amount > 0)) return out_({ ok:false, error:'bad-amount' });
+    if(amount > f.outstanding + 0.001) return out_({ ok:false, error:'too-much', due:f.outstanding });
+    if(monthClosed_(date.slice(0, 7))) return out_({ ok:false, error:'month-closed', month:date.slice(0, 7) });
+    var left = amount, toP = Math.min(left, f.oP); left -= toP; var toE = Math.min(left, f.oE); left -= toE; var toL = Math.min(left, f.oL);
+    var no = nextReceipt_(), at = nowIso_(), ref = cleanRef_(body.ref), pid = newId_('LP');
+    appendMany_('LoanPayments', [{ PaymentID:pid, LoanID:f.id, Date:date, Amount:amount, PaidBy:paidBy, ToPrincipal:toP, ToExtra:toE, ToLateExtra:toL, Mode:mode, Ref:no, EnteredBy:S.u, EnteredAt:at, Voided:'' }]);
+    var ls = [];
+    if(toE > 0) ls.push({ LedgerID:newId_('L'), Date:date, Pot:'fine', Type:'loan_extra', MemberID:f.memberId, LoanID:f.id, Amount:toE, Ref:pid, Note:'Loan extra ' + f.id + ' · ' + mode + (ref ? ' · ' + ref : ''), EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+    if(toL > 0) ls.push({ LedgerID:newId_('L'), Date:date, Pot:'fine', Type:'loan_late_extra', MemberID:f.memberId, LoanID:f.id, Amount:toL, Ref:pid, Note:'Late extra ' + f.id + ' · ' + mode + (ref ? ' · ' + ref : ''), EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+    if(ls.length) appendMany_('Ledger', ls);
+    var upd = {}; if(f.late > 0 && !(num_(l.LateExtra) > 0)) upd.LateExtra = f.late;
+    var closes = amount >= f.outstanding - 0.001;
+    if(closes){ upd.Status = 'Complete'; upd.ClosedDate = date; }
+    if(Object.keys(upd).length) update_('Loans', l._row, upd);
+    audit_(S, 'loan-payment', f.id, no + ' · ' + amount + ' · ' + paidBy + ' · ' + mode + (closes ? ' · closed' : ''));
+    return out_({ ok:true, receipt:{ no:no, memberId:f.memberId, name:f.name, months:[f.id], amount:amount, date:date, mode:mode, ref:ref, by:S.u, kind:'loan', loanId:f.id, left:Math.max(0, f.outstanding - amount), closed:closes, split:{ p:toP, e:toE, l:toL } } });
+  } finally { lock.releaseLock(); }
+}
+
+// Void a loan payment (by receipt). withusadmin1 any time; the admin who made it, only within UNDO_SECONDS.
+function loanPayVoid_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var key = String(body.receipt || ''); if(!key) return out_({ ok:false, error:'bad-request' });
+    var pays = rows_('LoanPayments').filter(function(p){ return !isTrue_(p.Voided) && String(p.Ref) === key; });
+    if(!pays.length) return out_({ ok:false, error:'not-found' });
+    var nowMs = Date.now(), at = nowIso_();
+    for(var i = 0; i < pays.length; i++){
+      if(monthClosed_(String(pays[i].Date).slice(0, 7))) return out_({ ok:false, error:'month-closed', month:String(pays[i].Date).slice(0, 7) });
+      if(S.r !== 'admin1'){
+        var t = Date.parse(String(pays[i].EnteredAt) + '+05:30');
+        if(String(pays[i].EnteredBy) !== S.u || !isFinite(t) || nowMs - t > UNDO_SECONDS * 1000) return out_({ ok:false, error:'forbidden' });
+      }
+    }
+    var loanId = pays[0].LoanID;
+    pays.forEach(function(p){ update_('LoanPayments', p._row, { Voided:true }); });
+    rows_('Ledger').forEach(function(l){ if(!isTrue_(l.Voided) && String(l.ReceiptNo) === key) update_('Ledger', l._row, { Voided:true, VoidedBy:S.u, VoidedAt:at }); });
+    var loan = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(loanId); })[0];
+    if(loan && loanClosedText_(loan) && String(loan.Source) !== 'import'){ update_('Loans', loan._row, { Status:'In Process', ClosedDate:'' }); }
+    else if(loan && String(loan.Source) === 'import' && loanClosedText_(loan) && loan.ClosedDate){ update_('Loans', loan._row, { Status:'In Process', ClosedDate:'' }); }
+    audit_(S, 'loan-payment-voided', loanId, key + ' · ' + String(body.reason || '').slice(0, 100));
+    return out_({ ok:true, voided:pays.length });
+  } finally { lock.releaseLock(); }
+}
+
+// admin1 only: take the late extra off one loan, with a reason.
+function loanWaiveLate_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var reason = String(body.reason || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    if(reason.length < 3) return out_({ ok:false, error:'reason-needed' });
+    var l = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(body.loanId); })[0];
+    if(!l) return out_({ ok:false, error:'not-found' });
+    var f = loanFig_(l, loanPaidIndex_(), todayStr_());
+    if(f.status === 'Closed') return out_({ ok:false, error:'loan-closed' });
+    var pd = loanPaidIndex_()[f.id]; if(pd && pd.l > 0) return out_({ ok:false, error:'late-already-paid' });
+    update_('Loans', l._row, { LateWaived:true, LateExtra:0, WaiveNote:reason });
+    audit_(S, 'late-extra-waived', f.id, reason);
+    return out_({ ok:true });
+  } finally { lock.releaseLock(); }
+}
+
+// admin1 only: end a loan suspension early, with a reason.
+function suspensionLift_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var reason = String(body.reason || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  if(reason.length < 3) return out_({ ok:false, error:'reason-needed' });
+  var s2 = rows_('Suspensions').filter(function(x){ return String(x.SuspensionID) === String(body.id); })[0];
+  if(!s2) return out_({ ok:false, error:'not-found' });
+  update_('Suspensions', s2._row, { LiftedBy:S.u });
+  audit_(S, 'suspension-lifted', s2.MemberID, (s2.LoanID || '') + ' · ' + reason);
+  return out_({ ok:true });
+}
+
+// The settlement plan for a Defaulted loan: borrower's deposit first, then the guarantors equally (a short one is covered by the rest).
+function settlePlan_(f, gs, dep){
+  var owed = f.outstanding, plan = [], left = owed;
+  if(f.memberId){ var b = Math.min(left, Math.max(0, dep[f.memberId] || 0)); if(b > 0){ plan.push({ id:f.memberId, name:f.name, role:'borrower', amount:b }); left -= b; } }
+  var gm = gs.filter(function(g){ return g.id && g.id !== f.memberId; }), room = {};
+  gm.forEach(function(g){ room[g.id] = Math.max(0, dep[g.id] || 0); });
+  var take = {}; gm.forEach(function(g){ take[g.id] = 0; });
+  var active = gm.slice();
+  while(left > 0.001 && active.length){
+    var share = Math.floor(left / active.length * 100) / 100 || left, next = [];
+    var progressed = false;
+    active.forEach(function(g){
+      var can = room[g.id] - take[g.id], x = Math.min(share, can, left);
+      if(x > 0){ take[g.id] += x; left -= x; progressed = true; }
+      if(room[g.id] - take[g.id] > 0.001) next.push(g);
+    });
+    if(!progressed) break; active = next;
+  }
+  gm.forEach(function(g){ if(take[g.id] > 0) plan.push({ id:g.id, name:g.name, role:'guarantor', amount:Math.round(take[g.id] * 100) / 100 }); });
+  var covered = plan.reduce(function(s2, p){ return s2 + p.amount; }, 0);
+  return { plan:plan, owed:owed, covered:covered, short:Math.max(0, Math.round((owed - covered) * 100) / 100) };
+}
+function settlePreview_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var l = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(body.loanId); })[0];
+  if(!l) return out_({ ok:false, error:'not-found' });
+  var f = loanFig_(l, loanPaidIndex_(), todayStr_());
+  if(f.status !== 'Defaulted') return out_({ ok:false, error:'not-defaulted' });
+  var r = settlePlan_(f, guarantorsOf_()[f.id] || [], depositTotals_());
+  r.ok = true; r.loan = f; return out_(r);
+}
+function settleConfirm_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var l = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(body.loanId); })[0];
+    if(!l) return out_({ ok:false, error:'not-found' });
+    var today = todayStr_(), f = loanFig_(l, loanPaidIndex_(), today);
+    if(f.status !== 'Defaulted') return out_({ ok:false, error:'not-defaulted' });
+    if(monthClosed_(today.slice(0, 7))) return out_({ ok:false, error:'month-closed', month:today.slice(0, 7) });
+    var r = settlePlan_(f, guarantorsOf_()[f.id] || [], depositTotals_());
+    if(!r.plan.length) return out_({ ok:false, error:'nothing-to-take' });
+    var no = nextReceipt_(), at = nowIso_(), left = { p:f.oP, e:f.oE, l:f.oL }, lp = [], ls = [], total = 0;
+    r.plan.forEach(function(p){
+      var a = p.amount, toP = Math.min(a, left.p); left.p -= toP; var toE = Math.min(a - toP, left.e); left.e -= toE; var toL = Math.min(a - toP - toE, left.l); left.l -= toL;
+      var pid = newId_('LP'); total += a;
+      lp.push({ PaymentID:pid, LoanID:f.id, Date:today, Amount:a, PaidBy:'deposit:' + p.id, ToPrincipal:toP, ToExtra:toE, ToLateExtra:toL, Mode:'Deposit', Ref:no, EnteredBy:S.u, EnteredAt:at, Voided:'' });
+      ls.push({ LedgerID:newId_('L'), Date:today, Pot:'deposit', Type:'settlement', MemberID:p.id, LoanID:f.id, Amount:-a, Ref:pid, Note:p.role === 'guarantor' ? 'Deducted as guarantor for ' + f.name + ' (' + f.id + ')' : 'Deducted from own deposit for ' + f.id, EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+      if(toE > 0) ls.push({ LedgerID:newId_('L'), Date:today, Pot:'fine', Type:'loan_extra', MemberID:p.id, LoanID:f.id, Amount:toE, Ref:pid, Note:'Loan extra ' + f.id + ' (settlement)', EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+      if(toL > 0) ls.push({ LedgerID:newId_('L'), Date:today, Pot:'fine', Type:'loan_late_extra', MemberID:p.id, LoanID:f.id, Amount:toL, Ref:pid, Note:'Late extra ' + f.id + ' (settlement)', EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+    });
+    appendMany_('LoanPayments', lp); appendMany_('Ledger', ls);
+    var upd = {}; if(f.late > 0 && !(num_(l.LateExtra) > 0)) upd.LateExtra = f.late;
+    var closes = r.short <= 0.001; if(closes){ upd.Status = 'Complete'; upd.ClosedDate = today; }
+    if(Object.keys(upd).length) update_('Loans', l._row, upd);
+    audit_(S, 'loan-settled', f.id, no + ' · ' + total + ' from ' + r.plan.map(function(p){ return p.id + ':' + p.amount; }).join(', ') + (closes ? ' · closed' : ' · short ' + r.short));
+    return out_({ ok:true, receipt:no, taken:total, short:r.short, closed:closes, plan:r.plan });
+  } finally { lock.releaseLock(); }
+}
+
+// Give a new loan (disbursement). Checks the same rules as the Eligibility screen.
+function loanTierFor_(amount){ var t = LOAN_TIERS_[amount]; return (t && amount >= 10000) ? t : null; }
+function loanDisburse_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var mem = memberById_(body.memberId); if(!mem) return out_({ ok:false, error:'no-member' });
+    var amount = Math.round(num_(body.amount)), tier = loanTierFor_(amount); if(!tier) return out_({ ok:false, error:'bad-amount' });
+    var today = todayStr_(), date = body.date ? String(body.date) : today;
+    if(!validDate_(date) || date > today) return out_({ ok:false, error:'bad-date' });
+    if(monthClosed_(date.slice(0, 7))) return out_({ ok:false, error:'month-closed', month:date.slice(0, 7) });
+    var cur = curMonth_(), ci = contribIndex_(), pi = penaltyIndex_(), si = suspensionIndex_();
+    var el = eligibility_(mem, standing_(mem, ci[mem.MemberID], cur), (pi[mem.MemberID] || { due:0 }).due, si[mem.MemberID]);
+    if(!el.canApply) return out_({ ok:false, error:'not-eligible', reasons:el.reasons });
+    var figs = rows_('Loans').map(function(l){ return loanFig_(l, loanPaidIndex_(), today); }), gi = guarantorsOf_();
+    for(var i = 0; i < figs.length; i++) if(figs[i].memberId === mem.MemberID && figs[i].status !== 'Closed') return out_({ ok:false, error:'open-loan', loanId:figs[i].id });
+    var gids = Array.isArray(body.guarantors) ? body.guarantors.map(String) : [];
+    gids = gids.filter(function(x, k){ return x && gids.indexOf(x) === k; });
+    if(gids.length !== tier.g) return out_({ ok:false, error:'bad-guarantors', need:tier.g });
+    var names = [];
+    for(var k = 0; k < gids.length; k++){
+      var gm = memberById_(gids[k]); if(!gm || gm.MemberID === mem.MemberID) return out_({ ok:false, error:'bad-guarantors', need:tier.g });
+      var ge = eligibility_(gm, standing_(gm, ci[gm.MemberID], cur), (pi[gm.MemberID] || { due:0 }).due, si[gm.MemberID]);
+      if(!ge.canGuarantee) return out_({ ok:false, error:'guarantor-blocked', member:gm.MemberID, name:gm.Name, reasons:ge.reasons });
+      for(var j = 0; j < figs.length; j++) if(figs[j].status !== 'Closed' && (gi[figs[j].id] || []).some(function(g){ return g.id === gm.MemberID; })) return out_({ ok:false, error:'guarantor-busy', member:gm.MemberID, name:gm.Name, loanId:figs[j].id });
+      names.push(gm.Name);
+    }
+    var pot = depositPot_(), out = principalOut_(figs);
+    if(amount > pot - out + 0.001) return out_({ ok:false, error:'no-funds', available:pot - out });
+    var n = 0; rows_('Loans').forEach(function(l){ var m = /^L-(\d+)$/.exec(String(l.LoanID)); if(m) n = Math.max(n, parseInt(m[1], 10)); });
+    var lid = 'L-' + pad_(n + 1, 4), due = addMonths_(date.slice(0, 7), tier.months) + '-' + date.slice(8, 10);
+    appendMany_('Loans', [{ LoanID:lid, MemberID:mem.MemberID, ApplicantName:mem.Name, Amount:amount, TakenDate:date, DueDate:due, ReturnAmount:0, Fine:tier.extra, LateExtra:0, Status:'In Process', Suspended:'', ClosedDate:'', Source:'app', CreatedAt:nowIso_() }]);
+    if(gids.length) appendMany_('Guarantors', gids.map(function(g, q){ return { LoanID:lid, MemberID:g, Name:names[q], Source:'app' }; }));
+    audit_(S, 'loan-disbursed', lid, mem.MemberID + ' · ' + amount + ' · guarantors ' + (gids.join(', ') || 'none'));
+    return out_({ ok:true, loanId:lid, due:due, extra:tier.extra, total:amount + tier.extra });
+  } finally { lock.releaseLock(); }
+}
+
 function membersList_(S){
   var bad = needDb_(); if(bad) return bad;
+  loanSweep_(S, false);
   var cur = curMonth_(), ci = contribIndex_(), di = depositTotals_(), pi = penaltyIndex_(), si = suspensionIndex_();
   return out_({ ok:true, month:cur, amount:contribAmount_(), today:todayStr_(), trackStart:trackStart_(), joiningFee:num_(setting_('JoiningFee', 0)), penaltyAmount:penaltyAmount_(), members: rows_('Members').map(function(m){
     return memberPublic_(m, standing_(m, ci[m.MemberID], cur), di[m.MemberID], pi[m.MemberID], si[m.MemberID]);
@@ -976,7 +1282,13 @@ function memberProfile_(S, body){
   var recs = order.map(function(k){ groups[k].months.sort(); return groups[k]; });
   recs.sort(function(a, b){ return (b.months[b.months.length - 1] || '').localeCompare(a.months[a.months.length - 1] || '') || String(b.at).localeCompare(String(a.at)); });
   var loansById = {}, loans = [];
-  rows_('Loans').forEach(function(l){ loansById[l.LoanID] = l; if(l.MemberID === mem.MemberID) loans.push({ id:l.LoanID, amount:num_(l.Amount), taken:String(l.TakenDate || ''), due:String(l.DueDate || ''), returnAmount:num_(l.ReturnAmount), status:l.Status || '' }); });
+  var lpi = loanPaidIndex_(), lgi = guarantorsOf_(), tdy = todayStr_();
+  rows_('Loans').forEach(function(l){
+    loansById[l.LoanID] = l;
+    if(l.MemberID !== mem.MemberID || !num_(l.Amount)) return;
+    var f = loanFig_(l, lpi, tdy);
+    loans.push({ id:f.id, amount:f.amount, taken:f.taken, due:f.due, returnAmount:num_(l.ReturnAmount), status:f.status, extra:f.extra, late:f.late, paid:f.paid, outstanding:f.outstanding, total:f.total, daysLeft:f.daysLeft, closedDate:f.closedDate, guarantors:(lgi[f.id] || []).map(function(g){ return g.name; }) });
+  });
   loans.sort(function(a, b){ return b.taken.localeCompare(a.taken); });
   var gf = rows_('Guarantors').filter(function(g){ return g.MemberID === mem.MemberID; }).map(function(g){
     var l = loansById[g.LoanID] || {}; return { loan:g.LoanID, borrower:l.ApplicantName || '', amount:num_(l.Amount), due:String(l.DueDate || ''), status:l.Status || '' };
@@ -1045,17 +1357,26 @@ function doPost(e){
     ensureSchema_();
 
     // members and contributions
-    if(body.kind === 'members') return membersList_(S);
-    if(body.kind === 'memberProfile') return memberProfile_(S, body);
+    if(body.kind === 'members') return cachedCall_('members', function(){ return membersList_(S); });
+    if(body.kind === 'memberProfile') return cachedCall_('mp|' + String(body.id), function(){ return memberProfile_(S, body); });
     if(body.kind === 'memberAdd') return memberAdd_(S, body);
     if(body.kind === 'memberEdit') return memberEdit_(S, body);
     if(body.kind === 'memberStatus') return memberStatus_(S, body);
-    if(body.kind === 'monthView') return monthView_(S, body);
+    if(body.kind === 'monthView') return cachedCall_('mv|' + String(body.month), function(){ return monthView_(S, body); });
     if(body.kind === 'penaltyPreview') return penaltyPreview_(S, body);
     if(body.kind === 'penaltyPost') return penaltyPost_(S, body);
     if(body.kind === 'penaltyPay') return penaltyPay_(S, body);
     if(body.kind === 'penaltyPayVoid') return penaltyPayVoid_(S, body);
     if(body.kind === 'penaltyWaive') return penaltyWaive_(S, body);
+    if(body.kind === 'loansList') return cachedCall_('ll', function(){ return loansList_(S, body); });
+    if(body.kind === 'loanDetail') return cachedCall_('ld|' + String(body.loanId), function(){ return loanDetail_(S, body); });
+    if(body.kind === 'loanPay') return loanPay_(S, body);
+    if(body.kind === 'loanPayVoid') return loanPayVoid_(S, body);
+    if(body.kind === 'loanWaiveLate') return loanWaiveLate_(S, body);
+    if(body.kind === 'suspensionLift') return suspensionLift_(S, body);
+    if(body.kind === 'settlePreview') return settlePreview_(S, body);
+    if(body.kind === 'settleConfirm') return settleConfirm_(S, body);
+    if(body.kind === 'loanDisburse') return loanDisburse_(S, body);
     if(body.kind === 'contribAdd') return contribAdd_(S, body);
     if(body.kind === 'contribVoid') return contribVoid_(S, body);
 
