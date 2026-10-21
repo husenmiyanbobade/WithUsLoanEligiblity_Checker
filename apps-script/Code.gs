@@ -1091,6 +1091,95 @@ function loanDisburse_(S, body){
   } finally { lock.releaseLock(); }
 }
 
+
+/* ---------- step 5: fine pot and expenses ---------- */
+var EXPENSE_CATS_ = ['Bank charges','Stationery','Printing','Meeting','Travel','Donation','Other'];
+function expenseCats_(){
+  var v = String(setting_('ExpenseCategories', '')).split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  return v.length ? v : EXPENSE_CATS_;
+}
+function fyStartMonth_(){ var m = Math.round(num_(setting_('FinancialYearStartMonth', 4))); return (m >= 1 && m <= 12) ? m : 4; }
+// the financial year that contains a month 'YYYY-MM': { start:'YYYY-MM', end:'YYYY-MM', label:'2026-27' }
+function fyOf_(month){
+  var y = parseInt(month.slice(0, 4), 10), m = parseInt(month.slice(5, 7), 10), sm = fyStartMonth_(), sy = m >= sm ? y : y - 1;
+  var start = sy + '-' + pad_(sm, 2), end = addMonths_(start, 11);
+  return { start:start, end:end, label:sm === 1 ? String(sy) : sy + '-' + String(sy + 1).slice(2) };
+}
+var FINE_IN_TYPES_ = ['loan_extra','loan_late_extra','penalty_paid','joining_fee','opening'];
+function fineRows_(){
+  var members = {}; rows_('Members').forEach(function(m){ members[m.MemberID] = m.Name; });
+  var list = rows_('Ledger').filter(function(l){ return l.Pot === 'fine' && !isTrue_(l.Voided); });
+  list.sort(function(a, b){ return String(a.Date).localeCompare(String(b.Date)) || (a._row - b._row); });
+  var bal = 0;
+  return list.map(function(l){
+    var amt = num_(l.Amount); bal += amt;
+    var isExp = l.Type === 'expense';
+    var cat = '', note = String(l.Note || '');
+    if(isExp && /^[^·]+ · /.test(note)){ cat = note.split(' · ')[0]; }
+    return { id:l.LedgerID, date:String(l.Date || ''), type:l.Type, amount:amt, balance:Math.round(bal * 100) / 100, note:note, category:isExp ? (cat || (String(l.EnteredBy) === 'import' ? 'Imported' : 'Other')) : '', member:l.MemberID ? (members[l.MemberID] || '') : '', memberId:l.MemberID || '', by:l.EnteredBy || '', ref:l.Ref || '', expenseId:isExp && /^X-/.test(String(l.Ref)) ? l.Ref : '', receipt:l.ReceiptNo || '' };
+  });
+}
+function finePot_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var all = fineRows_(), today = todayStr_(), cur = today.slice(0, 7), fy = fyOf_(cur);
+  var balance = all.length ? all[all.length - 1].balance : 0;
+  function bucket(rows){
+    var inn = {}, outt = {}, ti = 0, to = 0;
+    rows.forEach(function(r){
+      if(r.amount >= 0 && r.type !== 'expense'){ inn[r.type] = (inn[r.type] || 0) + r.amount; ti += r.amount; }
+      else { var k = r.type === 'expense' ? r.category : r.type; outt[k] = (outt[k] || 0) - r.amount; to -= r.amount; }
+    });
+    return { inn:inn, out:outt, totalIn:ti, totalOut:to };
+  }
+  var inFy = all.filter(function(r){ var m = r.date.slice(0, 7); return m >= fy.start && m <= fy.end; });
+  var months = {}, order = [];
+  all.forEach(function(r){ var m = r.date.slice(0, 7); if(!months[m]){ months[m] = []; order.push(m); } months[m].push(r); });
+  order = order.filter(function(m, i){ return order.indexOf(m) === i; }).sort().reverse();
+  var monthRows = order.slice(0, 18).map(function(m){ var b = bucket(months[m]), last = months[m][months[m].length - 1]; return { month:m, inn:b.inn, out:b.out, totalIn:b.totalIn, totalOut:b.totalOut, closing:last.balance }; });
+  var limit = Math.min(200, Math.max(10, Math.round(num_(body && body.limit)) || 60)), recent = all.slice().reverse().slice(0, limit);
+  return out_({ ok:true, balance:balance, today:today, fy:{ label:fy.label, start:fy.start, end:fy.end }, thisFy:bucket(inFy), allTime:bucket(all), months:monthRows, rows:recent, count:all.length, categories:expenseCats_() });
+}
+
+function expenseAdd_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var today = todayStr_(), date = body.date ? String(body.date) : today;
+    if(!validDate_(date) || date > today) return out_({ ok:false, error:'bad-date' });
+    var cat = String(body.category || '').trim(); if(expenseCats_().indexOf(cat) < 0) return out_({ ok:false, error:'bad-category' });
+    var amount = Math.round(num_(body.amount) * 100) / 100; if(!(amount > 0)) return out_({ ok:false, error:'bad-amount' });
+    var note = String(body.note || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+    if(monthClosed_(date.slice(0, 7))) return out_({ ok:false, error:'month-closed', month:date.slice(0, 7) });
+    var all = fineRows_(), bal = all.length ? all[all.length - 1].balance : 0;
+    if(amount > bal + 0.001) return out_({ ok:false, error:'exceeds-fine-pot', balance:bal });
+    var id = newId_('X'), at = nowIso_();
+    appendMany_('Expenses', [{ ExpenseID:id, Date:date, Category:cat, Amount:amount, Note:note, EnteredBy:S.u, EnteredAt:at, Voided:'' }]);
+    appendMany_('Ledger', [{ LedgerID:newId_('L'), Date:date, Pot:'fine', Type:'expense', Amount:-amount, Ref:id, Note:cat + ' · ' + (note || '-'), EnteredBy:S.u, EnteredAt:at }]);
+    audit_(S, 'expense-added', id, cat + ' · ' + amount + (note ? ' · ' + note : ''));
+    return out_({ ok:true, id:id, balance:Math.round((bal - amount) * 100) / 100 });
+  } finally { lock.releaseLock(); }
+}
+
+function expenseVoid_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var reason = String(body.reason || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    if(reason.length < 3) return out_({ ok:false, error:'reason-needed' });
+    var led = rows_('Ledger').filter(function(l){ return l.Pot === 'fine' && l.Type === 'expense' && !isTrue_(l.Voided) && String(l.LedgerID) === String(body.id); })[0];
+    if(!led) return out_({ ok:false, error:'not-found' });
+    if(monthClosed_(String(led.Date).slice(0, 7))) return out_({ ok:false, error:'month-closed', month:String(led.Date).slice(0, 7) });
+    var at = nowIso_();
+    update_('Ledger', led._row, { Voided:true, VoidedBy:S.u, VoidedAt:at });
+    if(/^X-/.test(String(led.Ref))){
+      var ex = rows_('Expenses').filter(function(x){ return String(x.ExpenseID) === String(led.Ref); })[0];
+      if(ex) update_('Expenses', ex._row, { Voided:true });
+    }
+    audit_(S, 'expense-voided', led.Ref || led.LedgerID, num_(led.Amount) + ' · ' + String(led.Note).slice(0, 60) + ' · ' + reason);
+    return out_({ ok:true });
+  } finally { lock.releaseLock(); }
+}
+
 function membersList_(S){
   var bad = needDb_(); if(bad) return bad;
   loanSweep_(S, false);
@@ -1368,6 +1457,9 @@ function doPost(e){
     if(body.kind === 'penaltyPay') return penaltyPay_(S, body);
     if(body.kind === 'penaltyPayVoid') return penaltyPayVoid_(S, body);
     if(body.kind === 'penaltyWaive') return penaltyWaive_(S, body);
+    if(body.kind === 'finePot') return cachedCall_('fp|' + String(body.limit || ''), function(){ return finePot_(S, body); });
+    if(body.kind === 'expenseAdd') return expenseAdd_(S, body);
+    if(body.kind === 'expenseVoid') return expenseVoid_(S, body);
     if(body.kind === 'loansList') return cachedCall_('ll', function(){ return loansList_(S, body); });
     if(body.kind === 'loanDetail') return cachedCall_('ld|' + String(body.loanId), function(){ return loanDetail_(S, body); });
     if(body.kind === 'loanPay') return loanPay_(S, body);
