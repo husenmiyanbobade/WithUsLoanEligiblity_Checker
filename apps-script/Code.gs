@@ -20,7 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
-var SCHEMA_VER = 2;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
+var SCHEMA_VER = 3;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
 var CONTRIB_FILE = 'withus-contributions.json';     // monthly contribution marks
@@ -38,8 +38,8 @@ var TABS = {
   Guarantors: ['LoanID','MemberID','Name','Source'],
   LoanPayments: ['PaymentID','LoanID','Date','Amount','PaidBy','ToPrincipal','ToExtra','ToLateExtra','Mode','Ref','EnteredBy','EnteredAt','Voided'],
   Applications: ['AppID','Month','MemberID','Name','Amount','Guarantors','Status','Remark','CreatedAt'],
-  Ledger: ['LedgerID','Date','Pot','Type','MemberID','LoanID','Amount','Ref','Note','EnteredBy','EnteredAt','Voided','VoidedBy','VoidedAt'],
-  Penalties: ['PenaltyID','MemberID','Month','Amount','Status','WaivedBy','PaidDate','CreatedAt'],
+  Ledger: ['LedgerID','Date','Pot','Type','MemberID','LoanID','Amount','Ref','Note','EnteredBy','EnteredAt','Voided','VoidedBy','VoidedAt','ReceiptNo'],
+  Penalties: ['PenaltyID','MemberID','Month','Amount','Status','WaivedBy','PaidDate','CreatedAt','CreatedBy','WaiveReason','WaivedAt'],
   Suspensions: ['SuspensionID','MemberID','Reason','LoanID','StartDate','EndDate','LiftedBy'],
   Expenses: ['ExpenseID','Date','Category','Amount','Note','EnteredBy','EnteredAt','Voided'],
   Exits: ['ExitID','MemberID','Date','Refund','Note','EnteredBy','EnteredAt'],
@@ -67,30 +67,44 @@ function file_(name){ var it = DriveApp.getFilesByName(name); return it.hasNext(
 /* ---------- the database (Google Sheet) ---------- */
 function props_(){ return PropertiesService.getScriptProperties(); }
 function sheetReady_(){ return !!props_().getProperty('sheetId'); }
+// Speed: opening the spreadsheet and reading a tab are the slow parts of every request, so each is done at most once per
+// request and remembered here. Any write clears the remembered rows of that tab. doPost/doGet start with resetCache_().
+var BOOK_ = null, BOOK_ID_ = '', TABS_ = {}, ROWS_ = {};
+function resetCache_(){ BOOK_ = null; BOOK_ID_ = ''; TABS_ = {}; ROWS_ = {}; }
 function ss_(){
   var id = props_().getProperty('sheetId');
   if(!id) throw new Error('not-set-up');
-  return SpreadsheetApp.openById(id);
+  if(BOOK_ && BOOK_ID_ === id) return BOOK_;
+  BOOK_ = SpreadsheetApp.openById(id); BOOK_ID_ = id; TABS_ = {}; ROWS_ = {};
+  return BOOK_;
 }
 function tab_(name){
-  var s = ss_().getSheetByName(name);
+  var book = ss_();
+  if(TABS_[name]) return TABS_[name];
+  var s = book.getSheetByName(name);
   if(!s) throw new Error('missing-tab-' + name);
+  TABS_[name] = s;
   return s;
 }
 function fmts_(name){ return TABS[name].map(function(h){ return NUM_COLS.indexOf(h) >= 0 ? '0.##' : '@'; }); }
 function rows_(name){
-  var v = tab_(name).getDataRange().getValues();
-  if(v.length < 2) return [];
-  var h = v[0], out = [];
-  for(var i = 1; i < v.length; i++){
-    var o = { _row: i + 1 };
-    for(var j = 0; j < h.length; j++) o[h[j]] = v[i][j];
-    out.push(o);
+  var sh = tab_(name);
+  if(ROWS_[name]) return ROWS_[name].slice();
+  var v = sh.getDataRange().getValues(), out = [];
+  if(v.length >= 2){
+    var h = v[0];
+    for(var i = 1; i < v.length; i++){
+      var o = { _row: i + 1 };
+      for(var j = 0; j < h.length; j++) o[h[j]] = v[i][j];
+      out.push(o);
+    }
   }
-  return out;
+  ROWS_[name] = out;
+  return out.slice();
 }
 function appendMany_(name, list){
   if(!list.length) return;
+  delete ROWS_[name];
   var s = tab_(name), h = TABS[name], f = fmts_(name), r = s.getLastRow() + 1;
   var vals = list.map(function(o){ return h.map(function(k){ return o[k] === undefined || o[k] === null ? '' : o[k]; }); });
   var rng = s.getRange(r, 1, vals.length, h.length);
@@ -99,12 +113,14 @@ function appendMany_(name, list){
 }
 function append_(name, o){ appendMany_(name, [o]); }
 function update_(name, rowNum, o){
+  delete ROWS_[name];
   var s = tab_(name), h = TABS[name], rng = s.getRange(rowNum, 1, 1, h.length);
   var cur = rng.getValues()[0];
   h.forEach(function(k, j){ if(Object.prototype.hasOwnProperty.call(o, k)) cur[j] = o[k]; });
   rng.setValues([cur]);
 }
 function clearRows_(name){
+  delete ROWS_[name];
   var s = tab_(name), last = s.getLastRow();
   if(last > 1) s.getRange(2, 1, last - 1, TABS[name].length).clearContent();
 }
@@ -451,6 +467,7 @@ function ensureSchema_(){
 
 /* ---------- one-time setup and backups (run from the script editor) ---------- */
 function setup(){
+  resetCache_();
   var id = props_().getProperty('sheetId'), book, fresh = false;
   if(id) book = SpreadsheetApp.openById(id);
   else { book = SpreadsheetApp.create(DB_NAME); props_().setProperty('sheetId', book.getId()); fresh = true; }
@@ -483,6 +500,7 @@ function setup(){
 
 // Emergency only: if withusadmin1 forgets the password, the owner of this Google account runs this and reads the log.
 function resetAdmin1(){
+  resetCache_();
   var row = adminRow_(ADMIN1);
   if(!row) throw new Error('Run setup first');
   var temp = tempPass_(), salt = newSalt_();
@@ -493,6 +511,7 @@ function resetAdmin1(){
 }
 
 function nightlyBackup(){
+  resetCache_();
   if(!sheetReady_()) return;
   var file = DriveApp.getFileById(props_().getProperty('sheetId'));
   var it = DriveApp.getFoldersByName('WITH US backups'), folder = it.hasNext() ? it.next() : DriveApp.createFolder('WITH US backups');
@@ -601,16 +620,177 @@ function standing_(mem, paid, cur){
   });
   return { arrears:arrears, due:due };
 }
-function memberPublic_(m, st, deposit){
-  return { id:m.MemberID, name:m.Name, mobile:String(m.Mobile || ''), dob:String(m.DOB || ''), joinDate:String(m.JoinDate || ''), status:m.Status || 'Active',
+function memberPublic_(m, st, deposit, pen, susp){
+  var o = { id:m.MemberID, name:m.Name, mobile:String(m.Mobile || ''), dob:String(m.DOB || ''), joinDate:String(m.JoinDate || ''), status:m.Status || 'Active',
     deposit:deposit || 0, arrears:st.arrears, dueNow:st.due, hasPin:!!m.PinHash };
+  o.penDue = pen ? pen.due : 0;
+  var el = eligibility_(m, st, o.penDue, susp);
+  o.canApply = el.canApply; o.canGuarantee = el.canGuarantee; o.blocks = el.reasons;
+  return o;
+}
+
+/* ---------- step 3: penalties and the eligibility block ---------- */
+function penaltyAmount_(){ return num_(setting_('PenaltyAmount', 500)) || 500; }
+// memberId -> { due, charged, paid, waived, list:[{id, month, amount, status, paid, outstanding, ...}] } (oldest month first)
+function penaltyIndex_(){
+  var paidBy = {};
+  rows_('Ledger').forEach(function(l){ if(l.Type === 'penalty_paid' && !isTrue_(l.Voided)) paidBy[l.Ref] = (paidBy[l.Ref] || 0) + num_(l.Amount); });
+  var idx = {};
+  rows_('Penalties').forEach(function(p){
+    var m = idx[p.MemberID] || (idx[p.MemberID] = { due:0, charged:0, paid:0, waived:0, list:[] });
+    var amt = num_(p.Amount), paid = paidBy[p.PenaltyID] || 0, waived = String(p.Status) === 'Waived';
+    var out = waived ? 0 : Math.max(0, amt - paid);
+    m.list.push({ id:p.PenaltyID, month:String(p.Month), amount:amt, status:waived ? 'Waived' : (out === 0 ? 'Paid' : (paid > 0 ? 'Part paid' : 'Unpaid')), paid:paid, outstanding:out, waivedBy:p.WaivedBy || '', reason:p.WaiveReason || '', createdAt:p.CreatedAt || '' });
+    m.charged += amt; m.paid += paid; m.due += out; if(waived) m.waived += Math.max(0, amt - paid);
+  });
+  Object.keys(idx).forEach(function(k){ idx[k].list.sort(function(a, b){ return a.month.localeCompare(b.month); }); });
+  return idx;
+}
+function suspensionIndex_(){
+  var today = todayStr_(), idx = {};
+  rows_('Suspensions').forEach(function(s){
+    if(s.LiftedBy) return;
+    var end = String(s.EndDate || ''), start = String(s.StartDate || '');
+    if(end && end >= today && (!start || start <= today)) idx[s.MemberID] = { until:end, reason:s.Reason || '', loan:s.LoanID || '' };
+  });
+  return idx;
+}
+// What stops a member from applying for a loan or standing as guarantor. The reasons name exactly what is owed.
+function eligibility_(mem, st, penDue, susp){
+  var r = [], status = String(mem.Status || 'Active'), apply = true, guar = true;
+  if(status === 'Exited'){ r.push({ type:'exited' }); apply = false; guar = false; }
+  else if(status === 'Suspended'){ r.push({ type:'suspended' }); apply = false; guar = false; }
+  if(st.arrears && st.arrears.length){ r.push({ type:'arrears', months:st.arrears, amount:st.arrears.length * contribAmount_() }); apply = false; guar = false; }
+  if(penDue > 0){ r.push({ type:'penalty', amount:penDue }); apply = false; guar = false; }
+  if(susp){ r.push({ type:'loan-suspension', until:susp.until }); apply = false; }
+  return { canApply:apply, canGuarantee:guar, reasons:r };
+}
+// Candidates for a month's penalty: active members who have not paid that (ended) month and have no penalty for it yet.
+function penaltyCandidates_(month){
+  var ci = contribIndex_(), have = {};
+  rows_('Penalties').forEach(function(p){ have[p.MemberID + '|' + p.Month] = 1; });
+  var out = [];
+  rows_('Members').forEach(function(m){
+    if(String(m.Status) === 'Exited') return;
+    if(month < startMonth_(m)) return;
+    if(ci[m.MemberID] && ci[m.MemberID][month]) return;
+    if(have[m.MemberID + '|' + month]) return;
+    out.push({ id:m.MemberID, name:m.Name });
+  });
+  out.sort(function(a, b){ return a.name < b.name ? -1 : 1; });
+  return out;
+}
+function endedMonths_(){
+  var cur = curMonth_(), ts = trackStart_(), last = addMonths_(cur, -1);
+  return ts <= last ? monthsBetween_(ts, last) : [];
+}
+
+function penaltyPreview_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var amt = penaltyAmount_(), months = endedMonths_(), out = [];
+  months.forEach(function(m){ var c = penaltyCandidates_(m); out.push({ month:m, count:c.length, closed:monthClosed_(m) }); });
+  var res = { ok:true, amount:amt, month:curMonth_(), months:out.reverse() };
+  if(body && body.month){
+    if(months.indexOf(String(body.month)) < 0) return out_({ ok:false, error:'bad-month' });
+    res.pick = String(body.month); res.candidates = penaltyCandidates_(res.pick);
+  }
+  var pi = penaltyIndex_(), names = {}, owed = [];
+  rows_('Members').forEach(function(m){ names[m.MemberID] = m; });
+  Object.keys(pi).forEach(function(id){ if(pi[id].due > 0 && names[id]) owed.push({ id:id, name:names[id].Name, due:pi[id].due, count:pi[id].list.filter(function(x){ return x.outstanding > 0; }).length }); });
+  owed.sort(function(a, b){ return b.due - a.due || (a.name < b.name ? -1 : 1); });
+  res.owed = owed; res.owedTotal = owed.reduce(function(s2, x){ return s2 + x.due; }, 0);
+  return out_(res);
+}
+
+function penaltyPost_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var month = String(body.month || '');
+    if(endedMonths_().indexOf(month) < 0) return out_({ ok:false, error:'bad-month' });
+    var cands = penaltyCandidates_(month), want = null;
+    if(Array.isArray(body.ids)){ want = {}; body.ids.forEach(function(i){ want[String(i)] = 1; }); cands = cands.filter(function(c){ return want[c.id]; }); }
+    if(!cands.length) return out_({ ok:false, error:'nothing-to-post' });
+    var amt = penaltyAmount_(), at = nowIso_();
+    appendMany_('Penalties', cands.map(function(c){ return { PenaltyID:newId_('P'), MemberID:c.id, Month:month, Amount:amt, Status:'Charged', CreatedAt:at, CreatedBy:S.u }; }));
+    audit_(S, 'penalties-posted', month, cands.length + ' member(s) x ' + amt);
+    return out_({ ok:true, posted:cands.length, amount:amt, total:cands.length * amt, month:month });
+  } finally { lock.releaseLock(); }
+}
+
+// Pay a member's penalties, oldest first. Partial payment is allowed. The money goes to the fine pot.
+function penaltyPay_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var mem = memberById_(body.memberId); if(!mem) return out_({ ok:false, error:'no-member' });
+    var today = todayStr_(), date = body.date ? String(body.date) : today;
+    if(!validDate_(date) || date > today) return out_({ ok:false, error:'bad-date' });
+    var mode = ['Cash','Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
+    if(!mode) return out_({ ok:false, error:'bad-mode' });
+    var amount = Math.round(num_(body.amount) * 100) / 100, pi = penaltyIndex_()[mem.MemberID];
+    var open = pi ? pi.list.filter(function(x){ return x.outstanding > 0; }) : [];
+    if(!open.length) return out_({ ok:false, error:'nothing-owed' });
+    if(!(amount > 0)) return out_({ ok:false, error:'bad-amount' });
+    if(amount > pi.due) return out_({ ok:false, error:'too-much', due:pi.due });
+    if(monthClosed_(date.slice(0, 7))) return out_({ ok:false, error:'month-closed', month:date.slice(0, 7) });
+    var no = nextReceipt_(), at = nowIso_(), left = amount, ls = [], months = [], ref = cleanRef_(body.ref);
+    open.forEach(function(p){
+      if(left <= 0) return;
+      var part = Math.min(left, p.outstanding); left -= part; months.push(p.month);
+      ls.push({ LedgerID:newId_('L'), Date:date, Pot:'fine', Type:'penalty_paid', MemberID:mem.MemberID, Amount:part, Ref:p.id, Note:'Penalty ' + p.month + (ref ? ' · ' + ref : '') + ' · ' + mode, EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+    });
+    appendMany_('Ledger', ls);
+    audit_(S, 'penalty-paid', mem.MemberID, no + ' · ' + amount + ' · ' + months.join(', ') + ' · ' + mode);
+    var r = receiptObj_(no, mem, months, amount, date, mode, ref, S.u); r.kind = 'penalty';
+    return out_({ ok:true, receipt:r, due:pi.due - amount });
+  } finally { lock.releaseLock(); }
+}
+
+// Void a penalty payment receipt. withusadmin1 any time; the admin who made it, only within UNDO_SECONDS.
+function penaltyPayVoid_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var key = String(body.receipt || ''); if(!key) return out_({ ok:false, error:'bad-request' });
+    var hit = rows_('Ledger').filter(function(l){ return l.Type === 'penalty_paid' && !isTrue_(l.Voided) && String(l.ReceiptNo) === key; });
+    if(!hit.length) return out_({ ok:false, error:'not-found' });
+    var nowMs = Date.now();
+    for(var i = 0; i < hit.length; i++){
+      if(monthClosed_(String(hit[i].Date).slice(0, 7))) return out_({ ok:false, error:'month-closed', month:String(hit[i].Date).slice(0, 7) });
+      if(S.r !== 'admin1'){
+        var t = Date.parse(String(hit[i].EnteredAt) + '+05:30');
+        if(String(hit[i].EnteredBy) !== S.u || !isFinite(t) || nowMs - t > UNDO_SECONDS * 1000) return out_({ ok:false, error:'forbidden' });
+      }
+    }
+    var at = nowIso_();
+    hit.forEach(function(l){ update_('Ledger', l._row, { Voided:true, VoidedBy:S.u, VoidedAt:at }); });
+    audit_(S, 'penalty-payment-voided', hit[0].MemberID, key + ' · ' + String(body.reason || '').slice(0, 100));
+    return out_({ ok:true, voided:hit.length });
+  } finally { lock.releaseLock(); }
+}
+
+// Waive what is still owed on one penalty. withusadmin1 only, with a reason. Money already paid stays paid.
+function penaltyWaive_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var reason = String(body.reason || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    if(reason.length < 3) return out_({ ok:false, error:'reason-needed' });
+    var p = rows_('Penalties').filter(function(x){ return String(x.PenaltyID) === String(body.penaltyId); })[0];
+    if(!p) return out_({ ok:false, error:'not-found' });
+    if(String(p.Status) === 'Waived') return out_({ ok:true, unchanged:true });
+    update_('Penalties', p._row, { Status:'Waived', WaivedBy:S.u, WaiveReason:reason, WaivedAt:nowIso_() });
+    audit_(S, 'penalty-waived', p.MemberID, p.PenaltyID + ' · ' + p.Month + ' · ' + reason);
+    return out_({ ok:true });
+  } finally { lock.releaseLock(); }
 }
 
 function membersList_(S){
   var bad = needDb_(); if(bad) return bad;
-  var cur = curMonth_(), ci = contribIndex_(), di = depositTotals_();
-  return out_({ ok:true, month:cur, amount:contribAmount_(), today:todayStr_(), trackStart:trackStart_(), joiningFee:num_(setting_('JoiningFee', 0)), members: rows_('Members').map(function(m){
-    return memberPublic_(m, standing_(m, ci[m.MemberID], cur), di[m.MemberID]);
+  var cur = curMonth_(), ci = contribIndex_(), di = depositTotals_(), pi = penaltyIndex_(), si = suspensionIndex_();
+  return out_({ ok:true, month:cur, amount:contribAmount_(), today:todayStr_(), trackStart:trackStart_(), joiningFee:num_(setting_('JoiningFee', 0)), penaltyAmount:penaltyAmount_(), members: rows_('Members').map(function(m){
+    return memberPublic_(m, standing_(m, ci[m.MemberID], cur), di[m.MemberID], pi[m.MemberID], si[m.MemberID]);
   }) });
 }
 
@@ -802,13 +982,23 @@ function memberProfile_(S, body){
     var l = loansById[g.LoanID] || {}; return { loan:g.LoanID, borrower:l.ApplicantName || '', amount:num_(l.Amount), due:String(l.DueDate || ''), status:l.Status || '' };
   });
   gf.sort(function(a, b){ return b.due.localeCompare(a.due); });
-  return out_({ ok:true, member:memberPublic_(mem, standing_(mem, ci, cur), di[mem.MemberID]), amount:contribAmount_(), month:cur,
+  var pen = penaltyIndex_()[mem.MemberID] || { due:0, charged:0, paid:0, waived:0, list:[] };
+  var pgroups = {}, porder = [];
+  rows_('Ledger').forEach(function(l){
+    if(l.Type !== 'penalty_paid' || isTrue_(l.Voided) || l.MemberID !== mem.MemberID) return;
+    var k = String(l.ReceiptNo || l.LedgerID);
+    if(!pgroups[k]){ pgroups[k] = { receipt:l.ReceiptNo || '', amount:0, date:String(l.Date || ''), by:l.EnteredBy || '', at:l.EnteredAt || '', months:[] }; porder.push(k); }
+    pgroups[k].amount += num_(l.Amount); pgroups[k].months.push(String(l.Note).slice(8, 15));
+  });
+  var ppay = porder.map(function(k){ return pgroups[k]; }).sort(function(a, b){ return String(b.at).localeCompare(String(a.at)); });
+  return out_({ ok:true, member:memberPublic_(mem, standing_(mem, ci, cur), di[mem.MemberID], pen, suspensionIndex_()[mem.MemberID]), penalties:pen.list, penaltyDue:pen.due, penaltyPayments:ppay.slice(0, 20), penaltyAmount:penaltyAmount_(), amount:contribAmount_(), month:cur,
     paidMonths:Object.keys(ci).sort(), receipts:recs.slice(0, 40), loans:loans.slice(0, 20), loanCount:loans.length, guarantorFor:gf.slice(0, 20), guarantorCount:gf.length });
 }
 
 // Owner-only, from the script editor, for the testing period only: empties every data tab (not Admins, Settings, Audit),
 // so the Excel import can be run again. Needs the exact phrase.  Example: wipeAllData('YES-WIPE-ALL-DATA')
 function wipeAllData(phrase){
+  resetCache_();
   if(phrase !== 'YES-WIPE-ALL-DATA') throw new Error("Type the exact phrase: wipeAllData('YES-WIPE-ALL-DATA')");
   ['Members','Contributions','Loans','Guarantors','LoanPayments','Applications','Ledger','Penalties','Suspensions','Expenses','Exits','PaymentClaims','Reconciliations','MonthClose'].forEach(clearRows_);
   props_().deleteProperty('receiptSeq');
@@ -818,6 +1008,7 @@ function wipeAllData(phrase){
 
 /* ---------- reading (needs a signed-in session) ---------- */
 function doGet(e){
+  resetCache_();
   var p = (e && e.parameter) || {};
   var S = sess_(p.token);
   if(!S) return out_({ ok:false, error:'login-required' });
@@ -841,6 +1032,7 @@ function doGet(e){
 
 /* ---------- writing ---------- */
 function doPost(e){
+  resetCache_();
   try{
     var body = JSON.parse(e.postData.contents);
     if(body.kind === 'login') return login_(body);
@@ -859,6 +1051,11 @@ function doPost(e){
     if(body.kind === 'memberEdit') return memberEdit_(S, body);
     if(body.kind === 'memberStatus') return memberStatus_(S, body);
     if(body.kind === 'monthView') return monthView_(S, body);
+    if(body.kind === 'penaltyPreview') return penaltyPreview_(S, body);
+    if(body.kind === 'penaltyPost') return penaltyPost_(S, body);
+    if(body.kind === 'penaltyPay') return penaltyPay_(S, body);
+    if(body.kind === 'penaltyPayVoid') return penaltyPayVoid_(S, body);
+    if(body.kind === 'penaltyWaive') return penaltyWaive_(S, body);
     if(body.kind === 'contribAdd') return contribAdd_(S, body);
     if(body.kind === 'contribVoid') return contribVoid_(S, body);
 
