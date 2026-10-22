@@ -1111,6 +1111,25 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   .rp-pill.bad{ background:var(--t-rust,#F6E0DA); color:var(--t-rust-fg,#A33F2D); }
   #eligPaneBook .mc-chips{ flex-wrap:nowrap; overflow-x:auto; gap:6px; scrollbar-width:none; }
   #eligPaneBook .mc-chip{ flex:0 0 auto; padding:0 12px; min-height:38px; font-size:13px; white-space:nowrap; }
+
+  /* v32 More tab, closed accounts, settings */
+  #moreSection .mo-lbl, .mo-lbl{ margin:14px 2px 6px; font-size:11.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-mute); }
+  .mo-grp{ background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .mo-grp .s6-li{ width:100%; border:0; border-bottom:1px solid var(--line-soft); border-radius:0; margin:0; background:none; }
+  .mo-grp .s6-li:last-child{ border-bottom:0; }
+  .mo-tag{ font-style:normal; font-size:10.5px; margin-left:6px; padding:1px 7px; border-radius:999px; background:var(--chip); color:var(--ink-mute); }
+  .mo-lock{ opacity:.55; }
+  .cl-box{ border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin:8px 0; background:var(--card); }
+  .cl-box small{ display:block; color:var(--ink-mute); font-size:12px; margin-top:2px; }
+  .cl-box details{ margin-top:6px; max-height:34vh; overflow:auto; }
+  .cl-row{ display:flex; flex-direction:column; padding:5px 0; border-top:1px solid var(--line-soft); font-size:13px; }
+  .cl-ask{ padding:8px 0; border-top:1px solid var(--line-soft); font-size:13px; display:flex; flex-direction:column; gap:6px; }
+  .cl-opt{ text-align:left; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:10px; font:inherit; font-size:13px; min-height:38px; padding:6px 10px; cursor:pointer; }
+  .cl-opt.on{ border-color:var(--ink); background:var(--ink); color:var(--card); }
+  .se-row{ margin:10px 0; } .se-row label{ display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:4px; }
+  .se-in{ display:flex; gap:8px; } .se-in .adm-in{ flex:1; min-width:0; } .se-in .ap-btn{ flex:0 0 auto; min-height:42px; }
+  .s6-birth{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .s6-birth span{ background:var(--t-amber,#FCF1DE); border-radius:999px; padding:4px 10px; font-size:13px; }
 </style>
 </head>
 <body>
@@ -1456,6 +1475,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   </section>
 
 
+  <section class="ledger-section tab-section" id="moreSection"><div id="moreBody"></div></section>
+
   <section class="ledger-section tab-section" id="monthlySection">
     <div class="ledger-head">
       <span class="ledger-index">V</span>
@@ -1575,6 +1596,10 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     <span class="tb-ic"><svg class="o" viewBox="0 0 24 24"><path d="M9 12.5 11 14.5 15.5 10"/><circle cx="12" cy="12" r="9"/></svg><svg class="f" viewBox="0 0 24 24"><circle class="b" cx="12" cy="12" r="9.2"/><path class="k" d="M8.3 12.6 11 15.2l4.7-5.4"/></svg></span>
     <span data-i18n="tabEligibility">Eligibility</span>
   </button>
+  <button class="tabbar-btn" data-tab="more" id="tabMoreBtn" type="button" style="display:none;">
+    <span class="tb-ic"><svg class="o" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg><svg class="f" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.4"/><circle cx="18" cy="12" r="2.4"/></svg></span>
+    <span data-i18n="tabMore">More</span>
+  </button>
   <button class="tabbar-btn" data-tab="monthly" type="button">
     <span class="tb-ic"><svg class="o" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M4 10h16"/><path d="M9 15l2 2 4-4"/></svg><svg class="f" viewBox="0 0 24 24"><rect class="b" x="4" y="5" width="16" height="15" rx="3"/><path class="s" d="M8 3v4M16 3v4"/><path class="k" d="M4 10h16"/><path class="k" d="M9 15l2 2 4-4"/></svg></span>
     <span data-i18n="tabMonthly">Monthly</span>
@@ -1628,6 +1653,30 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   I18N.en.rpDbRemoved = 'Payment removed'; I18N.mr.rpDbRemoved = 'भरणा काढला';
   I18N.en.rpDbSaved = 'Saved. Receipt {no}'; I18N.mr.rpDbSaved = 'जतन केले. पावती {no}';
   I18N.en.rpDbBy = 'by {w}'; I18N.mr.rpDbBy = '{w} कडून';
+  var _i = function(k, en, mr){ I18N.en[k] = en; I18N.mr[k] = mr; };
+  _i('tabMore', 'More', 'अधिक');
+  _i('moMoney', 'Money', 'पैसे'); _i('moMonthEnd', 'Month-end', 'महिना अखेर'); _i('moSystem', 'System', 'प्रणाली');
+  _i('moFine', 'Fine pot and expenses', 'दंड निधी आणि खर्च'); _i('moPen', 'Penalties', 'दंड'); _i('moRep', 'Reports', 'अहवाल');
+  _i('moBank', 'Bank and cash check, close month', 'बँक व रोख तपासणी, महिना बंद'); _i('moAudit', 'Audit log', 'ऑडिट लॉग');
+  _i('moExport', 'Backup and Excel export', 'बॅकअप आणि एक्सेल निर्यात'); _i('moClosed', 'Closed accounts and name matching', 'बंद खाती आणि नावे जुळवणे');
+  _i('moSet', 'Settings', 'सेटिंग्ज'); _i('moAdm', 'Admin accounts', 'ॲडमिन खाती'); _i('moOut', 'Sign out', 'साइन आउट'); _i('moOwner', 'admin1', 'admin1');
+  _i('moSub', 'Rows marked admin1 are for the owner only.', 'admin1 चिन्हांकित बाबी फक्त मालकासाठी आहेत.');
+  _i('clTitle', 'Closed accounts and name matching', 'बंद खाती आणि नावे जुळवणे');
+  _i('clNoFile', 'The closed accounts sheet is not in the saved Excel data yet. Open the menu, choose the latest Excel file and tap Process file, then come back.', 'बंद खाती शीट जतन केलेल्या एक्सेल डेटात अजून नाही. मेनूमधून नवीन एक्सेल फाइल निवडा, Process file दाबा, मग परत या.');
+  _i('clAdd', 'Closed accounts to add as Exited members', 'निवृत्त सदस्य म्हणून जोडायची बंद खाती'); _i('clAlready', '{n} already added earlier', '{n} आधीच जोडली');
+  _i('clAuto', 'Loans linked automatically', 'आपोआप जोडलेली कर्जे'); _i('clAutoN', '{a} names · {l} loans', '{a} नावे · {l} कर्जे');
+  _i('clAsk', 'Needs your approval', 'तुमची मंजुरी हवी'); _i('clKeep', 'Keep by name only', 'फक्त नावाने ठेवा');
+  _i('clNone', 'Kept by name (no matching member)', 'नावानेच ठेवली (जुळणारा सदस्य नाही)'); _i('clBlank', 'Empty loan rows to remove', 'काढायच्या रिकाम्या कर्ज ओळी');
+  _i('clGuar', 'Guarantor names linked', 'जोडलेली जामीनदार नावे'); _i('clApply', 'Apply', 'लागू करा');
+  _i('clNote', 'Closed accounts are added for history only: no money moves and no pot changes. Safe to apply more than once.', 'बंद खाती फक्त इतिहासासाठी जोडली जातात: पैसे हलत नाहीत, निधी बदलत नाही. पुन्हा लागू केले तरी चालेल.');
+  _i('clDone', 'Done: {a} closed accounts added, {l} loans linked, {g} guarantor names linked, {b} empty rows removed.', 'पूर्ण: {a} बंद खाती जोडली, {l} कर्जे जोडली, {g} जामीनदार नावे जोडली, {b} रिकाम्या ओळी काढल्या.');
+  _i('clShow', 'Show list', 'यादी पहा'); _i('clLoans', '{n} loans', '{n} कर्जे');
+  _i('seTitle', 'Settings', 'सेटिंग्ज'); _i('seSave', 'Save', 'जतन'); _i('seSaved', 'Saved', 'जतन केले'); _i('seRead', 'Fixed for now', 'सध्या बदलता येत नाही');
+  _i('seBad', 'That value is not allowed.', 'ही किंमत चालणार नाही.'); _i('seNote', 'Changes apply to new entries. Old entries keep their amounts.', 'बदल नवीन नोंदींना लागू होतात. जुन्या नोंदींची रक्कम तशीच राहते.');
+  _i('seJoiningFee', 'Joining fee (₹)', 'प्रवेश शुल्क (₹)'); _i('sePenaltyAmount', 'Penalty per missed month (₹)', 'चुकलेल्या महिन्याचा दंड (₹)');
+  _i('seSocietyUPI', 'Society UPI ID', 'सोसायटी UPI आयडी'); _i('seExpenseCategories', 'Expense categories (comma separated)', 'खर्चाचे प्रकार (स्वल्पविरामाने)');
+  _i('seContributionAmount', 'Monthly contribution (₹)', 'मासिक वर्गणी (₹)'); _i('seTrackingStartMonth', 'First month tracked', 'सुरुवातीचा महिना'); _i('seFinancialYearStartMonth', 'Financial year starts in month no.', 'आर्थिक वर्ष सुरू होणारा महिना क्र.'); _i('seSuspensionMonths', 'Loan suspension (months)', 'कर्ज बंदी (महिने)');
+  _i('hmBirth', 'Birthdays today', 'आजचे वाढदिवस'); _i('hmBirthAge', '{n} ({a})', '{n} ({a})');
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
                      'paid':'v_paid', 'pending':'v_pending', 'yes':'v_yes', 'no':'v_no', 'not specified':'v_notspec' };
@@ -1811,6 +1860,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       return out;
     });
 
+    parsed = parsed.filter(function(r){
+      return !(r.applicant === 'Unnamed applicant' && !r.takenDate && !r.repayDate && !r.takenAmt && !r.repayAmt && !r.guarantor);
+    });
     return parsed.filter(function(r){
       // Drop summary / expense / blank rows that aren't real loan entries —
       // these often carry stray numbers (e.g. years in a label) in the amount columns.
@@ -1857,6 +1909,27 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     return null;
   }
 
+  function parseClosedAccounts(aoa){
+    var hi = -1, c = {}, out = [], i, j;
+    for(i = 0; i < Math.min(aoa.length, 12); i++){
+      var row = aoa[i] || [];
+      for(j = 0; j < row.length; j++) if(/member\s*name/i.test(String(row[j]))){ hi = i; break; }
+      if(hi >= 0) break;
+    }
+    if(hi < 0) return [];
+    (aoa[hi] || []).forEach(function(h, k){
+      var x = String(h).toLowerCase();
+      if(/member\s*name/.test(x)) c.name = k; else if(/^sr/.test(x)) c.sr = k; else if(/current\s*deposit/.test(x)) c.deposit = k;
+      else if(/^loan\s*amount/.test(x)) c.loan = k; else if(/loan\s*return/.test(x)) c.lra = k; else if(/late/.test(x)) c.late = k; else if(/remark/.test(x)) c.remark = k;
+    });
+    for(i = hi + 1; i < aoa.length; i++){
+      var r = aoa[i] || [], nm = String(r[c.name] == null ? '' : r[c.name]).replace(/\s+/g, ' ').trim();
+      if(!nm || /^total/i.test(nm)) continue;
+      var n = function(k){ var v = Number(r[k]); return isFinite(v) ? v : 0; };
+      out.push({ sr:c.sr != null && r[c.sr] !== '' ? Number(r[c.sr]) || (out.length + 1) : out.length + 1, name:nm, deposit:n(c.deposit), loan:n(c.loan), lra:n(c.lra), late:n(c.late), remark:String(r[c.remark] == null ? '' : r[c.remark]).replace(/\s+/g, ' ').trim() });
+    }
+    return out;
+  }
   function normalizeMemberRows(aoa){
     if(!aoa || !aoa.length) return { members:[], monthCols:[] };
     var headerRow = aoa[0];
@@ -4033,7 +4106,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
 
   /* ---------- Bottom tab navigation (mobile app-shell) ---------- */
 
-  var TAB_SECTIONS = { overview:'overviewSection', members:'membersSection', deposits:'depositsSection', eligibility:'eligibilitySection', monthly:'monthlySection' };
+  var TAB_SECTIONS = { overview:'overviewSection', members:'membersSection', deposits:'depositsSection', eligibility:'eligibilitySection', monthly:'monthlySection', more:'moreSection' };
   var TAB_STORAGE_KEY = 'withusActiveTab';
 
   /* ===================== Loan application list (Eligibility tab) ===================== */
@@ -4541,7 +4614,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   var currentTab = 'overview';
   function renderBrandHi(){
     var el = document.getElementById('brandHi'); if(!el) return;
-    el.textContent = currentTab === 'overview' ? t('brandHi') : (currentTab === 'eligibility' ? t('hiElig') : t(currentTab === 'members' ? 'tabMembers' : currentTab === 'deposits' ? 'tabDeposits' : currentTab === 'lists' ? 'tabLists' : 'tabMonthly'));
+    el.textContent = currentTab === 'overview' ? t('brandHi') : (currentTab === 'eligibility' ? t('hiElig') : t(currentTab === 'members' ? 'tabMembers' : currentTab === 'deposits' ? 'tabDeposits' : currentTab === 'lists' ? 'tabLists' : currentTab === 'more' ? 'tabMore' : 'tabMonthly'));
   }
   function showTab(tab){
     var openLists = (tab === 'lists'); if(openLists) tab = 'eligibility';
@@ -4557,6 +4630,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       b.classList.toggle('active', b.getAttribute('data-tab') === tab);
     });
     try{ localStorage.setItem(TAB_STORAGE_KEY, tab); }catch(e){}
+    if(tab === 'more') moreRender();
     if(tab === 'members') memLoad();
     if(tab === 'monthly'){ renderMonthly(); pullContrib(); pullRepay(); if(dbMon()){ var cmo = currentMonthObj(); if(cmo) monDbLoad(cmo.key, true); monDbSummary(); var rmo2 = null; try{ rmo2 = currentRepayMonth(); }catch(e){} if(rmo2) rpDbLoad(rmo2.key, false); } }
     if(tab === 'eligibility'){ renderApps(); pullApps(); if(mem.ready) memLoad(true); }
@@ -4797,12 +4871,12 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function makePayload(rows, sourceLabel, memberData){
     return { sourceLabel:sourceLabel, rows:rows.map(serializeRow),
-      memberData:{ monthCols:(memberData && memberData.monthCols) || [], members:((memberData && memberData.members) || []).map(serializeMember), fineInfo:(memberData && memberData.fineInfo) || null } };
+      memberData:{ monthCols:(memberData && memberData.monthCols) || [], members:((memberData && memberData.members) || []).map(serializeMember), fineInfo:(memberData && memberData.fineInfo) || null, closedAccounts:(memberData && memberData.closedAccounts) || [] } };
   }
   function readPayload(p){
     if(!p || !p.rows || !p.rows.length) return null;
     return { sourceLabel:p.sourceLabel, rows:p.rows.map(deserializeRow),
-      memberData:{ monthCols:(p.memberData && p.memberData.monthCols) || [], members:((p.memberData && p.memberData.members) || []).map(deserializeMember), fineInfo:(p.memberData && p.memberData.fineInfo) || null } };
+      memberData:{ monthCols:(p.memberData && p.memberData.monthCols) || [], members:((p.memberData && p.memberData.members) || []).map(deserializeMember), fineInfo:(p.memberData && p.memberData.fineInfo) || null, closedAccounts:(p.memberData && p.memberData.closedAccounts) || [] } };
   }
   function saveDatasetToStorage(rows, sourceLabel, memberData){
     try{
@@ -4927,6 +5001,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
           memberData = normalizeMemberRows(aoa);
         }
 
+        var closedSheetName = wb.SheetNames.find(function(n){ return /closed/i.test(n); });
+        memberData.closedAccounts = closedSheetName ? parseClosedAccounts(XLSX.utils.sheet_to_json(wb.Sheets[closedSheetName], { header:1, defval:'' })) : [];
         memberData.fineInfo = null;
         [loanSheetName].concat(wb.SheetNames).some(function(n){
           var sh = wb.Sheets[n]; if(!sh) return false;
@@ -4999,6 +5075,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function memHideDeposits(on){
     var b = document.getElementById('tabDepositsBtn'); if(b) b.style.display = on ? 'none' : '';
+    var mb2 = document.getElementById('tabMoreBtn'); if(mb2) mb2.style.display = on ? '' : 'none';
     var q = document.querySelector('#qlinks [data-go="deposits"], #qlinks [data-golive]');
     if(q){ q.style.display = ''; q.setAttribute('data-go', on ? 'members' : 'deposits'); q.setAttribute('data-golive', '1'); var ql = q.querySelector('span:last-child'); if(ql){ ql.setAttribute('data-i18n', on ? 'tabMembers' : 'tabDeposits'); ql.textContent = t(on ? 'tabMembers' : 'tabDeposits'); } }
     document.body.classList.toggle('db-live', !!on);
@@ -5905,6 +5982,11 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(s6.dashBusy) return; s6.dashBusy = true; s6.dashAt = Date.now();
     admCall({ kind:'dashboard' }).then(function(res){ s6.dashBusy = false; if(res && res.ok){ s6.dash = res; try{ localStorage.setItem('withusDashCache', JSON.stringify(res)); }catch(e){} if(mem.ready) s6DashCard(); } }).catch(function(){ s6.dashBusy = false; s6.dashAt = 0; });
   }
+  function s6BirthHtml(){
+    var b = []; try{ b = memBirthdays(); }catch(e){}
+    if(!b.length) return '';
+    return '<p class="s6-lbl">' + esc(t('hmBirth')) + '</p><div class="s6-birth">' + b.map(function(x){ return '<span>' + esc(t('hmBirthAge', { n:x.n, a:x.a })) + '</span>'; }).join('') + '</div>';
+  }
   function s6DashCard(){
     var el = document.getElementById('dashCard'); if(!el) return;
     var d = s6.dash; if(!d || !mem.ready){ el.style.display = 'none'; return; }
@@ -5917,7 +5999,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     el.innerHTML = '<div class="s6-hd"><h3>' + esc(t('s6Dash')) + '</h3><small>' + esc(t('s6Today', { d:memD(mem.today || d.today) })) + '</small></div>' +
       '<div class="s6-tiles">' + tile('main', 's6DepPot', d.depositPot) + tile('main', 's6Avail', d.available) + tile('', 's6LoansOut', d.loansOut) + tile('', 's6FinePot', d.finePot) + '</div>' +
       '<p class="s6-lbl">' + esc(t('s6Attn')) + '</p><div class="s6-attns">' + row(d.defaulters, 's6Arrears1', 'arrears') + row(d.overdueLoans, 's6Overdue1', 'overdue') + row(d.dueThisMonth, 's6Due1', 'due') + '</div>' +
-      '<div class="s6-acts"><button type="button" data-mem="s6reports">' + esc(t('s6BtnReports')) + '</button><button type="button" data-mem="s6close">' + esc(t('s6BtnClose')) + '</button></div>';
+      s6BirthHtml() + '<div class="s6-acts"><button type="button" data-mem="s6reports">' + esc(t('s6BtnReports')) + '</button><button type="button" data-mem="s6close">' + esc(t('s6BtnClose')) + '</button></div>';
   }
   function s6Go(v){
     if(v === 'arrears'){ mem.filter = 'owes'; showTab('members'); memRender(); return; }
@@ -6141,8 +6223,97 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
 
   /* ----- events ----- */
+  function moreRender(){
+    var el = document.getElementById('moreBody'); if(!el) return;
+    var w = getWho(), own = w && w.r === 'admin1';
+    function li(act, k, lock, extra){ return '<button type="button" class="s6-li' + (lock && !own ? ' mo-lock' : '') + '" data-mem="' + act + '"' + (extra || '') + '><span>' + esc(t(k)) + (lock ? ' <em class="mo-tag">' + esc(t('moOwner')) + '</em>' : '') + '</span><i>›</i></button>';
+    }
+    el.innerHTML = '<p class="mo-lbl">' + esc(t('moMoney')) + '</p><div class="mo-grp">' + li('fpopen', 'moFine', false) + li('penopen', 'moPen', false) + li('s6reports', 'moRep', false) + '</div>' +
+      '<p class="mo-lbl">' + esc(t('moMonthEnd')) + '</p><div class="mo-grp">' + li('s6close', 'moBank', true) + '</div>' +
+      '<p class="mo-lbl">' + esc(t('moSystem')) + '</p><div class="mo-grp">' + li('s6rep', 'moAudit', false, ' data-ty="audit"') + li('moexport', 'moExport', true) + li('moclosed', 'moClosed', true) + li('moset', 'moSet', true) + li('moadm', 'moAdm', true) + li('moout', 'moOut', false) + '</div>' +
+      '<p class="mem-note">' + esc(t('moSub')) + '</p>';
+  }
+  function moreAct(tg){
+    var act = tg.getAttribute('data-mem'), w = getWho(), own = w && w.r === 'admin1';
+    if((act === 'moexport' || act === 'moclosed' || act === 'moset' || act === 'moadm') && !own){ admSay(t('admForbid')); return true; }
+    if(act === 'moexport'){ admDoExport(); return true; }
+    if(act === 'moclosed'){ clOpen(); return true; }
+    if(act === 'moset'){ seOpen(); return true; }
+    if(act === 'moadm'){ admOpen(); return true; }
+    if(act === 'moout'){ doLogout(); return true; }
+    if(act === 'clpick'){ cl.appr[tg.getAttribute('data-a')] = tg.getAttribute('data-k'); clRender(''); return true; }
+    if(act === 'clapply'){ clApply(tg); return true; }
+    if(act === 'sesave'){ seSave(tg); return true; }
+    return false;
+  }
+  /* ----- closed accounts and name matching ----- */
+  var cl = { data:null, appr:{} };
+  function clOpen(){
+    mem.kind = 's6form'; cl.appr = {}; cl.data = null;
+    memSheetShow('<h3>' + esc(t('clTitle')) + '</h3><p class="adm-sub">' + esc(t('memLoading')) + '</p>');
+    admCall({ kind:'closedPreview' }).then(function(res){
+      if(res && res.ok){ cl.data = res; clRender(''); }
+      else memSheetShow('<h3>' + esc(t('clTitle')) + '</h3><div class="ap-note">' + esc(res && res.error === 'no-dataset' ? t('clNoFile') : admErr(res && res.error)) + '</div><div class="s6-btns"><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>');
+    }).catch(function(){ memSheetShow('<h3>' + esc(t('clTitle')) + '</h3><div class="ap-note">' + esc(t('memEGeneric')) + '</div><div class="s6-btns"><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>'); });
+  }
+  function clRender(msg){
+    var d = cl.data; if(!d) return; mem.kind = 's6form';
+    var h = '<h3>' + esc(t('clTitle')) + '</h3>' + (msg ? '<div class="ap-note">' + esc(msg) + '</div>' : '');
+    if(!d.closedInFile && !d.already) h += '<div class="ap-note">' + esc(t('clNoFile')) + '</div>';
+    h += '<div class="cl-box"><b>' + esc(t('clAdd')) + ': ' + d.toAdd.length + '</b>' + (d.already ? '<small>' + esc(t('clAlready', { n:d.already })) + '</small>' : '') + (d.toAdd.length ? '<details><summary>' + esc(t('clShow')) + '</summary>' + d.toAdd.map(function(c){ return '<div class="cl-row"><span>' + esc(c.name) + '</span><small>' + esc(c.remark) + '</small></div>'; }).join('') + '</details>' : '') + '</div>';
+    var la = d.auto.reduce(function(n, a){ return n + a.loans; }, 0);
+    h += '<div class="cl-box"><b>' + esc(t('clAuto')) + ': ' + esc(t('clAutoN', { a:d.auto.length, l:la })) + '</b>' + (d.auto.length ? '<details><summary>' + esc(t('clShow')) + '</summary>' + d.auto.map(function(a){ return '<div class="cl-row"><span>' + esc(a.applicant) + '</span><small>→ ' + esc(a.toName + (a.toId ? ' · ' + a.toId : '')) + ' · ' + esc(t('clLoans', { n:a.loans })) + '</small></div>'; }).join('') + '</details>' : '') + '</div>';
+    if(d.suggest.length){
+      h += '<div class="cl-box"><b>' + esc(t('clAsk')) + ': ' + d.suggest.length + '</b>';
+      d.suggest.forEach(function(sg, i){
+        var sel = cl.appr[sg.applicant] || '';
+        h += '<div class="cl-ask"><span><b>' + esc(sg.applicant) + '</b> · ' + esc(t('clLoans', { n:sg.loans })) + '</span>';
+        sg.options.forEach(function(o){ h += '<button type="button" class="cl-opt' + (sel === o.key ? ' on' : '') + '" data-mem="clpick" data-a="' + esc(sg.applicant) + '" data-k="' + esc(o.key) + '">' + esc(o.label) + '</button>'; });
+        h += '<button type="button" class="cl-opt' + (!sel ? ' on' : '') + '" data-mem="clpick" data-a="' + esc(sg.applicant) + '" data-k="">' + esc(t('clKeep')) + '</button></div>';
+      });
+      h += '</div>';
+    }
+    if(d.none.length) h += '<div class="cl-box"><b>' + esc(t('clNone')) + ': ' + d.none.length + '</b><details><summary>' + esc(t('clShow')) + '</summary>' + d.none.map(function(a){ return '<div class="cl-row"><span>' + esc(a.applicant) + '</span><small>' + esc(t('clLoans', { n:a.loans })) + '</small></div>'; }).join('') + '</details></div>';
+    h += '<div class="cl-box"><b>' + esc(t('clBlank')) + ': ' + d.blank + '</b><small>' + esc(t('clGuar')) + ': ' + d.guarantorLinks + '</small></div>';
+    h += '<p class="adm-sub">' + esc(t('clNote')) + '</p><div class="s6-btns"><button type="button" class="ap-btn" data-mem="clapply">' + esc(t('clApply')) + '</button><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>';
+    memSheetShow(h);
+  }
+  function clApply(btn){
+    var appr = {}; Object.keys(cl.appr).forEach(function(k){ if(cl.appr[k]) appr[k] = cl.appr[k]; });
+    btn.disabled = true;
+    admCall({ kind:'closedApply', approvals:appr }).then(function(res){
+      if(res && res.ok){ memFetch(function(){}); lnBookLoad(); admCall({ kind:'closedPreview' }).then(function(r2){ if(r2 && r2.ok){ cl.data = r2; cl.appr = {}; clRender(t('clDone', { a:res.added, l:res.loansLinked, g:res.guarantorsLinked, b:res.blankRemoved })); } }); }
+      else { btn.disabled = false; admSay(admErr(res && res.error)); }
+    }).catch(function(){ btn.disabled = false; admSay(t('memEGeneric')); });
+  }
+  /* ----- settings ----- */
+  var se = { data:null };
+  function seOpen(){
+    mem.kind = 's6form';
+    memSheetShow('<h3>' + esc(t('seTitle')) + '</h3><p class="adm-sub">' + esc(t('memLoading')) + '</p>');
+    admCall({ kind:'settingsGet' }).then(function(res){ if(res && res.ok){ se.data = res; seRender(''); } else memSheetShow('<h3>' + esc(t('seTitle')) + '</h3><div class="ap-note">' + esc(admErr(res && res.error)) + '</div><div class="s6-btns"><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>'); }).catch(function(){ admSay(t('memEGeneric')); });
+  }
+  function seRender(msg){
+    var d = se.data; if(!d) return; mem.kind = 's6form';
+    var h = '<h3>' + esc(t('seTitle')) + '</h3>' + (msg ? '<div class="ap-note">' + esc(msg) + '</div>' : '');
+    d.edit.forEach(function(r){
+      h += '<div class="se-row"><label for="se_' + r.key + '">' + esc(t('se' + r.key)) + '</label><div class="se-in"><input class="adm-in" id="se_' + r.key + '" type="' + (r.type === 'str' || r.type === 'list' ? 'text' : 'number') + '" ' + (r.type === 'str' || r.type === 'list' ? '' : 'inputmode="numeric" min="0" ') + 'value="' + esc(r.value) + '" autocomplete="off"><button type="button" class="ap-btn" data-mem="sesave" data-k="' + r.key + '">' + esc(t('seSave')) + '</button></div></div>';
+    });
+    h += '<p class="mo-lbl">' + esc(t('seRead')) + '</p>' + d.show.map(function(r){ return '<div class="adm-act"><span>' + esc(t('se' + r.key)) + '</span><b>' + esc(r.value) + '</b></div>'; }).join('');
+    h += '<p class="adm-sub">' + esc(t('seNote')) + '</p><div class="s6-btns"><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>';
+    memSheetShow(h);
+  }
+  function seSave(btn){
+    var k = btn.getAttribute('data-k'), inp = document.getElementById('se_' + k); if(!inp) return;
+    btn.disabled = true;
+    admCall({ kind:'settingsSet', key:k, value:inp.value }).then(function(res){
+      if(res && res.ok){ admCall({ kind:'settingsGet' }).then(function(r2){ if(r2 && r2.ok){ se.data = r2; seRender(t('seSaved')); memFetch(function(){}); fpLoad(true); } }); }
+      else { btn.disabled = false; seRender(res && res.error === 'bad-value' ? t('seBad') : admErr(res && res.error)); }
+    }).catch(function(){ btn.disabled = false; admSay(t('memEGeneric')); });
+  }
   function memAct(tg){
     var act = tg.getAttribute('data-mem'), id = tg.getAttribute('data-id');
+    if((act.indexOf('mo') === 0 || act.indexOf('cl') === 0 || act.indexOf('se') === 0) && act !== 'close' && moreAct(tg)) return;
     if(act.indexOf('s6') === 0 && s6Act(tg)) return;
     if(act.indexOf('fp') === 0 && fpAct(tg)) return;
     if(act.indexOf('ln') === 0 && lnAct(tg)) return;
@@ -6215,6 +6386,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var bk = document.getElementById('eligPaneBook'); bk.addEventListener('click', onClick);
     document.getElementById('fpCard').addEventListener('click', onClick);
     document.getElementById('dashCard').addEventListener('click', onClick);
+    document.getElementById('moreSection').addEventListener('click', onClick);
     bk.addEventListener('input', function(e){ if(e.target.id === 'lnQ'){ ln.q = e.target.value; var rr = document.getElementById('lnRows'); if(rr && ln.book) rr.innerHTML = lnRowsHtml(); } });
     bk.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ var tg2 = e.target.closest ? e.target.closest('.mem-row[data-mem]') : null; if(tg2){ e.preventDefault(); memAct(tg2); } } });
     sec.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ var tg = e.target.closest ? e.target.closest('.mem-row[data-mem]') : null; if(tg){ e.preventDefault(); memAct(tg); } } });
