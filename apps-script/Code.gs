@@ -1204,6 +1204,259 @@ function expenseVoid_(S, body){
   } finally { lock.releaseLock(); }
 }
 
+/* ---------- step 6: exit settlement, bank check, month close, reports ---------- */
+function r2_(x){ return Math.round(num_(x) * 100) / 100; }
+function exitPlan_(mem){
+  var today = todayStr_(), cur = curMonth_(), pi = loanPaidIndex_(), gi = guarantorsOf_(), blocks = [];
+  rows_('Loans').forEach(function(l){
+    if(!num_(l.Amount)) return;
+    var f = loanFig_(l, pi, today); if(f.status === 'Closed') return;
+    if(f.memberId === mem.MemberID) blocks.push({ type:'open-loan', loanId:f.id, amount:f.outstanding });
+    else if((gi[f.id] || []).some(function(g){ return g.id === mem.MemberID; })) blocks.push({ type:'guarantor', loanId:f.id, borrower:f.name });
+  });
+  if(String(mem.Status) === 'Exited') blocks.push({ type:'exited' });
+  var gross = r2_(depositTotals_()[mem.MemberID] || 0), amt = contribAmount_();
+  var ci = contribIndex_()[mem.MemberID] || {}, arrears = [];
+  if(String(mem.Status) !== 'Exited'){
+    var st = standing_(mem, ci, cur); arrears = st.arrears.slice(); if(st.due) arrears.push(cur);
+  }
+  var pen = penaltyIndex_()[mem.MemberID] || { due:0, list:[] };
+  var penList = pen.list.filter(function(x){ return x.outstanding > 0; });
+  var penDue = r2_(pen.due), arrAmt = r2_(arrears.length * amt);
+  var penTake = Math.min(penDue, gross), arrTake = Math.min(arrAmt, Math.max(0, gross - penTake));
+  var refund = r2_(Math.max(0, gross - penTake - arrTake));
+  return { blocks:blocks, gross:gross, penalties:penList, penaltyDue:penDue, arrearsMonths:arrears, arrearsAmount:arrAmt, penTake:r2_(penTake), arrTake:r2_(arrTake), refund:refund, shortfall:r2_((penDue + arrAmt) - penTake - arrTake) };
+}
+function exitPreview_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var mem = memberById_(body.id); if(!mem) return out_({ ok:false, error:'no-member' });
+  var p = exitPlan_(mem); p.ok = true; p.member = { id:mem.MemberID, name:mem.Name, status:mem.Status, joinDate:String(mem.JoinDate || '') };
+  p.note = 'Joining fee, paid penalties and loan charges are not refunded.';
+  return out_(p);
+}
+function exitConfirm_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var mem = memberById_(body.id); if(!mem) return out_({ ok:false, error:'no-member' });
+    var today = todayStr_(), p = exitPlan_(mem);
+    if(p.blocks.length) return out_({ ok:false, error:'blocked', blocks:p.blocks });
+    if(body.confirmRefund !== undefined && Math.abs(num_(body.confirmRefund) - p.refund) > 0.009) return out_({ ok:false, error:'changed', refund:p.refund });
+    if(monthClosed_(today.slice(0, 7))) return out_({ ok:false, error:'month-closed', month:today.slice(0, 7) });
+    var no = nextReceipt_(), at = nowIso_(), ls = [], eid = newId_('E');
+    var note = String(body.note || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+    if(p.refund > 0) ls.push({ LedgerID:newId_('L'), Date:today, Pot:'deposit', Type:'exit_refund', MemberID:mem.MemberID, Amount:-p.refund, Ref:eid, Note:'Exit refund ' + mem.Name, EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+    // unpaid penalties are cleared out of the deposit (oldest first) and become fine-pot income
+    var left = p.penTake;
+    p.penalties.forEach(function(x){
+      if(left <= 0) return;
+      var a = r2_(Math.min(x.outstanding, left)); left = r2_(left - a);
+      ls.push({ LedgerID:newId_('L'), Date:today, Pot:'fine', Type:'penalty_paid', MemberID:mem.MemberID, Amount:a, Ref:x.id, Note:'Penalty ' + x.month + ' · deducted at exit', EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+    });
+    if(p.penTake > 0) ls.push({ LedgerID:newId_('L'), Date:today, Pot:'deposit', Type:'exit_deduction', MemberID:mem.MemberID, Amount:-p.penTake, Ref:eid, Note:'Penalties deducted at exit', EnteredBy:S.u, EnteredAt:at, ReceiptNo:no });
+    if(ls.length) appendMany_('Ledger', ls);
+    appendMany_('Exits', [{ ExitID:eid, MemberID:mem.MemberID, Date:today, Refund:p.refund, Note:('deposit ' + p.gross + ' · penalties ' + p.penTake + ' · unpaid months ' + p.arrearsMonths.length + ' (' + p.arrTake + ')' + (note ? ' · ' + note : '')).slice(0, 200), EnteredBy:S.u, EnteredAt:at }]);
+    update_('Members', mem._row, { Status:'Exited' });
+    audit_(S, 'member-exited', mem.MemberID, mem.Name + ' · refund ' + p.refund + ' · ' + no);
+    return out_({ ok:true, exitId:eid, receipt:no, refund:p.refund, deposit:p.gross, penalties:p.penTake, unpaidMonths:p.arrearsMonths, unpaidAmount:p.arrTake, shortfall:p.shortfall, name:mem.Name, date:today });
+  } finally { lock.releaseLock(); }
+}
+
+// Money that should physically be held: deposit pot + fine pot - loan principal still out.
+function expectedHeld_(){
+  var today = todayStr_(), pi = loanPaidIndex_(), figs = [];
+  rows_('Loans').forEach(function(l){ if(num_(l.Amount)) figs.push(loanFig_(l, pi, today)); });
+  var dep = depositPot_(), fine = 0;
+  rows_('Ledger').forEach(function(l){ if(l.Pot === 'fine' && !isTrue_(l.Voided)) fine += num_(l.Amount); });
+  var out = principalOut_(figs);
+  return { deposit:r2_(dep), fine:r2_(fine), principalOut:r2_(out), expected:r2_(dep + fine - out) };
+}
+function closeView_(S){
+  var bad = needDb_(); if(bad) return bad;
+  var ex = expectedHeld_(), checks = rows_('Reconciliations').map(function(r){ return { id:r.ReconID, date:String(r.Date || ''), bank:num_(r.BankBalance), cash:num_(r.CashInHand), expected:num_(r.ExpectedTotal), diff:num_(r.Difference), by:r.EnteredBy || '', at:r.EnteredAt || '' }; });
+  checks.reverse();
+  var closedMap = {}; rows_('MonthClose').forEach(function(m){ closedMap[String(m.Month)] = { by:m.ClosedBy || '', at:m.ClosedAt || '' }; });
+  var cur = curMonth_(), ts = trackStart_(), months = [], lastCheck = checks.length ? checks[0].date : '';
+  var latestDate = ''; checks.forEach(function(c){ if(c.date > latestDate) latestDate = c.date; });
+  monthsBetween_(ts, addMonths_(cur, -1)).forEach(function(m){
+    var c = closedMap[m];
+    var pend = c ? 0 : penaltyCandidates_(m).length;
+    months.push({ month:m, closed:!!c, by:c ? c.by : '', at:c ? c.at : '', penaltiesPending:pend, canClose:!c && latestDate >= m + '-01' && pend === 0 });
+  });
+  months.reverse();
+  return out_({ ok:true, today:todayStr_(), expected:ex, checks:checks.slice(0, 24), months:months.slice(0, 36), lastCheck:lastCheck, canAct:S.r === 'admin1' });
+}
+function bankCheck_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var bank = r2_(body.bank), cash = r2_(body.cash);
+  if(!(num_(body.bank) >= 0) || !(num_(body.cash) >= 0) || body.bank === '' || body.cash === '' || body.bank === null || body.cash === null) return out_({ ok:false, error:'bad-amount' });
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var ex = expectedHeld_(), id = newId_('RC'), today = todayStr_(), diff = r2_(bank + cash - ex.expected);
+    appendMany_('Reconciliations', [{ ReconID:id, Date:today, BankBalance:bank, CashInHand:cash, ExpectedTotal:ex.expected, Difference:diff, EnteredBy:S.u, EnteredAt:nowIso_() }]);
+    audit_(S, 'bank-check', id, 'bank ' + bank + ' + cash ' + cash + ' vs expected ' + ex.expected + ' = ' + (diff >= 0 ? '+' : '') + diff);
+    return out_({ ok:true, id:id, expected:ex.expected, diff:diff, balanced:Math.abs(diff) < 0.005 });
+  } finally { lock.releaseLock(); }
+}
+function monthClose_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var m = String(body.month || ''); if(!validMonth_(m)) return out_({ ok:false, error:'bad-month' });
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    if(m >= curMonth_()) return out_({ ok:false, error:'month-not-ended' });
+    if(monthClosed_(m)) return out_({ ok:false, error:'already-closed' });
+    var ok = rows_('Reconciliations').some(function(r){ return String(r.Date) >= m + '-01'; });
+    if(!ok) return out_({ ok:false, error:'check-first' });
+    var pend = penaltyCandidates_(m).length; if(pend) return out_({ ok:false, error:'penalties-pending', count:pend });
+    appendMany_('MonthClose', [{ Month:m, ClosedBy:S.u, ClosedAt:nowIso_() }]);
+    audit_(S, 'month-closed', m, '');
+    return out_({ ok:true, month:m });
+  } finally { lock.releaseLock(); }
+}
+function dashboard_(S){
+  var bad = needDb_(); if(bad) return bad;
+  loanSweep_(S, false);
+  var today = todayStr_(), cur = today.slice(0, 7), pi = loanPaidIndex_(), figs = [];
+  rows_('Loans').forEach(function(l){ if(num_(l.Amount)) figs.push(loanFig_(l, pi, today)); });
+  var open = figs.filter(function(f){ return f.status !== 'Closed'; }), ex = expectedHeld_();
+  var ci = contribIndex_(), defaulters = 0;
+  rows_('Members').forEach(function(m){ if(String(m.Status) !== 'Exited' && standing_(m, ci[m.MemberID], cur).arrears.length) defaulters++; });
+  return out_({ ok:true, depositPot:ex.deposit, finePot:ex.fine, loansOut:ex.principalOut, available:r2_(ex.deposit - ex.principalOut), defaulters:defaulters,
+    overdueLoans:open.filter(function(f){ return f.status === 'Overdue' || f.status === 'Defaulted'; }).length, dueThisMonth:open.filter(function(f){ return f.due.slice(0, 7) === cur; }).length });
+}
+
+/* reports: read-only, both admins. Every report returns { title, cols:[labels], rows:[[...]], foot:[...] | null, numeric:[col indexes] } */
+var REPORT_TYPES_ = ['collection','arrears','penalties','statement','members','loanbook','loanpay','guarantors','settlements','finepot','expenses','depositpot','bankchecks','fysummary','audit'];
+function inRange_(d, from, to){ d = String(d || '').slice(0, 10); return (!from || d >= from) && (!to || d <= to); }
+function sumCol_(rows, i){ return r2_(rows.reduce(function(s2, r){ return s2 + num_(r[i]); }, 0)); }
+function report_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var type = String(body.type || ''); if(REPORT_TYPES_.indexOf(type) < 0) return out_({ ok:false, error:'bad-report' });
+  var from = validDate_(body.from) ? String(body.from) : '', to = validDate_(body.to) ? String(body.to) : '';
+  var today = todayStr_(), cur = today.slice(0, 7), names = {}, cols = [], rows = [], foot = null, numeric = [], title = '', sub = '';
+  rows_('Members').forEach(function(m){ names[m.MemberID] = m; });
+  var nm = function(id){ return names[id] ? names[id].Name : (id || ''); };
+  if(type === 'collection'){
+    var mo = validMonth_(String(body.month || '')) ? String(body.month) : cur; title = 'Monthly collection ' + mo; sub = 'Contribution due per member for the month';
+    cols = ['Member ID','Name','Status','Paid','Amount','Date','Mode','Receipt']; numeric = [4];
+    var ci = contribIndex_();
+    rows_('Members').forEach(function(m){
+      if(String(m.Status) === 'Exited' && !(ci[m.MemberID] && ci[m.MemberID][mo])) return;
+      if(mo < startMonth_(m)) return;
+      var c = ci[m.MemberID] && ci[m.MemberID][mo];
+      rows.push([m.MemberID, m.Name, m.Status || 'Active', c ? 'Yes' : 'No', c ? c.amount : 0, c ? c.date : '', c ? c.mode : '', c ? c.receipt : '']);
+    });
+    foot = ['', 'Total', '', rows.filter(function(r){ return r[3] === 'Yes'; }).length + ' paid / ' + rows.length, sumCol_(rows, 4), '', '', ''];
+  } else if(type === 'arrears'){
+    title = 'Arrears as of ' + today; sub = 'Members with unpaid past months'; cols = ['Member ID','Name','Months','Count','Amount']; numeric = [3, 4];
+    var ci2 = contribIndex_(), amt = contribAmount_();
+    rows_('Members').forEach(function(m){
+      if(String(m.Status) === 'Exited') return; var st = standing_(m, ci2[m.MemberID], cur);
+      if(st.arrears.length) rows.push([m.MemberID, m.Name, st.arrears.join(', '), st.arrears.length, st.arrears.length * amt]);
+    });
+    rows.sort(function(a, b){ return b[3] - a[3]; });
+    foot = ['', 'Total', '', sumCol_(rows, 3), sumCol_(rows, 4)];
+  } else if(type === 'penalties'){
+    title = 'Penalties'; sub = (from || to) ? 'For months ' + (from || '…').slice(0, 7) + ' to ' + (to || '…').slice(0, 7) : 'All months'; cols = ['Member ID','Name','Month','Charged','Paid','Outstanding','Status']; numeric = [3, 4, 5];
+    var pi2 = penaltyIndex_();
+    Object.keys(pi2).forEach(function(id){ pi2[id].list.forEach(function(p){
+      if((from && p.month < from.slice(0, 7)) || (to && p.month > to.slice(0, 7))) return;
+      rows.push([id, nm(id), p.month, p.amount, p.paid, p.outstanding, p.status]);
+    }); });
+    rows.sort(function(a, b){ return a[2].localeCompare(b[2]) || (a[1] < b[1] ? -1 : 1); });
+    foot = ['', 'Total', '', sumCol_(rows, 3), sumCol_(rows, 4), sumCol_(rows, 5), ''];
+  } else if(type === 'statement'){
+    var mem = memberById_(body.memberId); if(!mem) return out_({ ok:false, error:'no-member' });
+    title = 'Member statement · ' + mem.Name + ' (' + mem.MemberID + ')'; sub = 'Deposit and fine-pot movements'; cols = ['Date','Pot','Type','Amount','Deposit balance','Receipt','Note']; numeric = [3, 4];
+    var bal = 0, list = rows_('Ledger').filter(function(l){ return l.MemberID === mem.MemberID && !isTrue_(l.Voided); });
+    list.sort(function(a, b){ return String(a.Date).localeCompare(String(b.Date)) || (a._row - b._row); });
+    list.forEach(function(l){ var a = num_(l.Amount); if(l.Pot === 'deposit') bal += a; if(inRange_(l.Date, from, to)) rows.push([String(l.Date || ''), l.Pot, l.Type, a, l.Pot === 'deposit' ? r2_(bal) : '', l.ReceiptNo || '', String(l.Note || '')]); });
+    foot = ['', '', 'Deposit balance', '', r2_(bal), '', ''];
+  } else if(type === 'members'){
+    title = 'Member list'; sub = 'As of ' + today; cols = ['Member ID','Name','Mobile','Status','Joined','Deposit','Penalty due','Arrears (months)']; numeric = [5, 6, 7];
+    var ci3 = contribIndex_(), di = depositTotals_(), pi3 = penaltyIndex_();
+    rows_('Members').forEach(function(m){
+      var st = standing_(m, ci3[m.MemberID], cur);
+      rows.push([m.MemberID, m.Name, String(m.Mobile || ''), m.Status || 'Active', String(m.JoinDate || ''), r2_(di[m.MemberID] || 0), (pi3[m.MemberID] || { due:0 }).due, st.arrears.length]);
+    });
+    foot = ['', 'Total (' + rows.length + ')', '', '', '', sumCol_(rows, 5), sumCol_(rows, 6), sumCol_(rows, 7)];
+  } else if(type === 'loanbook'){
+    var stt = String(body.status || ''); title = 'Loan book' + (stt ? ' · ' + stt : ''); sub = 'As of ' + today; cols = ['Loan','Borrower','Taken','Due','Principal','Extra','Late extra','Paid','Outstanding','Status','Guarantors']; numeric = [4, 5, 6, 7, 8];
+    var lpi = loanPaidIndex_(), gi = guarantorsOf_();
+    rows_('Loans').forEach(function(l){
+      if(!num_(l.Amount)) return; var f = loanFig_(l, lpi, today);
+      if(stt === 'open' ? f.status === 'Closed' : (stt && f.status !== stt)) return;
+      if(!inRange_(f.taken, from, to) && (from || to)) return;
+      rows.push([f.id, f.name, f.taken, f.due, f.amount, f.extra, f.late, f.paid, f.outstanding, f.status, (gi[f.id] || []).map(function(g){ return g.name; }).join(', ')]);
+    });
+    rows.sort(function(a, b){ return String(b[2]).localeCompare(String(a[2])); });
+    foot = ['', 'Total (' + rows.length + ')', '', '', sumCol_(rows, 4), sumCol_(rows, 5), sumCol_(rows, 6), sumCol_(rows, 7), sumCol_(rows, 8), '', ''];
+  } else if(type === 'loanpay'){
+    title = 'Loan payments'; sub = (from || to) ? (from || '…') + ' to ' + (to || '…') : 'All dates'; cols = ['Date','Loan','Paid by','Amount','Principal','Extra','Late extra','Mode','Receipt']; numeric = [3, 4, 5, 6];
+    rows_('LoanPayments').forEach(function(p){
+      if(isTrue_(p.Voided) || !inRange_(p.Date, from, to)) return;
+      var pb = String(p.PaidBy || ''); if(/^deposit:/.test(pb)) pb = 'Deposit of ' + nm(pb.slice(8));
+      rows.push([String(p.Date || ''), p.LoanID, pb, num_(p.Amount), num_(p.ToPrincipal), num_(p.ToExtra), num_(p.ToLateExtra), p.Mode || '', /^R-/.test(String(p.Ref)) ? p.Ref : '']);
+    });
+    rows.sort(function(a, b){ return String(a[0]).localeCompare(String(b[0])); });
+    foot = ['', 'Total (' + rows.length + ')', '', sumCol_(rows, 3), sumCol_(rows, 4), sumCol_(rows, 5), sumCol_(rows, 6), '', ''];
+  } else if(type === 'guarantors'){
+    title = 'Guarantor exposure'; sub = 'Open loans and their guarantors'; cols = ['Guarantor','Loan','Borrower','Outstanding','Guarantor deposit','Due','Status']; numeric = [3, 4];
+    var lpi2 = loanPaidIndex_(), gi2 = guarantorsOf_(), dep2 = depositTotals_();
+    rows_('Loans').forEach(function(l){
+      if(!num_(l.Amount)) return; var f = loanFig_(l, lpi2, today); if(f.status === 'Closed') return;
+      (gi2[f.id] || []).forEach(function(g){ rows.push([g.name, f.id, f.name, f.outstanding, r2_(dep2[g.id] || 0), f.due, f.status]); });
+    });
+    rows.sort(function(a, b){ return a[0] < b[0] ? -1 : 1; });
+    foot = ['Total', '', '', sumCol_(rows, 3), '', '', ''];
+  } else if(type === 'settlements'){
+    title = 'Settlements'; sub = 'Member exits and defaulted-loan deductions'; cols = ['Date','Kind','Member','Loan','Amount','Receipt / note']; numeric = [4];
+    rows_('Exits').forEach(function(x){ if(inRange_(x.Date, from, to)) rows.push([String(x.Date || ''), 'Exit refund', nm(x.MemberID), '', num_(x.Refund), String(x.Note || '')]); });
+    rows_('Ledger').forEach(function(l){ if(l.Type === 'settlement' && !isTrue_(l.Voided) && inRange_(l.Date, from, to)) rows.push([String(l.Date || ''), 'Loan settlement', nm(l.MemberID), l.LoanID || '', -num_(l.Amount), l.ReceiptNo || '']); });
+    rows.sort(function(a, b){ return String(a[0]).localeCompare(String(b[0])); });
+    foot = ['', 'Total', '', '', sumCol_(rows, 4), ''];
+  } else if(type === 'finepot'){
+    title = 'Fine pot statement'; sub = (from || to) ? (from || '…') + ' to ' + (to || '…') : 'All dates'; cols = ['Date','Type','Member','Amount','Balance','Note']; numeric = [3, 4];
+    fineRows_().forEach(function(r){ if(inRange_(r.date, from, to)) rows.push([r.date, r.type, r.member, r.amount, r.balance, r.note]); });
+    foot = ['', 'Net', '', sumCol_(rows, 3), rows.length ? rows[rows.length - 1][4] : 0, ''];
+  } else if(type === 'expenses'){
+    title = 'Expenses'; sub = (from || to) ? (from || '…') + ' to ' + (to || '…') : 'All dates'; cols = ['Date','Category','Amount','Note','Entered by']; numeric = [2];
+    fineRows_().forEach(function(r){ if(r.type === 'expense' && inRange_(r.date, from, to)) rows.push([r.date, r.category, -r.amount, r.note.replace(/^[^·]+ · /, ''), r.by]); });
+    var bycat = {}; rows.forEach(function(r){ bycat[r[1]] = (bycat[r[1]] || 0) + r[2]; });
+    rows.sort(function(a, b){ return String(a[0]).localeCompare(String(b[0])); });
+    foot = ['', 'Total', sumCol_(rows, 2), Object.keys(bycat).sort().map(function(k){ return k + ' ' + r2_(bycat[k]); }).join(' · '), ''];
+  } else if(type === 'depositpot'){
+    title = 'Deposit pot statement'; sub = (from || to) ? (from || '…') + ' to ' + (to || '…') : 'All dates'; cols = ['Date','Type','Member','Amount','Balance','Note']; numeric = [3, 4];
+    var dl = rows_('Ledger').filter(function(l){ return l.Pot === 'deposit' && !isTrue_(l.Voided); }); dl.sort(function(a, b){ return String(a.Date).localeCompare(String(b.Date)) || (a._row - b._row); });
+    var bal2 = 0; dl.forEach(function(l){ bal2 += num_(l.Amount); if(inRange_(l.Date, from, to)) rows.push([String(l.Date || ''), l.Type, nm(l.MemberID), num_(l.Amount), r2_(bal2), String(l.Note || '')]); });
+    foot = ['', 'Net', '', sumCol_(rows, 3), r2_(bal2), ''];
+  } else if(type === 'bankchecks'){
+    title = 'Bank and cash checks'; cols = ['Date','Bank','Cash','Actual total','Expected','Difference','Entered by']; numeric = [1, 2, 3, 4, 5];
+    rows_('Reconciliations').forEach(function(r){ if(inRange_(r.Date, from, to)) rows.push([String(r.Date || ''), num_(r.BankBalance), num_(r.CashInHand), r2_(num_(r.BankBalance) + num_(r.CashInHand)), num_(r.ExpectedTotal), num_(r.Difference), r.EnteredBy || '']); });
+    rows.reverse();
+  } else if(type === 'fysummary'){
+    var fy = fyOf_(validMonth_(String(body.month || '')) ? String(body.month) : cur); title = 'Financial year summary ' + fy.label; sub = fy.start + ' to ' + fy.end; cols = ['Item','Amount']; numeric = [1];
+    var tot = {}; rows_('Ledger').forEach(function(l){ if(isTrue_(l.Voided)) return; var m = String(l.Date).slice(0, 7); if(m < fy.start || m > fy.end) return; var k = l.Pot + '|' + l.Type; tot[k] = (tot[k] || 0) + num_(l.Amount); });
+    var g = function(k){ return r2_(tot[k] || 0); };
+    var lent = 0, back = 0;
+    rows_('Loans').forEach(function(l){ if(num_(l.Amount) && inRange_(l.TakenDate, fy.start + '-01', fy.end + '-31')) lent += num_(l.Amount); });
+    rows_('LoanPayments').forEach(function(p){ if(!isTrue_(p.Voided) && inRange_(p.Date, fy.start + '-01', fy.end + '-31')) back += num_(p.ToPrincipal); });
+    rows = [['Contributions collected', g('deposit|contribution')], ['Opening deposits', g('deposit|opening')], ['Exit refunds paid', -g('deposit|exit_refund')], ['Deducted for defaulted loans', -g('deposit|settlement')], ['Joining fees', g('fine|joining_fee')], ['Penalties paid', g('fine|penalty_paid')], ['Loan extra', g('fine|loan_extra')], ['Late extra', g('fine|loan_late_extra')], ['Expenses', g('fine|expense')], ['Loans given (principal)', r2_(lent)], ['Principal returned', r2_(back)]];
+    var ex2 = expectedHeld_(); rows.push(['Deposit pot now', ex2.deposit], ['Fine pot now', ex2.fine], ['Loan principal out now', ex2.principalOut]);
+  } else if(type === 'audit'){
+    title = 'Audit log'; sub = (from || to) ? (from || '…') + ' to ' + (to || '…') : 'Latest entries'; cols = ['When','Admin','Action','Target','Detail'];
+    var who = String(body.admin || ''), q = String(body.q || '').toLowerCase();
+    rows_('Audit').forEach(function(a){
+      if(!inRange_(a.At, from, to)) return; if(who && String(a.Admin) !== who) return;
+      var line = [String(a.At || '').replace('T', ' '), a.Admin || '', a.Action || '', a.Target || '', a.Detail || '']; if(q && line.join(' ').toLowerCase().indexOf(q) < 0) return;
+      rows.push(line);
+    });
+    rows.reverse();
+  }
+  var cap = 3000, total = rows.length; if(rows.length > cap) rows = rows.slice(0, cap);
+  return out_({ ok:true, type:type, title:title, sub:sub, cols:cols, rows:rows, foot:foot, numeric:numeric, total:total, truncated:total > cap, at:nowIso_() });
+}
+
 function membersList_(S){
   var bad = needDb_(); if(bad) return bad;
   loanSweep_(S, false);
@@ -1455,11 +1708,17 @@ function doGet(e){
   if(!S) return out_({ ok:false, error:'login-required' });
   if(S.mc) return out_({ ok:false, error:'must-change' });
   var since = Number(p.since || 0);
+  // Fast path: the version of each shared file is remembered in a script property, so "nothing changed" never opens Drive.
+  var vk = 'ver_' + (p.kind === 'contrib' || p.kind === 'repay' || p.kind === 'apply' ? p.kind : 'dataset');
+  if(since && String(since) === String(props_().getProperty(vk) || '')){
+    var fast = {}; if(vk !== 'ver_dataset') fast[p.kind] = true; fast.unchanged = true; fast.updatedAt = since; return out_(fast);
+  }
   if(p.kind === 'contrib' || p.kind === 'repay' || p.kind === 'apply'){
     var cf = file_(p.kind === 'repay' ? REPAY_FILE : p.kind === 'apply' ? APPS_FILE : CONTRIB_FILE);
     var flag = {}; flag[p.kind] = true;
     if(!cf){ flag.empty = true; return out_(flag); }
     var c = JSON.parse(cf.getBlob().getDataAsString());
+    props_().setProperty(vk, String(c.updatedAt || ''));
     if(since && since === c.updatedAt){ flag.unchanged = true; flag.updatedAt = c.updatedAt; return out_(flag); }
     flag.updatedAt = c.updatedAt; flag.months = c.months || {};
     return out_(flag);
@@ -1467,6 +1726,7 @@ function doGet(e){
   var f = file_(FILE_NAME);
   if(!f) return out_({ empty:true });
   var saved = JSON.parse(f.getBlob().getDataAsString());
+  props_().setProperty(vk, String(saved.updatedAt || ''));
   if(since && since === saved.updatedAt) return out_({ unchanged:true, updatedAt:saved.updatedAt });
   return out_(saved);
 }
@@ -1510,6 +1770,13 @@ function doPost(e){
     if(body.kind === 'suspensionLift') return suspensionLift_(S, body);
     if(body.kind === 'settlePreview') return settlePreview_(S, body);
     if(body.kind === 'settleConfirm') return settleConfirm_(S, body);
+    if(body.kind === 'exitPreview') return exitPreview_(S, body);
+    if(body.kind === 'exitConfirm') return exitConfirm_(S, body);
+    if(body.kind === 'closeView') return closeView_(S);
+    if(body.kind === 'bankCheck') return bankCheck_(S, body);
+    if(body.kind === 'monthClose') return monthClose_(S, body);
+    if(body.kind === 'dashboard') return cachedCall_('db', function(){ return dashboard_(S); });
+    if(body.kind === 'report') return report_(S, body);
     if(body.kind === 'loanDisburse') return loanDisburse_(S, body);
     if(body.kind === 'contribAdd') return contribAdd_(S, body);
     if(body.kind === 'contribVoid') return contribVoid_(S, body);
@@ -1534,6 +1801,7 @@ function doPost(e){
     // Excel dataset upload (never write an empty dataset)
     if(!body.dataset || !body.dataset.rows || !body.dataset.rows.length) return out_({ ok:false, error:'no-dataset' });
     var saved = { updatedAt: Date.now(), dataset: body.dataset };
+    props_().setProperty('ver_dataset', String(saved.updatedAt));
     var txt = JSON.stringify(saved), f = file_(FILE_NAME);
     if(f) f.setContent(txt); else DriveApp.createFile(FILE_NAME, txt, MimeType.PLAIN_TEXT);
     return out_({ ok:true, updatedAt:saved.updatedAt });
@@ -1573,6 +1841,7 @@ function saveMarks_(body, fileName, objectValues){
       }
     });
     data.updatedAt = Date.now();
+    props_().setProperty('ver_' + (fileName === REPAY_FILE ? 'repay' : fileName === APPS_FILE ? 'apply' : 'contrib'), String(data.updatedAt));
     var txt = JSON.stringify(data);
     if(cf) cf.setContent(txt); else DriveApp.createFile(fileName, txt, MimeType.PLAIN_TEXT);
     return out_({ ok:true, updatedAt:data.updatedAt, months:data.months });
