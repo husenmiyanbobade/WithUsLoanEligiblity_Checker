@@ -886,6 +886,30 @@ function loansList_(S, body){
     toCollect:figs.reduce(function(s2, f){ return s2 + f.outstanding; }, 0) });
 }
 
+// Loans by repayment month for the Monthly > Loan repayment screen.
+// Returns a summary for every month that has loans, and the full list (with payments) for body.month (default: this month).
+function loansDue_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  loanSweep_(S, false);
+  var month = String(body.month || curMonth_()); if(!validMonth_(month)) return out_({ ok:false, error:'bad-months' });
+  var today = todayStr_(), pi = loanPaidIndex_(), gi = guarantorsOf_(), summary = {}, list = [];
+  rows_('Loans').forEach(function(l){
+    if(!num_(l.Amount)) return;
+    var f = loanFig_(l, pi, today), m = String(f.due || '').slice(0, 7); if(!m) return;
+    var sm = summary[m] || (summary[m] = { total:0, received:0, toCollect:0 });
+    sm.total++; if(f.status === 'Closed') sm.received++; else sm.toCollect += f.outstanding;
+    if(m === month){ f.guarantors = (gi[f.id] || []).map(function(g){ return g.name; }); list.push(f); }
+  });
+  var pays = {};
+  rows_('LoanPayments').forEach(function(p){
+    if(isTrue_(p.Voided)) return;
+    (pays[p.LoanID] || (pays[p.LoanID] = [])).push({ receipt:String(p.Ref || ''), date:String(p.Date || ''), amount:num_(p.Amount), paidBy:p.PaidBy || '', mode:p.Mode || '', by:p.EnteredBy || '', at:String(p.EnteredAt || '') });
+  });
+  list.forEach(function(f){ f.payments = (pays[f.id] || []).sort(function(a, b){ return a.at < b.at ? -1 : 1; }); });
+  list.sort(function(a, b){ return (a.status === 'Closed') - (b.status === 'Closed') || (a.name < b.name ? -1 : 1); });
+  return out_({ ok:true, month:month, today:today, summary:summary, loans:list });
+}
+
 function loanDetail_(S, body){
   var bad = needDb_(); if(bad) return bad;
   var l = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(body.loanId); })[0];
@@ -1478,6 +1502,7 @@ function doPost(e){
     if(body.kind === 'expenseAdd') return expenseAdd_(S, body);
     if(body.kind === 'expenseVoid') return expenseVoid_(S, body);
     if(body.kind === 'loansList') return cachedCall_('ll', function(){ return loansList_(S, body); });
+    if(body.kind === 'loansDue') return cachedCall_('ldue|' + String(body.month || ''), function(){ return loansDue_(S, body); });
     if(body.kind === 'loanDetail') return cachedCall_('ld|' + String(body.loanId), function(){ return loanDetail_(S, body); });
     if(body.kind === 'loanPay') return loanPay_(S, body);
     if(body.kind === 'loanPayVoid') return loanPayVoid_(S, body);

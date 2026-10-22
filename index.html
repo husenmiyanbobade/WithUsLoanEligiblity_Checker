@@ -1025,6 +1025,10 @@
   .db-live .mc-import{ display:none; }
   .cw-row{ display:inline-flex; gap:8px; flex-wrap:wrap; }
   .mc-btn[data-locked]{ opacity:.75; }
+  .rp-dbbtns{ display:grid; grid-template-columns:1.4fr 1fr; gap:8px; margin-top:8px; }
+  .rp-dbbtns .rp-btn{ margin-top:0; }
+  .rp-btn.ghost{ background:var(--card); color:var(--ink); border:1.5px solid var(--line); }
+  .rp-pill.bad{ background:var(--t-rust,#F6E0DA); color:var(--t-rust-fg,#A33F2D); }
   #eligPaneBook .mc-chips{ flex-wrap:nowrap; overflow-x:auto; gap:6px; scrollbar-width:none; }
   #eligPaneBook .mc-chip{ flex:0 0 auto; padding:0 12px; min-height:38px; font-size:13px; white-space:nowrap; }
 </style>
@@ -1530,6 +1534,18 @@
   I18N.en.monDbLocked = 'This payment came from the Excel register and cannot be removed here.'; I18N.mr.monDbLocked = 'ही नोंद एक्सेल रजिस्टरमधून आली आहे, येथून काढता येत नाही.';
   I18N.en.monDbRemoveQ = 'Remove the payment of {name}?'; I18N.mr.monDbRemoveQ = '{name} यांची नोंद काढायची?';
   I18N.en.fpLatest = 'Latest entries'; I18N.mr.fpLatest = 'अलीकडील नोंदी';
+  I18N.en.rpDbPart = 'Part payment'; I18N.mr.rpDbPart = 'अंशतः भरणा';
+  I18N.en.rpDbMarkAll = 'Mark received {a}'; I18N.mr.rpDbMarkAll = 'मिळाले {a}';
+  I18N.en.rpDbPartPill = 'Part paid'; I18N.mr.rpDbPartPill = 'अंशतः भरले';
+  I18N.en.rpDbOverdue = 'Overdue'; I18N.mr.rpDbOverdue = 'थकीत';
+  I18N.en.rpDbOwed = 'owed now'; I18N.mr.rpDbOwed = 'आता देय';
+  I18N.en.rpDbDoubled = 'extra doubled ({e} + {e})'; I18N.mr.rpDbDoubled = 'अतिरिक्त शुल्क दुप्पट ({e} + {e})';
+  I18N.en.rpDbPaidBal = 'Paid {p} · Balance {b}'; I18N.mr.rpDbPaidBal = 'भरले {p} · शिल्लक {b}';
+  I18N.en.rpDbEarly = 'Closed early on {d}'; I18N.mr.rpDbEarly = '{d} रोजी लवकर बंद';
+  I18N.en.rpDbRemQ = 'Remove the payment of {a} made on {d}?'; I18N.mr.rpDbRemQ = '{d} रोजीचा {a} चा भरणा काढायचा?';
+  I18N.en.rpDbRemoved = 'Payment removed'; I18N.mr.rpDbRemoved = 'भरणा काढला';
+  I18N.en.rpDbSaved = 'Saved. Receipt {no}'; I18N.mr.rpDbSaved = 'जतन केले. पावती {no}';
+  I18N.en.rpDbBy = 'by {w}'; I18N.mr.rpDbBy = '{w} कडून';
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
                      'paid':'v_paid', 'pending':'v_pending', 'yes':'v_yes', 'no':'v_no', 'not specified':'v_notspec' };
@@ -3508,9 +3524,13 @@
   function todayStr(){ var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   function indian(n){ return Number(n).toLocaleString('en-IN'); }
 
-  function loanKey(r){ return normKeyName(r.applicant) + '|' + (dayStr(r.takenDate) || '') + '|' + (r.takenAmt || 0); }
+  var rpDb = { months:{}, summary:null, busy:{} };
+  function rpD(str){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(str || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+  function rpDbAdapt(f){ return { applicant:f.name || '(no name)', takenDate:rpD(f.taken), takenAmt:f.amount, repayDate:rpD(f.due), repayAmt:f.total, status:f.status, guarantor:(f.guarantors || []).join(' / '), db:f }; }
+  function loanKey(r){ if(r.db) return r.db.id; return normKeyName(r.applicant) + '|' + (dayStr(r.takenDate) || '') + '|' + (r.takenAmt || 0); }
   // return amount = loan amount + fixed charge (matches every completed loan in the Excel history)
   function loanReturnAmt(r){
+    if(r.db) return r.db.status === 'Closed' ? r.db.total : r.db.outstanding;
     var c = REPAY_CHARGE[r.takenAmt];
     if(c != null) return r.takenAmt + c;
     return r.repayAmt > 0 ? r.repayAmt : null;
@@ -3521,16 +3541,25 @@
   }
   function loanEntry(mo, r){ var m = repay.months[mo.key]; return m ? m[loanKey(r)] : undefined; }
   function loanReceived(mo, r){
+    if(r.db) return r.db.status === 'Closed';
     var e = loanEntry(mo, r);
     if(e && (e.v === true || e.v === false)) return e.v;
     return loanBaseReceived(r);
   }
   function loansDueIn(mo){
+    if(dbMon()){ var c = rpDb.months[mo.key]; return c ? c.loans.map(rpDbAdapt) : []; }
     return rowsX().filter(function(r){
       return r.repayDate && r.repayDate.getFullYear() === mo.y && r.repayDate.getMonth() === mo.m0;
     });
   }
   function repayMonths(){
+    if(dbMon()){
+      var keys = Object.keys((rpDb.summary || {})), cur = mem.cur || todayStr().slice(0, 7), lo = cur, hi = cur;
+      keys.forEach(function(k){ var sm = rpDb.summary[k]; if(sm.total > sm.received || k === cur){ if(k < lo) lo = k; if(k > hi) hi = k; } });
+      keys.forEach(function(k){ if(k >= memAddM(cur, -2) && k < lo) lo = k; });
+      var o3 = [], k3 = lo, g3 = 0; while(k3 <= hi && g3++ < 120){ o3.push({ y:+k3.slice(0, 4), m0:+k3.slice(5, 7) - 1, key:k3 }); k3 = memAddM(k3, 1); }
+      return o3;
+    }
     var now = new Date(), curN = now.getFullYear() * 12 + now.getMonth(), lo = curN, hi = curN, out = [];
     rowsX().forEach(function(r){
       if(!r.repayDate || !/in\s*process/i.test(r.status || '')) return;
@@ -3551,6 +3580,12 @@
     return ms[0];
   }
   function repayStats(mo){
+    if(dbMon()){
+      var c = rpDb.months[mo.key], sm = rpDb.summary && rpDb.summary[mo.key];
+      if(c){ var rc = 0, tc = 0; c.loans.forEach(function(f){ if(f.status === 'Closed') rc++; else tc += f.outstanding; }); return { total:c.loans.length, received:rc, pending:c.loans.length - rc, toCollect:tc, known:true }; }
+      if(sm) return { total:sm.total, received:sm.received, pending:sm.total - sm.received, toCollect:sm.toCollect, known:true };
+      return { total:0, received:0, pending:0, toCollect:0, known:false };
+    }
     var loans = loansDueIn(mo), rec = 0, due = 0;
     loans.forEach(function(r){
       if(loanReceived(mo, r)) rec++; else due += (loanReturnAmt(r) || 0);
@@ -3568,7 +3603,100 @@
     return gs.map(function(g, i){ return { label: gs.length > 1 ? 'JAMIN' + (i + 1) : 'JAMIN', name: g }; });
   }
 
+  function rpDbLoad(key, force){
+    if(!dbMon() || rpDb.busy[key]) return;
+    var c = rpDb.months[key];
+    if(!force && c && Date.now() - c.at < 15000) return;
+    rpDb.busy[key] = 1;
+    admCall({ kind:'loansDue', month:key }).then(function(res){
+      rpDb.busy[key] = 0;
+      if(res && res.ok){ rpDb.months[res.month] = { loans:res.loans, at:Date.now() }; rpDb.summary = res.summary; renderRepay(); }
+      else rpSay(t('monNetErr'), 'bad');
+    }).catch(function(){ rpDb.busy[key] = 0; rpSay(t('monNetErr'), 'bad'); });
+  }
+  function rpDbCard(f, mo){
+    var rec = f.status === 'Closed', part = !rec && f.paid > 0, od = f.status === 'Overdue' || f.status === 'Defaulted';
+    var pill = rec ? t('rpReceived') : od ? t('rpDbOverdue') : part ? t('rpDbPartPill') : t('rpPending');
+    var g = (f.guarantors || []).map(function(n, i, a){ return '<div>' + esc(a.length > 1 ? 'JAMIN' + (i + 1) : 'JAMIN') + ': ' + esc(n) + '</div>'; }).join('') || '<div>' + esc(t('rpNoGuar')) + '</div>';
+    var h = '<div class="rp-card"><div class="rp-top"><span class="rp-name">' + esc(f.name || '(no name)') + '</span><span class="rp-pill' + (rec ? ' ok' : od ? ' bad' : '') + '">' + esc(pill) + '</span></div>';
+    h += '<div class="rp-ret">₹' + indian(f.amount) + ' · ' + esc(t('rpDbOwed')) + '<strong>₹' + indian(rec ? f.total : f.outstanding) + '</strong></div>';
+    var meta = esc(t('rpTaken', { d:memD(f.taken) })) + ' · ' + esc(t('rpDue', { d:memD(f.due) }));
+    if(f.late > 0 && !rec) meta += '<div>' + esc(t('rpDbDoubled', { e:memMoney(f.extra) })) + (od ? esc(lnDays(f)) : '') + '</div>';
+    if(part) meta += '<div><b>' + esc(t('rpDbPaidBal', { p:memMoney(f.paid), b:memMoney(f.outstanding) })) + '</b></div>';
+    h += '<div class="rp-meta">' + meta + g + '</div>';
+    (f.payments || []).forEach(function(p){
+      h += '<div class="rp-recrow"><span class="rp-recon">' + esc(memD(p.date) + ' · ' + memMoney(p.amount) + ' · ' + memModeName(p.mode)) + '</span>' + (p.receipt ? '<button type="button" class="rp-rm rp-prm" data-r="' + esc(p.receipt) + '" data-a="' + p.amount + '" data-d="' + esc(p.date) + '" data-l="' + esc(f.id) + '" data-pb="' + esc(p.paidBy) + '" data-m="' + esc(p.mode) + '">' + esc(t('rpRemove')) + '</button>' : '') + '</div>';
+    });
+    if(rec){
+      var early = f.closedDate && String(f.closedDate).slice(0, 7) < String(f.due).slice(0, 7);
+      if(!(f.payments || []).length) h += '<div class="rp-recrow"><span class="rp-recon">' + esc(f.closedDate ? t('rpRecOn', { d:memD(f.closedDate) }) : t('rpReceived')) + '</span></div>';
+      else if(early) h += '<div class="rp-recrow"><span class="rp-recon">' + esc(t('rpDbEarly', { d:memD(f.closedDate) })) + '</span></div>';
+    } else {
+      h += '<div class="rp-dbbtns"><button type="button" class="rp-btn rp-pay" data-id="' + esc(f.id) + '">' + esc(t('rpDbMarkAll', { a:memMoney(f.outstanding) })) + '</button><button type="button" class="rp-btn rp-part ghost" data-id="' + esc(f.id) + '">' + esc(t('rpDbPart')) + '</button></div>';
+    }
+    return h + '</div>';
+  }
+  function rpDbList(){
+    var box = document.getElementById('rpList'), mo = currentRepayMonth(); if(!box || !mo) return;
+    var c = rpDb.months[mo.key];
+    if(!c){ box.innerHTML = '<p class="mc-msg" style="padding:14px;">' + esc(t('memLoading')) + '</p>'; rpDbLoad(mo.key); return; }
+    var q = normKeyName(rpState.q), html = '', n = 0;
+    c.loans.forEach(function(f){
+      var rec = f.status === 'Closed';
+      if(rpState.filter === 'pending' && rec) return;
+      if(rpState.filter === 'received' && !rec) return;
+      if(q && normKeyName(f.name).indexOf(q) === -1) return;
+      n++; html += rpDbCard(f, mo);
+    });
+    box.innerHTML = n ? html : '<p class="member-empty" style="padding:18px 8px;">' + esc(t(c.loans.length ? 'rpNoMatch' : 'rpNoLoans')) + '</p>';
+  }
+  function rpDbRefresh(){ var mo = currentRepayMonth(); if(mo && dbMon()) rpDbLoad(mo.key, true); }
+  function rpDbPay(id, btn){
+    if(Date.now() - (rpState.mk || 0) < 1000) return; rpState.mk = Date.now();
+    var mo = currentRepayMonth(), c = rpDb.months[mo.key], f = null; (c ? c.loans : []).forEach(function(x){ if(x.id === id) f = x; });
+    if(!f || !(f.outstanding > 0)) return;
+    if(btn) btn.disabled = true; rpSay(t('monSaving'));
+    admCall({ kind:'loanPay', loanId:id, amount:f.outstanding, date:mem.today || todayStr(), mode:mem.mode, paidBy:'borrower', ref:'' }).then(function(res){
+      if(res && res.ok){
+        rpState.last = { month:mo.key, name:f.name, now:true, receipt:res.receipt.no, at:Date.now() }; undoExpire(rpState, renderRepay);
+        rpSay(t('rpDbSaved', { no:res.receipt.no }), 'ok'); memFetch(function(){}); lnBookLoad();
+      } else { rpSay(lnErr(res), 'bad'); }
+      rpDbLoad(mo.key, true);
+    }).catch(function(){ rpSay(t('monNetErr'), 'bad'); rpDbLoad(mo.key, true); });
+  }
+  function rpDbPart(id){
+    rpSay(t('memLoading'));
+    admCall({ kind:'loanDetail', loanId:id }).then(function(res){
+      rpSay('');
+      if(res && res.ok){ ln.det = res; ln.ctx = ''; lnPayOpen(id); } else rpSay(lnErr(res), 'bad');
+    }).catch(function(){ rpSay(t('monNetErr'), 'bad'); });
+  }
+  function rpDbRemove(b){
+    var a = Number(b.getAttribute('data-a')), d = b.getAttribute('data-d');
+    if(!window.confirm(t('rpDbRemQ', { a:memMoney(a), d:memD(d) }))) return;
+    var mo = currentRepayMonth(), rcp = b.getAttribute('data-r'), redo = { loanId:b.getAttribute('data-l'), amount:a, date:d, mode:b.getAttribute('data-m') || mem.mode, paidBy:b.getAttribute('data-pb') || 'borrower' };
+    rpSay(t('monSaving'));
+    admCall({ kind:'loanPayVoid', receipt:rcp, reason:'removed from Monthly' }).then(function(res){
+      if(res && res.ok){ rpState.last = { month:mo.key, name:'', now:false, redo:redo, at:Date.now() }; undoExpire(rpState, renderRepay); rpSay(t('rpDbRemoved'), 'ok'); memFetch(function(){}); lnBookLoad(); }
+      else rpSay(lnErr(res), 'bad');
+      rpDbLoad(mo.key, true);
+    }).catch(function(){ rpSay(t('monNetErr'), 'bad'); });
+  }
+  function rpDbUndo(){
+    var L = rpState.last; if(!L || Date.now() - L.at < 400) return; rpState.last = null; renderRepay();
+    var req = L.redo ? { kind:'loanPay', loanId:L.redo.loanId, amount:L.redo.amount, date:L.redo.date, mode:L.redo.mode, paidBy:L.redo.paidBy, ref:'' } : { kind:'loanPayVoid', receipt:L.receipt, reason:'undo' };
+    admCall(req).then(function(res){ if(!(res && res.ok)) rpSay(lnErr(res), 'bad'); else rpSay(t('monSaved'), 'ok'); memFetch(function(){}); lnBookLoad(); rpDbLoad(L.month, true); }).catch(function(){ rpSay(t('monNetErr'), 'bad'); rpDbLoad(L.month, true); });
+  }
+  function rpDbClick(e){
+    var b;
+    if((b = e.target.closest('.rp-pay'))){ rpDbPay(b.getAttribute('data-id'), b); return true; }
+    if((b = e.target.closest('.rp-part'))){ rpDbPart(b.getAttribute('data-id')); return true; }
+    if((b = e.target.closest('.rp-prm'))){ rpDbRemove(b); return true; }
+    if(e.target.id === 'rpUndoBtn'){ rpDbUndo(); return true; }
+    return false;
+  }
   function renderRepayList(){
+    if(dbMon()) return rpDbList();
     var box = document.getElementById('rpList'), mo = currentRepayMonth();
     if(!box || !mo) return;
     var q = normKeyName(rpState.q), html = '', n = 0, loans = loansDueIn(mo);
@@ -3595,7 +3723,8 @@
 
   function renderRepay(){
     var pane = document.getElementById('monPaneLoan');
-    if(!pane || !allRows || !allRows.length) return;
+    if(!pane) return;
+    if(!dbMon() && (!allRows || !allRows.length)) return;
     var mo = currentRepayMonth(), ms = repayMonths(), st = repayStats(mo), idx = 0;
     ms.forEach(function(x, i){ if(x.key === mo.key) idx = i; });
     document.getElementById('rpMonthLabel').textContent = monLabelUI(mo);
@@ -3610,11 +3739,11 @@
 
     var L = rpState.last;
     document.getElementById('rpUndo').innerHTML = (L && L.month === mo.key)
-      ? undoBarHtml(t(L.now ? 'rpMarkedMsg' : 'rpClearedMsg', { name:L.name }), 'rpUndoBtn', L.at) : '';
+      ? undoBarHtml(L.redo ? t('rpDbRemoved') : t(L.now ? 'rpMarkedMsg' : 'rpClearedMsg', { name:L.name || '' }), 'rpUndoBtn', L.at) : '';
 
     var mh = '';
     ms.slice().reverse().forEach(function(x){
-      var s2 = repayStats(x);
+      var s2 = repayStats(x); if(dbMon() && !s2.known) return;
       mh += '<button type="button" class="mc-month' + (x.key === mo.key ? ' sel' : '') + '" data-month="' + x.key + '"><span><strong>' + esc(monLabelUI(x)) + '</strong><small>' +
         esc(s2.total ? t('rpOfTotal', { r:s2.received, t:s2.total }) : t('rpNoLoans')) + '</small></span><strong>₹' + indian(s2.toCollect) + '</strong></button>';
     });
@@ -3740,11 +3869,12 @@
       document.getElementById('monPaneContrib').style.display = loan ? 'none' : '';
       document.getElementById('monPaneLoan').style.display = loan ? '' : 'none';
       sec.querySelectorAll('.mc-seg').forEach(function(b){ b.classList.toggle('active', b === seg); });
-      if(loan){ renderRepay(); pullRepay(); }
+      if(loan){ renderRepay(); pullRepay(); if(dbMon()){ var rmo = currentRepayMonth(); if(rmo) rpDbLoad(rmo.key, true); } }
       return;
     }
     var pane = document.getElementById('monPaneLoan');
     if(!pane.contains(e.target)) return;
+    if(dbMon() && rpDbClick(e)) return;
     var rm = e.target.closest('.rp-rm');
     if(rm){
       if(Date.now() - (rpState.mk || 0) < 1000) return;
@@ -4807,7 +4937,7 @@
         mem.list = res.members; mem.cur = res.month; mem.amount = res.amount; mem.today = res.today; mem.fee = res.joiningFee || 0; mem.trackStart = res.trackStart || '2026-01'; mem.penAmt = res.penaltyAmount || 500; mem.loaded = true; mem.failed = false; mem.fetchedAt = Date.now();
         if(!mem.month) mem.month = mem.cur;
         memCacheSave();
-        if(!mem.prefetched){ mem.prefetched = true; setTimeout(function(){ try{ lnBookLoad(); }catch(e){} try{ if(mem.cur) monDbLoad(mem.cur); monDbSummary(); }catch(e){} }, 1500); }
+        if(!mem.prefetched){ mem.prefetched = true; setTimeout(function(){ try{ lnBookLoad(); }catch(e){} try{ if(mem.cur){ monDbLoad(mem.cur); rpDbLoad(mem.cur); } monDbSummary(); }catch(e){} }, 1500); }
       } else if(!(res && res.ok) && !mem.loaded) mem.failed = true;
       if(done) done(!!(res && res.ok), !!(res && res.error === 'not-set-up'));
       if(mem.again){ mem.again = false; memFetch(); }
@@ -5414,7 +5544,7 @@
     btn.disabled = true;
     admCall({ kind:'loanPay', loanId:l.id, amount:amt, date:f.date, mode:f.pm, ref:f.ref, paidBy:f.by }).then(function(res){
       if(res && res.ok){ mem.mode = f.pm; try{ localStorage.setItem('withusMemMode', f.pm); }catch(e){} var mob = ''; var m = res.receipt.memberId ? memById(res.receipt.memberId) : null; if(m) mob = m.mobile;
-        memLoad(true); lnBookLoad(); if(res.receipt.closed) admSay(t('lnClosedNow')); memReceiptView(res.receipt, mob); }
+        memLoad(true); lnBookLoad(); try{ rpDbRefresh(); }catch(e){} if(res.receipt.closed) admSay(t('lnClosedNow')); memReceiptView(res.receipt, mob); }
       else { btn.disabled = false; say(lnErr(res)); }
     }).catch(function(){ btn.disabled = false; say(t('memEGeneric')); });
   }
