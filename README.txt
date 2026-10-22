@@ -1,1 +1,1 @@
-WITH US Society Register - PWA
+WITH US Society Register

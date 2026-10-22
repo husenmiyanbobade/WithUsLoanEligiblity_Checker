@@ -1357,6 +1357,22 @@ function monthView_(S, body){
   return out_({ ok:true, month:month, amount:amt, rows:rowsOut, totals:{ expected:expected, paid:paidN, collected:collected, outstanding:Math.max(0, expected - paidN) * amt } });
 }
 
+// Paid / expected / collected for every tracked month, in one light call (for the Monthly tab's "All months" list).
+function monthsSummary_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var ci = contribIndex_(), start = trackStart_(), cur = curMonth_(), list = rows_('Members'), res = {}, g = 0;
+  for(var m = start; m <= cur && g < 120; m = addMonths_(m, 1), g++){
+    var exp = 0, paid = 0, col = 0;
+    list.forEach(function(x){
+      var p = (ci[x.MemberID] || {})[m], elig = String(x.Status) !== 'Exited' && startMonth_(x) <= m;
+      if(elig) exp++;
+      if(p){ paid++; col += p.amount; }
+    });
+    res[m] = { expected:exp, paid:paid, collected:col };
+  }
+  return out_({ ok:true, months:res });
+}
+
 function memberProfile_(S, body){
   var bad = needDb_(); if(bad) return bad;
   var mem = memberById_(body.id); if(!mem) return out_({ ok:false, error:'no-member' });
@@ -1452,6 +1468,7 @@ function doPost(e){
     if(body.kind === 'memberEdit') return memberEdit_(S, body);
     if(body.kind === 'memberStatus') return memberStatus_(S, body);
     if(body.kind === 'monthView') return cachedCall_('mv|' + String(body.month), function(){ return monthView_(S, body); });
+    if(body.kind === 'monthsSummary') return cachedCall_('ms', function(){ return monthsSummary_(S, body); });
     if(body.kind === 'penaltyPreview') return penaltyPreview_(S, body);
     if(body.kind === 'penaltyPost') return penaltyPost_(S, body);
     if(body.kind === 'penaltyPay') return penaltyPay_(S, body);
