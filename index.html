@@ -1130,6 +1130,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   .se-in{ display:flex; gap:8px; } .se-in .adm-in{ flex:1; min-width:0; } .se-in .ap-btn{ flex:0 0 auto; min-height:42px; }
   .s6-birth{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
   .s6-birth span{ background:var(--t-amber,#FCF1DE); border-radius:999px; padding:4px 10px; font-size:13px; }
+
+  .xl-box{ margin-top:18px; border:1px solid var(--line); border-radius:16px; padding:6px 12px 12px; background:var(--card); }
+  .xl-box > summary{ cursor:pointer; padding:10px 0; font-weight:600; font-size:14px; }
 </style>
 </head>
 <body>
@@ -1207,6 +1210,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
 
   <section class="ledger-section tab-section" id="overviewSection">
     <div class="member-card" id="dashCard" style="display:none; margin-bottom:14px;"></div>
+    <div id="xlWrap">
     <p class="s6-lbl" id="xlLabel" style="display:none;"></p>
     <div class="ledger-head">
       <span class="ledger-index">I</span>
@@ -1254,6 +1258,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       </div>
     </div>
     <div class="member-card" id="depDetail" style="display:none; margin-bottom:20px;"></div>
+    </div>
+    <div id="xlHome"></div>
 
     <div class="qlinks" id="qlinks">
       <button type="button" data-go="deposits"><span class="qi"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 11h18"/></svg></span><span data-i18n="tabDeposits">Deposits</span></button>
@@ -1596,13 +1602,13 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     <span class="tb-ic"><svg class="o" viewBox="0 0 24 24"><path d="M9 12.5 11 14.5 15.5 10"/><circle cx="12" cy="12" r="9"/></svg><svg class="f" viewBox="0 0 24 24"><circle class="b" cx="12" cy="12" r="9.2"/><path class="k" d="M8.3 12.6 11 15.2l4.7-5.4"/></svg></span>
     <span data-i18n="tabEligibility">Eligibility</span>
   </button>
-  <button class="tabbar-btn" data-tab="more" id="tabMoreBtn" type="button" style="display:none;">
-    <span class="tb-ic"><svg class="o" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg><svg class="f" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.4"/><circle cx="12" cy="12" r="2.4"/><circle cx="18" cy="12" r="2.4"/></svg></span>
-    <span data-i18n="tabMore">More</span>
-  </button>
   <button class="tabbar-btn" data-tab="monthly" type="button">
     <span class="tb-ic"><svg class="o" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M4 10h16"/><path d="M9 15l2 2 4-4"/></svg><svg class="f" viewBox="0 0 24 24"><rect class="b" x="4" y="5" width="16" height="15" rx="3"/><path class="s" d="M8 3v4M16 3v4"/><path class="k" d="M4 10h16"/><path class="k" d="M9 15l2 2 4-4"/></svg></span>
     <span data-i18n="tabMonthly">Monthly</span>
+  </button>
+  <button class="tabbar-btn" data-tab="more" id="tabMoreBtn" type="button" style="display:none;">
+    <span class="tb-ic"><svg class="o" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="4"/><circle cx="8" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="16" cy="12" r=".6"/></svg><svg class="f" viewBox="0 0 24 24"><rect class="b" x="3.5" y="5" width="17" height="14" rx="4"/><circle class="kf" cx="8" cy="12" r="1.5"/><circle class="kf" cx="12" cy="12" r="1.5"/><circle class="kf" cx="16" cy="12" r="1.5"/></svg></span>
+    <span data-i18n="tabMore">More</span>
   </button>
 </div>
 
@@ -1657,7 +1663,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   _i('tabMore', 'More', 'अधिक');
   _i('moMoney', 'Money', 'पैसे'); _i('moMonthEnd', 'Month-end', 'महिना अखेर'); _i('moSystem', 'System', 'प्रणाली');
   _i('moFine', 'Fine pot and expenses', 'दंड निधी आणि खर्च'); _i('moPen', 'Penalties', 'दंड'); _i('moRep', 'Reports', 'अहवाल');
-  _i('moBank', 'Bank and cash check, close month', 'बँक व रोख तपासणी, महिना बंद'); _i('moAudit', 'Audit log', 'ऑडिट लॉग');
+  _i('moBank', 'Bank check and close month', 'बँक तपासणी व महिना बंद'); _i('moAudit', 'Audit log', 'ऑडिट लॉग');
   _i('moExport', 'Backup and Excel export', 'बॅकअप आणि एक्सेल निर्यात'); _i('moClosed', 'Closed accounts and name matching', 'बंद खाती आणि नावे जुळवणे');
   _i('moSet', 'Settings', 'सेटिंग्ज'); _i('moAdm', 'Admin accounts', 'ॲडमिन खाती'); _i('moOut', 'Sign out', 'साइन आउट'); _i('moOwner', 'admin1', 'admin1');
   _i('moSub', 'Rows marked admin1 are for the owner only.', 'admin1 चिन्हांकित बाबी फक्त मालकासाठी आहेत.');
@@ -1676,6 +1682,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   _i('seJoiningFee', 'Joining fee (₹)', 'प्रवेश शुल्क (₹)'); _i('sePenaltyAmount', 'Penalty per missed month (₹)', 'चुकलेल्या महिन्याचा दंड (₹)');
   _i('seSocietyUPI', 'Society UPI ID', 'सोसायटी UPI आयडी'); _i('seExpenseCategories', 'Expense categories (comma separated)', 'खर्चाचे प्रकार (स्वल्पविरामाने)');
   _i('seContributionAmount', 'Monthly contribution (₹)', 'मासिक वर्गणी (₹)'); _i('seTrackingStartMonth', 'First month tracked', 'सुरुवातीचा महिना'); _i('seFinancialYearStartMonth', 'Financial year starts in month no.', 'आर्थिक वर्ष सुरू होणारा महिना क्र.'); _i('seSuspensionMonths', 'Loan suspension (months)', 'कर्ज बंदी (महिने)');
+  _i('xlOld', 'Old Excel records (totals, loans, deposits)', 'जुन्या एक्सेल नोंदी (एकूण, कर्जे, ठेवी)'); _i('exitHint', 'Press back again to exit', 'बाहेर पडण्यासाठी पुन्हा Back दाबा');
   _i('hmBirth', 'Birthdays today', 'आजचे वाढदिवस'); _i('hmBirthAge', '{n} ({a})', '{n} ({a})');
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
@@ -3419,7 +3426,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     document.getElementById('monBar').style.width = (st.total ? Math.round(st.paid / st.total * 100) : 0) + '%';
     var mm0 = document.getElementById('monMode');
     if(mm0){
-      if(dbMon()) mm0.innerHTML = '<span class="mode-lbl">' + esc(t('memPaidBy')) + '</span>' + ['Cash', 'Bank', 'UPI'].map(function(x){ return '<button type="button" class="mode-chip' + (mem.mode === x ? ' active' : '') + '" data-mmode="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('');
+      if(dbMon()) mm0.innerHTML = '<span class="mode-lbl">' + esc(t('memPaidBy')) + '</span>' + ['UPI', 'Bank'].map(function(x){ return '<button type="button" class="mode-chip' + (mem.mode === x ? ' active' : '') + '" data-mmode="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('');
       else mm0.innerHTML = '';
     }
 
@@ -4619,7 +4626,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   function showTab(tab){
     var openLists = (tab === 'lists'); if(openLists) tab = 'eligibility';
     if(!TAB_SECTIONS[tab]) tab = 'overview';
-    if(tab === 'members' && !mem.ready) tab = 'overview';
+    if((tab === 'members' || tab === 'more') && !mem.ready) tab = 'overview';
     currentTab = tab; renderBrandHi();
     document.body.setAttribute('data-tab', tab);
     Object.keys(TAB_SECTIONS).forEach(function(k){
@@ -5030,8 +5037,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
 
 
   /* ---------- members and contributions (v25) ---------- */
-  var mem = { ready:false, view:'list', list:[], loaded:false, failed:false, cur:'', month:'', amount:500, today:'', fee:0, trackStart:'2026-01', filter:'all', q:'', mq:'', mode:'Cash', mv:null, prof:null, undo:null, busy:false, armed:'', form:{}, kind:'' };
-  try{ var lastMode = localStorage.getItem('withusMemMode'); if(lastMode === 'Cash' || lastMode === 'Bank' || lastMode === 'UPI') mem.mode = lastMode; }catch(e){}
+  var mem = { ready:false, view:'list', list:[], loaded:false, failed:false, cur:'', month:'', amount:500, today:'', fee:0, trackStart:'2026-01', filter:'all', q:'', mq:'', mode:'UPI', mv:null, prof:null, undo:null, busy:false, armed:'', form:{}, kind:'' };
+  try{ var lastMode = localStorage.getItem('withusMemMode'); if(lastMode === 'Bank' || lastMode === 'UPI') mem.mode = lastMode; }catch(e){}
   function memMoney(n){ return '₹' + indian(n); }
   function memAddM(m, n){ var y = parseInt(m.slice(0, 4), 10), mo = parseInt(m.slice(5, 7), 10) - 1 + n; y += Math.floor(mo / 12); mo = ((mo % 12) + 12) % 12; return y + '-' + ('0' + (mo + 1)).slice(-2); }
   function memMlabel(m){ var i = parseInt(m.slice(5, 7), 10) - 1; return (LANG === 'mr' ? MR_MONTHS[i] : MONTHS_EN[i]) + ' ' + m.slice(0, 4); }
@@ -5065,13 +5072,25 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     setTimeout(function(){ memFetch(function(ok, notSetUp){
       mem.initing = false;
       if(ok && !mem.ready){ mem.ready = true; memShowTab(); }
-      if(ok) fpLoad();
+      if(ok){ fpLoad(); setTimeout(morePrefetch, 3000); }
       if(!ok && notSetUp && mem.ready){ mem.ready = false; mem.loaded = false; try{ localStorage.removeItem(MEM_CACHE); }catch(e){} var b = document.querySelector('.tabbar-btn[data-tab="members"]'); if(b) b.style.display = 'none'; memHideDeposits(false); if(currentTab === 'members') showTab('overview'); return; }
       if(!ok) return;
       memRender();
       var last = ''; try{ last = localStorage.getItem(TAB_STORAGE_KEY) || ''; }catch(e){}
-      if(last === 'members' && currentTab === 'overview') showTab('members');
+      if((last === 'members' || last === 'more') && currentTab === 'overview') showTab(last);
+      setTimeout(resumeRestore, 300);
     }); }, saved ? 2500 : 0);
+  }
+  function xlPlace(on){
+    var w = document.getElementById('xlWrap'); if(!w) return;
+    if(on){
+      var box = document.getElementById('xlBox');
+      if(!box){ box = document.createElement('details'); box.id = 'xlBox'; box.className = 'xl-box'; box.innerHTML = '<summary data-i18n="xlOld">Old Excel records</summary>'; document.getElementById('eligibilitySection').appendChild(box); }
+      box.querySelector('summary').textContent = t('xlOld');
+      if(w.parentNode !== box) box.appendChild(w);
+    } else {
+      var h = document.getElementById('xlHome'); if(h && w.parentNode !== h.parentNode) h.parentNode.insertBefore(w, h);
+    }
   }
   function memHideDeposits(on){
     var b = document.getElementById('tabDepositsBtn'); if(b) b.style.display = on ? 'none' : '';
@@ -5082,6 +5101,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     try{ if(on) renderMonthly(); }catch(e){}
     var fc = document.getElementById('fineCard'); if(fc) fc.style.display = on ? 'none' : '';
     var xl = document.getElementById('xlLabel'); if(xl){ xl.style.display = on ? '' : 'none'; xl.textContent = t('s6XlLabel'); }
+    xlPlace(!!on);
     var fpc = document.getElementById('fpCard'); if(fpc){ fpc.style.display = on ? '' : 'none'; if(on) fpLoad(); }
     var seg = document.querySelector('#eligSwitch [data-epane="book"]'); if(seg) seg.style.display = on ? '' : 'none';
     if(on && currentTab === 'deposits') showTab('members');
@@ -5190,7 +5210,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     h += '<div class="mc-stats"><div class="mc-stat paid"><span>' + esc(t('memCollected')) + '</span><b>' + esc(memMoney(v.totals.collected)) + '</b></div><div class="mc-stat"><span>' + esc(t('memPaidCount')) + '</span><b>' + v.totals.paid + '/' + v.totals.expected + '</b></div><div class="mc-stat pend"><span>' + esc(t('memPending')) + '</span><b>' + esc(memMoney(v.totals.outstanding)) + '</b></div></div><div class="mc-bar"><i style="width:' + pct + '%"></i></div>';
     if(mem.undo) h += '<div class="mc-undo"><span>' + esc(t('memMarked', { n:mem.undo.name })) + '</span><button type="button" data-mem="undo">' + esc(t('memUndo')) + '</button></div>';
     h += '<div class="mem-top"><div class="mc-search"><input id="memMq" type="search" value="' + esc(mem.mq) + '" placeholder="' + esc(t('memSearch')) + '" autocomplete="off"></div></div>';
-    h += '<p class="mem-lbl">' + esc(t('memPaidBy')) + '</p><div class="mc-chips" style="margin-top:6px;">' + ['Cash', 'Bank', 'UPI'].map(function(x){ return '<button type="button" class="mc-chip' + (mem.mode === x ? ' active' : '') + '" data-mem="mmode" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
+    h += '<p class="mem-lbl">' + esc(t('memPaidBy')) + '</p><div class="mc-chips" style="margin-top:6px;">' + ['UPI', 'Bank'].map(function(x){ return '<button type="button" class="mc-chip' + (mem.mode === x ? ' active' : '') + '" data-mem="mmode" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
     return h + '<div class="mc-list" id="memMRows">' + memMonthRowsHtml() + '</div>';
   }
   function memMonthRowsHtml(){
@@ -5251,7 +5271,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var el = document.getElementById('memSheet');
     el.innerHTML = '<div class="ap-sheet"><span class="ap-grab"></span>' + html + '</div>'; el.style.display = ''; mem.armed = '';
   }
-  function memSheetClose(){ var el = document.getElementById('memSheet'); el.style.display = 'none'; el.innerHTML = ''; mem.armed = ''; mem.kind = ''; }
+  function memSheetClose(){ resume.sheet = null; var el = document.getElementById('memSheet'); el.style.display = 'none'; el.innerHTML = ''; mem.armed = ''; mem.kind = ''; }
   function memErr(res){
     var e = res && res.error;
     if(e === 'bad-name') return t('memEBadName');
@@ -5345,7 +5365,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     h += '<div class="mem-g2">' + memFld(t('memFDob'), '<input class="adm-in" data-f="dob" type="date" max="' + esc(mem.today) + '" value="' + esc(f.dob || '') + '">') + memFld(t('memFFee'), '<input class="adm-in" data-f="fee" type="number" inputmode="numeric" min="0" value="' + esc(f.fee) + '">') + '</div>';
     h += '<p class="adm-sub" style="margin-top:-6px;">' + esc(t('memFFeeNote')) + '</p>';
     h += '<p class="adm-lbl">' + esc(t('memFirst')) + ' · ' + esc(memMlabel((f.joinDate || mem.today).slice(0, 7))) + ' · ' + esc(memMoney(mem.amount)) + '</p><div class="mc-chips" style="margin:0;"><button type="button" class="mc-chip' + (f.first === 'now' ? ' active' : '') + '" data-mem="first" data-v="now">' + esc(t('memNow')) + '</button><button type="button" class="mc-chip' + (f.first !== 'now' ? ' active' : '') + '" data-mem="first" data-v="later">' + esc(t('memLater')) + '</button></div>';
-    if(f.first === 'now') h += '<div class="mc-chips" style="margin:0;">' + ['Cash', 'Bank', 'UPI'].map(function(x){ return '<button type="button" class="mc-chip' + (f.mode === x ? ' active' : '') + '" data-mem="fmode" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
+    if(f.first === 'now') h += '<div class="mc-chips" style="margin:0;">' + ['UPI', 'Bank'].map(function(x){ return '<button type="button" class="mc-chip' + (f.mode === x ? ' active' : '') + '" data-mem="fmode" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
     h += '<div class="ap-btnrow"><button type="button" class="ap-btn" data-mem="addsave">' + esc(similar && similar.length ? t('memSaveAnyway') : t('memSave')) + '</button><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memCancel')) + '</button></div>';
     memSheetShow(h);
   }
@@ -5416,7 +5436,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     h += '<p class="adm-lbl">' + esc(t('memMonthsFor')) + '</p>';
     h += months.length ? '<div class="mc-chips" style="margin:0;">' + months.map(function(x){ var owed = p.member.arrears.indexOf(x) >= 0; return '<button type="button" class="mc-chip' + (f.sel[x] ? ' active' : '') + (owed ? ' owed' : '') + '" data-mem="rmonth" data-m="' + x + '">' + esc(memMlabel(x)) + (owed ? ' · ' + esc(t('memOwedTag')) : '') + '</button>'; }).join('') + '</div>' : '<p class="adm-sub">' + esc(t('memNoMonths')) + '</p>';
     h += '<div class="mem-g2">' + memFld(t('memDate'), '<input class="adm-in" data-f="date" type="date" max="' + esc(mem.today) + '" value="' + esc(f.date) + '">') + memFld(t('memRef'), '<input class="adm-in" data-f="ref" type="text" maxlength="40" value="' + esc(f.ref) + '" autocomplete="off">') + '</div>';
-    h += '<p class="adm-lbl">' + esc(t('memPaidBy')) + '</p><div class="mc-chips" style="margin:0;">' + ['Cash', 'Bank', 'UPI'].map(function(x){ return '<button type="button" class="mc-chip' + (f.mode === x ? ' active' : '') + '" data-mem="rmode" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
+    h += '<p class="adm-lbl">' + esc(t('memPaidBy')) + '</p><div class="mc-chips" style="margin:0;">' + ['UPI', 'Bank'].map(function(x){ return '<button type="button" class="mc-chip' + (f.mode === x ? ' active' : '') + '" data-mem="rmode" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
     h += '<div class="adm-act" style="border-top:1px solid var(--line-soft);padding-top:10px;"><span>' + esc(t('memTotal')) + '</span><b style="font-size:20px;">' + esc(memMoney(n * p.amount)) + '</b></div>';
     h += '<div class="ap-btnrow"><button type="button" class="ap-btn" data-mem="recsave"' + (n ? '' : ' disabled') + '>' + esc(t('memSaveShare')) + '</button><button type="button" class="ap-btn ghost" data-mem="back">' + esc(t('memCancel')) + '</button></div>';
     memSheetShow(h);
@@ -5554,7 +5574,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     h += '<div class="adm-card"><div class="adm-top"><div><b>' + esc(p.member.name) + '</b><span class="adm-role">' + esc(p.member.id) + '</span></div><div style="text-align:right;"><span class="adm-role">' + esc(t('penDueNow')) + '</span><b>' + esc(memMoney(p.penaltyDue)) + '</b></div></div></div>';
     h += '<div class="mem-g2">' + memFld(t('penAmount'), '<input class="adm-in" data-f="pamount" type="number" inputmode="numeric" min="1" max="' + p.penaltyDue + '" value="' + esc(f.amount) + '">') + memFld(t('memDate'), '<input class="adm-in" data-f="pdate" type="date" max="' + esc(mem.today) + '" value="' + esc(f.date) + '">') + '</div>';
     h += memFld(t('memRef'), '<input class="adm-in" data-f="pref" type="text" maxlength="40" value="' + esc(f.ref) + '" autocomplete="off">');
-    h += '<p class="adm-lbl">' + esc(t('memPaidBy')) + '</p><div class="mc-chips" style="margin:0;">' + ['Cash', 'Bank', 'UPI'].map(function(x){ return '<button type="button" class="mc-chip' + (f.mode === x ? ' active' : '') + '" data-mem="rmode" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
+    h += '<p class="adm-lbl">' + esc(t('memPaidBy')) + '</p><div class="mc-chips" style="margin:0;">' + ['UPI', 'Bank'].map(function(x){ return '<button type="button" class="mc-chip' + (f.mode === x ? ' active' : '') + '" data-mem="rmode" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
     h += '<p class="adm-sub">' + esc(t('penPayNote')) + '</p>';
     h += '<div class="ap-btnrow"><button type="button" class="ap-btn" data-mem="penpaysave">' + esc(t('penPaySave')) + '</button><button type="button" class="ap-btn ghost" data-mem="back">' + esc(t('memCancel')) + '</button></div>';
     memSheetShow(h);
@@ -5710,7 +5730,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     h += '<div class="mc-chips" style="margin:0;"><button type="button" class="mc-chip" data-mem="lnfull">' + esc(t('lnPayFull')) + '</button></div>';
     h += '<p class="adm-sub" id="lnSplitTx">' + esc(t('lnSplit', { p:memMoney(sp.p), e:memMoney(sp.e), l:memMoney(sp.l) })) + '</p>';
     h += '<p class="adm-lbl">' + esc(t('lnPaidBy')) + '</p><div class="mc-chips" style="margin:0;">' + ['borrower', 'guarantor'].map(function(x){ return '<button type="button" class="mc-chip' + (f.by === x ? ' active' : '') + '" data-mem="lnby" data-v="' + x + '">' + esc(t(x === 'borrower' ? 'lnBorrower' : 'lnGuarantor')) + '</button>'; }).join('') + '</div>';
-    h += '<p class="adm-lbl">' + esc(t('memPaidBy')) + '</p><div class="mc-chips" style="margin:0;">' + ['Cash', 'Bank', 'UPI'].map(function(x){ return '<button type="button" class="mc-chip' + (f.pm === x ? ' active' : '') + '" data-mem="lnpm" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
+    h += '<p class="adm-lbl">' + esc(t('memPaidBy')) + '</p><div class="mc-chips" style="margin:0;">' + ['UPI', 'Bank'].map(function(x){ return '<button type="button" class="mc-chip' + (f.pm === x ? ' active' : '') + '" data-mem="lnpm" data-m="' + x + '">' + esc(memModeName(x)) + '</button>'; }).join('') + '</div>';
     h += memFld(t('memRef'), '<input class="adm-in" data-f="lnref" type="text" maxlength="40" value="' + esc(f.ref) + '" autocomplete="off">');
     h += '<div class="ap-btnrow"><button type="button" class="ap-btn" data-mem="lnpaysave">' + esc(t('lnPaySave')) + '</button><button type="button" class="ap-btn ghost" data-mem="lnback">' + esc(t('memCancel')) + '</button></div>';
     memSheetShow(h);
@@ -6053,15 +6073,15 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
 
   /* bank check and month close */
   function s6CloseOpen(msg){
-    mem.kind = 's6form'; s6.armed = ''; s6.form = { bank:'', cash:'' };
+    mem.kind = 's6form'; s6.armed = ''; s6.form = { bank:'' };
     if(!s6.close) memSheetShow(s6Skel()); else s6CloseRender(msg || '');
     admCall({ kind:'closeView' }).then(function(res){
-      if(res && res.ok){ s6.close = res; if(mem.kind === 's6form') s6CloseRender(msg || ''); } else { memSheetClose(); admSay(s6Err(res)); }
+      if(res && res.ok){ s6.close = res; if(mem.kind === 's6form' && !(s6.form && s6.form.bank !== '')) s6CloseRender(msg || ''); } else { memSheetClose(); admSay(s6Err(res)); }
     }).catch(function(){ memSheetClose(); admSay(t('memEGeneric')); });
   }
   function s6DiffText(){
-    var d = s6.close, f = s6.form, b = Number(f.bank), c = Number(f.cash);
-    if(f.bank === '' || f.cash === '' || !isFinite(b) || !isFinite(c)) return '';
+    var d = s6.close, f = s6.form, b = Number(f.bank), c = 0;
+    if(f.bank === '' || !isFinite(b)) return '';
     var diff = Math.round((b + c - d.expected.expected) * 100) / 100;
     return t('s6Actual') + ' ' + memMoney(b + c) + ' · ' + t('s6Diff') + ': ' + (Math.abs(diff) < 0.005 ? t('s6DiffOk') : (diff > 0 ? t('s6DiffOver', { a:memMoney(diff) }) : t('s6DiffShort', { a:memMoney(-diff) })));
   }
@@ -6070,13 +6090,13 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var h = '<h3>' + esc(t('s6CloseTitle')) + '</h3><div class="ap-note" id="memMsg" style="' + (msg ? '' : 'display:none;') + '">' + esc(msg || '') + '</div>';
     h += '<div class="adm-card"><p class="adm-lbl">' + esc(t('s6Expected')) + '</p><div class="s6eq"><span>' + esc(t('s6ExpDep')) + '</span><span>' + esc(memMoney(x.deposit)) + '</span></div><div class="s6eq"><span>+ ' + esc(t('s6ExpFine')) + '</span><span>' + esc(memMoney(x.fine)) + '</span></div><div class="s6eq"><span>− ' + esc(t('s6ExpOut')) + '</span><span>' + esc(memMoney(x.principalOut)) + '</span></div><div class="s6eq tot"><span>' + esc(t('s6ExpTotal')) + '</span><b>' + esc(memMoney(x.expected)) + '</b></div></div>';
     if(owner){
-      h += '<div class="mem-g2">' + memFld(t('s6Bank'), '<input class="adm-in" data-f="s6bank" type="number" inputmode="decimal" min="0" value="">') + memFld(t('s6Cash'), '<input class="adm-in" data-f="s6cash" type="number" inputmode="decimal" min="0" value="">') + '</div>';
+      h += '<div class="mem-g2">' + memFld(t('s6Bank'), '<input class="adm-in" data-f="s6bank" type="number" inputmode="decimal" min="0" value="">')+ '</div>';
       h += '<p class="adm-sub" id="s6diff" style="min-height:18px;"></p><div class="ap-btnrow"><button type="button" class="ap-btn" data-mem="s6checksave">' + esc(t('s6CheckSave')) + '</button></div>';
     } else h += '<p class="mem-note">' + esc(t('s6CheckOnly')) + '</p>';
     if(d.checks.length){
       h += '<p class="adm-lbl" style="margin-top:14px;">' + esc(t('s6Recent')) + '</p><div class="adm-card">' + d.checks.slice(0, 5).map(function(c){
         var ok = Math.abs(c.diff) < 0.005;
-        return '<div class="adm-act"><span>' + esc(memD(c.date)) + '<small class="mem-sm">' + esc(memMoney(c.bank) + ' + ' + memMoney(c.cash) + ' · ' + c.by) + '</small></span><b class="' + (ok ? 'fp-pos' : 'fp-neg') + '">' + esc(ok ? t('s6DiffOk') : (c.diff > 0 ? '+' : '−') + memMoney(Math.abs(c.diff))) + '</b></div>';
+        return '<div class="adm-act"><span>' + esc(memD(c.date)) + '<small class="mem-sm">' + esc(memMoney(c.bank) + (c.cash ? ' + ' + memMoney(c.cash) : '') + ' · ' + c.by) + '</small></span><b class="' + (ok ? 'fp-pos' : 'fp-neg') + '">' + esc(ok ? t('s6DiffOk') : (c.diff > 0 ? '+' : '−') + memMoney(Math.abs(c.diff))) + '</b></div>';
       }).join('') + '</div>';
     }
     h += '<p class="adm-lbl" style="margin-top:14px;">' + esc(t('s6Months')) + '</p>';
@@ -6089,9 +6109,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     memSheetShow(h);
   }
   function s6CheckSave(tg){
-    var f = s6.form; if(f.bank === '' || f.cash === '' || !(Number(f.bank) >= 0) || !(Number(f.cash) >= 0)){ s6Say(t('s6EAmounts')); return; }
+    var f = s6.form; if(f.bank === '' || !(Number(f.bank) >= 0)){ s6Say(t('s6EAmounts')); return; }
     tg.disabled = true;
-    admCall({ kind:'bankCheck', bank:Number(f.bank), cash:Number(f.cash) }).then(function(res){
+    admCall({ kind:'bankCheck', bank:Number(f.bank) }).then(function(res){
       if(res && res.ok){
         var m = t('s6CheckSaved') + ' ' + (res.balanced ? t('s6DiffOk') : (res.diff > 0 ? t('s6DiffOver', { a:memMoney(res.diff) }) : t('s6DiffShort', { a:memMoney(-res.diff) })));
         s6.close = null; s6CloseOpen(m); admSay(t('s6CheckSaved'));
@@ -6223,6 +6243,11 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
 
   /* ----- events ----- */
+  function morePrefetch(){
+    var w = getWho(); if(!w) return;
+    if(!s6.close) admCall({ kind:'closeView' }).then(function(res){ if(res && res.ok && !s6.close) s6.close = res; }).catch(function(){});
+    if(w.r === 'admin1') setTimeout(function(){ admCall({ kind:'settingsGet' }).then(function(res){ if(res && res.ok) se.data = res; }).catch(function(){}); }, 1500);
+  }
   function moreRender(){
     var el = document.getElementById('moreBody'); if(!el) return;
     var w = getWho(), own = w && w.r === 'admin1';
@@ -6290,8 +6315,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   var se = { data:null };
   function seOpen(){
     mem.kind = 's6form';
-    memSheetShow('<h3>' + esc(t('seTitle')) + '</h3><p class="adm-sub">' + esc(t('memLoading')) + '</p>');
-    admCall({ kind:'settingsGet' }).then(function(res){ if(res && res.ok){ se.data = res; seRender(''); } else memSheetShow('<h3>' + esc(t('seTitle')) + '</h3><div class="ap-note">' + esc(admErr(res && res.error)) + '</div><div class="s6-btns"><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>'); }).catch(function(){ admSay(t('memEGeneric')); });
+    if(se.data) seRender(''); else memSheetShow('<h3>' + esc(t('seTitle')) + '</h3><p class="adm-sub">' + esc(t('memLoading')) + '</p>');
+    admCall({ kind:'settingsGet' }).then(function(res){ if(res && res.ok){ se.data = res; if(mem.kind === 's6form' && !document.querySelector('#memSheet .se-in input:focus')) seRender(''); } else memSheetShow('<h3>' + esc(t('seTitle')) + '</h3><div class="ap-note">' + esc(admErr(res && res.error)) + '</div><div class="s6-btns"><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>'); }).catch(function(){ admSay(t('memEGeneric')); });
   }
   function seRender(msg){
     var d = se.data; if(!d) return; mem.kind = 's6form';
@@ -6311,8 +6336,49 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       else { btn.disabled = false; seRender(res && res.error === 'bad-value' ? t('seBad') : admErr(res && res.error)); }
     }).catch(function(){ btn.disabled = false; admSay(t('memEGeneric')); });
   }
+  var RESUME_ACTS = { open:1, lnopen:1, s6reports:1, s6rep:1, s6close:1, moclosed:1, moset:1, fpopen:1, penopen:1 };
+  function resumeSave(){
+    try{
+      var sg = document.querySelector('#eligSwitch .mc-seg.active');
+      var r = { tab:currentTab, epane:sg ? sg.getAttribute('data-epane') : '', at:Date.now(), sheet:resume.sheet || null };
+      localStorage.setItem('withusResume', JSON.stringify(r));
+    }catch(e){}
+  }
+  var resume = { sheet:null };
+  function resumeNote(tg, act){
+    if(!RESUME_ACTS[act]) return;
+    resume.sheet = { act:act, id:tg.getAttribute('data-id') || '', lid:tg.getAttribute('data-lid') || '', ty:tg.getAttribute('data-ty') || '' };
+    resumeSave();
+  }
+  function resumeRestore(){
+    var r = null; try{ r = JSON.parse(localStorage.getItem('withusResume') || 'null'); }catch(e){}
+    if(!r || !r.at || Date.now() - r.at > 30 * 60 * 1000) return;
+    if(r.tab && TAB_SECTIONS[r.tab] && currentTab === 'overview' && r.tab !== 'overview') showTab(r.tab);
+    if(r.epane){ var sb = document.querySelector('#eligSwitch [data-epane="' + r.epane + '"]'); if(sb && !sb.classList.contains('active') && sb.style.display !== 'none') sb.click(); }
+    if(r.sheet && r.sheet.act && !mem.kind){
+      var b = document.createElement('button'); b.setAttribute('data-mem', r.sheet.act);
+      if(r.sheet.id) b.setAttribute('data-id', r.sheet.id); if(r.sheet.lid) b.setAttribute('data-lid', r.sheet.lid); if(r.sheet.ty) b.setAttribute('data-ty', r.sheet.ty);
+      try{ memAct(b); }catch(e){}
+    }
+  }
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'hidden') resumeSave(); });
+  window.addEventListener('pagehide', resumeSave);
+  /* Back button: close the open screen, then go to Home, then ask to press back again to exit */
+  (function(){
+    var armed = 0;
+    try{ history.replaceState({ wu:0 }, ''); history.pushState({ wu:1 }, ''); }catch(e){ return; }
+    window.addEventListener('popstate', function(){
+      var sh = document.getElementById('memSheet');
+      if(sh && sh.style.display !== 'none'){ memSheetClose(); resume.sheet = null; resumeSave(); try{ history.pushState({ wu:1 }, ''); }catch(e){} return; }
+      var dlg = document.getElementById('admOverlay'); 
+      if(currentTab !== 'overview'){ showTab('overview'); window.scrollTo(0, 0); resumeSave(); try{ history.pushState({ wu:1 }, ''); }catch(e){} return; }
+      if(Date.now() < armed){ armed = 0; history.back(); return; }
+      armed = Date.now() + 2500; admSay(t('exitHint')); try{ history.pushState({ wu:1 }, ''); }catch(e){}
+    });
+  })();
   function memAct(tg){
     var act = tg.getAttribute('data-mem'), id = tg.getAttribute('data-id');
+    resumeNote(tg, act);
     if((act.indexOf('mo') === 0 || act.indexOf('cl') === 0 || act.indexOf('se') === 0) && act !== 'close' && moreAct(tg)) return;
     if(act.indexOf('s6') === 0 && s6Act(tg)) return;
     if(act.indexOf('fp') === 0 && fpAct(tg)) return;

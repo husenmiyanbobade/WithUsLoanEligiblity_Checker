@@ -890,7 +890,7 @@ function penaltyPay_(S, body){
     var mem = memberById_(body.memberId); if(!mem) return out_({ ok:false, error:'no-member' });
     var today = todayStr_(), date = body.date ? String(body.date) : today;
     if(!validDate_(date) || date > today) return out_({ ok:false, error:'bad-date' });
-    var mode = ['Cash','Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
+    var mode = ['Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
     if(!mode) return out_({ ok:false, error:'bad-mode' });
     var amount = Math.round(num_(body.amount) * 100) / 100, pi = penaltyIndex_()[mem.MemberID];
     var open = pi ? pi.list.filter(function(x){ return x.outstanding > 0; }) : [];
@@ -1082,7 +1082,7 @@ function loanPay_(S, body){
     if(!l) return out_({ ok:false, error:'not-found' });
     var today = todayStr_(), date = body.date ? String(body.date) : today;
     if(!validDate_(date) || date > today) return out_({ ok:false, error:'bad-date' });
-    var mode = ['Cash','Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
+    var mode = ['Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
     if(!mode) return out_({ ok:false, error:'bad-mode' });
     var paidBy = body.paidBy === 'guarantor' ? 'guarantor' : 'borrower';
     var f = loanFig_(l, loanPaidIndex_(), today);
@@ -1435,8 +1435,8 @@ function closeView_(S){
 }
 function bankCheck_(S, body){
   var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
-  var bank = r2_(body.bank), cash = r2_(body.cash);
-  if(!(num_(body.bank) >= 0) || !(num_(body.cash) >= 0) || body.bank === '' || body.cash === '' || body.bank === null || body.cash === null) return out_({ ok:false, error:'bad-amount' });
+  var bank = r2_(body.bank), cash = 0;
+  if(!(num_(body.bank) >= 0) || body.bank === '' || body.bank === null || body.bank === undefined) return out_({ ok:false, error:'bad-amount' });
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
   try{
     var ex = expectedHeld_(), id = newId_('RC'), today = todayStr_(), diff = r2_(bank + cash - ex.expected);
@@ -1545,6 +1545,14 @@ function report_(S, body){
       var pb = String(p.PaidBy || ''); if(/^deposit:/.test(pb)) pb = 'Deposit of ' + nm(pb.slice(8));
       rows.push([String(p.Date || ''), p.LoanID, pb, num_(p.Amount), num_(p.ToPrincipal), num_(p.ToExtra), num_(p.ToLateExtra), p.Mode || '', /^R-/.test(String(p.Ref)) ? p.Ref : '']);
     });
+    var paidIdx = loanPaidIndex_();
+    rows_('Loans').forEach(function(l){
+      // loans closed in the old Excel have no payment rows: show the Excel return as one line
+      if(!loanClosedText_(l) || (paidIdx[l.LoanID] && paidIdx[l.LoanID].n > 0)) return;
+      var ra = num_(l.ReturnAmount), cd = String(l.ClosedDate || '').slice(0, 10); if(!ra || !cd || !inRange_(cd, from, to)) return;
+      var pr = Math.min(ra, num_(l.Amount));
+      rows.push([cd, l.LoanID, l.ApplicantName || nm(l.MemberID), ra, pr, r2_(ra - pr), 0, 'Excel record', '']);
+    });
     rows.sort(function(a, b){ return String(a[0]).localeCompare(String(b[0])); });
     foot = ['', 'Total (' + rows.length + ')', '', sumCol_(rows, 3), sumCol_(rows, 4), sumCol_(rows, 5), sumCol_(rows, 6), '', ''];
   } else if(type === 'guarantors'){
@@ -1641,7 +1649,7 @@ function contribAdd_(S, body){
     if(!months.length || months.length > 12 || !months.every(validMonth_)) return out_({ ok:false, error:'bad-months' });
     var cur = curMonth_(), today = todayStr_(), date = body.date ? String(body.date) : today;
     if(!validDate_(date) || date > today) return out_({ ok:false, error:'bad-date' });
-    var mode = ['Cash','Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
+    var mode = ['Bank','UPI'].indexOf(body.mode) >= 0 ? body.mode : '';
     if(!mode) return out_({ ok:false, error:'bad-mode' });
     var jm = String(mem.JoinDate || '').slice(0, 7);
     for(var i = 0; i < months.length; i++){
@@ -1715,7 +1723,7 @@ function memberAdd_(S, body){
     var f = chk.fields, fee = body.joiningFee === undefined || body.joiningFee === '' ? num_(setting_('JoiningFee', 0)) : num_(body.joiningFee);
     if(fee < 0 || fee > 100000) return out_({ ok:false, error:'bad-fee' });
     var first = body.first === 'now', mode = body.mode;
-    if(first && ['Cash','Bank','UPI'].indexOf(mode) < 0) return out_({ ok:false, error:'bad-mode' });
+    if(first && ['Bank','UPI'].indexOf(mode) < 0) return out_({ ok:false, error:'bad-mode' });
     if(!body.confirmDup){
       var key = nameKey_(f.Name), sim = [];
       rows_('Members').forEach(function(m){ var k = nameKey_(m.Name); if(k === key || (Math.abs(k.length - key.length) <= 2 && lev_(k, key) <= 2)) sim.push({ id:m.MemberID, name:m.Name }); });
@@ -1917,17 +1925,17 @@ function doPost(e){
     if(body.kind === 'suspensionLift') return suspensionLift_(S, body);
     if(body.kind === 'settlePreview') return settlePreview_(S, body);
     if(body.kind === 'settleConfirm') return settleConfirm_(S, body);
-    if(body.kind === 'closedPreview') return closedPreview_(S, body);
+    if(body.kind === 'closedPreview') return cachedCall_('cp|' + S.r, function(){ return closedPreview_(S, body); });
     if(body.kind === 'closedApply') return closedApply_(S, body);
-    if(body.kind === 'settingsGet') return settingsGet_(S, body);
+    if(body.kind === 'settingsGet') return cachedCall_('st|' + S.r, function(){ return settingsGet_(S, body); });
     if(body.kind === 'settingsSet') return settingsSet_(S, body);
     if(body.kind === 'exitPreview') return exitPreview_(S, body);
     if(body.kind === 'exitConfirm') return exitConfirm_(S, body);
-    if(body.kind === 'closeView') return closeView_(S);
+    if(body.kind === 'closeView') return cachedCall_('cv|' + S.r, function(){ return closeView_(S); });
     if(body.kind === 'bankCheck') return bankCheck_(S, body);
     if(body.kind === 'monthClose') return monthClose_(S, body);
     if(body.kind === 'dashboard') return cachedCall_('db', function(){ return dashboard_(S); });
-    if(body.kind === 'report') return report_(S, body);
+    if(body.kind === 'report') return cachedCall_('rp|' + [body.type, body.from, body.to, body.month, body.memberId, body.status, body.admin, body.q].join('|'), function(){ return report_(S, body); });
     if(body.kind === 'loanDisburse') return loanDisburse_(S, body);
     if(body.kind === 'contribAdd') return contribAdd_(S, body);
     if(body.kind === 'contribVoid') return contribVoid_(S, body);
