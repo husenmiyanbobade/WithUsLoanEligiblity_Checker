@@ -1136,6 +1136,16 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   .ap-card .ap-acts button{ min-height:40px; font-size:13.5px; }
   .adm-in[type="date"], .mem-g2 .adm-in{ min-width:0; width:100%; box-sizing:border-box; }
   .mem-g2{ grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; }
+
+  .s6wrap.cards{ border:0; overflow:visible; max-height:none; }
+  .s6cards{ display:flex; flex-direction:column; gap:8px; max-height:52vh; overflow:auto; }
+  .s6c{ border:1px solid var(--line-soft,var(--line)); border-radius:14px; padding:10px 12px; background:var(--card); }
+  .s6c-top{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .s6c-top b{ font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+  .s6c-top em{ font-style:normal; font-weight:600; font-size:14px; white-space:nowrap; }
+  .s6c-det{ display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:5px; font-size:12.5px; color:var(--ink); }
+  .s6c-det i{ font-style:normal; color:var(--ink-soft); margin-right:5px; }
+  .s6c.tot{ background:var(--bg,#f3f4f6); font-weight:600; }
 </style>
 </head>
 <body>
@@ -1666,6 +1676,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   I18N.en.xlOld = 'Old Excel records (totals, loans, deposits)'; I18N.mr.xlOld = 'जुन्या एक्सेल नोंदी (एकूण, कर्जे, ठेवी)';
   I18N.en.lgAsk = 'Sign out of this device?'; I18N.mr.lgAsk = 'या फोनवरून साइन आउट करायचे?';
   I18N.en.apNotDisbChip = 'Not disbursed'; I18N.mr.apNotDisbChip = 'वितरित नाही'; I18N.en.apNotDisbHint = 'Accepted applications where the amount is not yet given.'; I18N.mr.apNotDisbHint = 'मंजूर अर्ज ज्यांची रक्कम अजून दिलेली नाही.';
+  I18N.en.viewCards = 'Cards'; I18N.mr.viewCards = 'कार्ड'; I18N.en.viewTable = 'Table'; I18N.mr.viewTable = 'तक्ता';
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
                      'paid':'v_paid', 'pending':'v_pending', 'yes':'v_yes', 'no':'v_no', 'not specified':'v_notspec' };
@@ -5971,6 +5982,28 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(v === 'overdue'){ showTab('eligibility'); var b = document.querySelector('#eligSwitch [data-epane="book"]'); if(b) b.click(); ln.filter = 'Overdue'; try{ lnBookRender(); }catch(e){} return; }
     if(v === 'due'){ showTab('monthly'); return; }
   }
+  function s6Cards(r, maxRows){
+    var num = {}; (r.numeric || []).forEach(function(i){ num[i] = 1; });
+    var nameC = -1, amtC = -1, i;
+    r.cols.forEach(function(c, k){ if(nameC < 0 && /name|member|borrower|applicant/i.test(String(c))) nameC = k; });
+    (r.numeric || []).forEach(function(k){ if(amtC < 0 && /amount|balance|outstanding|paid|principal|deposit/i.test(String(r.cols[k]))) amtC = k; });
+    if(amtC < 0 && r.numeric && r.numeric.length) amtC = r.numeric[0];
+    function fmt(v, k){ return typeof v === 'number' ? (num[k] ? indian(v) : String(v)) : String(v === null || v === undefined ? '' : v); }
+    var h = '<div class="s6cards">';
+    r.rows.slice(0, maxRows).forEach(function(row){
+      var title = nameC >= 0 ? fmt(row[nameC], nameC) : row.map(function(v, k){ return num[k] ? '' : fmt(v, k); }).filter(Boolean).slice(0, 2).join(' · ');
+      var used = {}; if(nameC >= 0) used[nameC] = 1; if(nameC < 0) { var c2 = 0; row.forEach(function(v, k){ if(!num[k] && fmt(v, k) && c2 < 2){ used[k] = 1; c2++; } }); }
+      if(amtC >= 0) used[amtC] = 1;
+      var det = '';
+      row.forEach(function(v, k){ if(used[k]) return; var tx = fmt(v, k); if(tx === '' || tx === '0') return; det += '<span><i>' + esc(r.cols[k]) + '</i>' + esc(tx) + '</span>'; });
+      h += '<div class="s6c"><div class="s6c-top"><b>' + esc(title) + '</b>' + (amtC >= 0 ? '<em>' + esc(fmt(row[amtC], amtC)) + '</em>' : '') + '</div>' + (det ? '<div class="s6c-det">' + det + '</div>' : '') + '</div>';
+    });
+    if(r.foot){
+      var ft = r.foot.map(function(v, k){ var tx = fmt(v, k); return tx === '' ? '' : '<span><i>' + esc(r.cols[k]) + '</i>' + esc(tx) + '</span>'; }).join('');
+      if(ft) h += '<div class="s6c tot"><div class="s6c-det">' + ft + '</div></div>';
+    }
+    return h + '</div>';
+  }
   function s6Table(r, maxRows, forPrint){
     var num = {}; (r.numeric || []).forEach(function(i){ num[i] = 1; });
     function cell(v, i, tag){ var c = num[i] ? ' class="n"' : ''; var txt = (typeof v === 'number') ? (num[i] || forPrint ? indian(v) : String(v)) : String(v === null || v === undefined ? '' : v); return '<' + tag + c + '>' + esc(txt) + '</' + tag + '>'; }
@@ -6130,7 +6163,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   function s6RepShow(){
     var r = s6.rep.res, cap = s6.rep.cap || 60;
     var h = '<h3>' + esc(r.title) + '</h3><p class="adm-sub">' + esc((r.sub ? r.sub + ' · ' : '') + t('s6Rows', { n:r.total })) + '</p>';
-    h += r.rows.length ? '<div class="s6wrap" id="s6tbl">' + s6Table(r, cap, false) + '</div>' : '<p class="adm-sub">' + esc(t('s6Empty')) + '</p>';
+    var view = s6.rep.view || (window.innerWidth < 640 ? 'cards' : 'table');
+    if(r.rows.length) h += '<div class="mc-chips" style="margin:0 0 8px;"><button type="button" class="mc-chip' + (view === 'cards' ? ' active' : '') + '" data-mem="s6view" data-v="cards">' + esc(t('viewCards')) + '</button><button type="button" class="mc-chip' + (view === 'table' ? ' active' : '') + '" data-mem="s6view" data-v="table">' + esc(t('viewTable')) + '</button></div>';
+    h += r.rows.length ? (view === 'cards' ? '<div class="s6wrap cards" id="s6tbl">' + s6Cards(r, cap) + '</div>' : '<div class="s6wrap" id="s6tbl">' + s6Table(r, cap, false) + '</div>') : '<p class="adm-sub">' + esc(t('s6Empty')) + '</p>';
     if(r.rows.length > cap) h += '<p class="mem-note">' + esc(t('s6Trunc', { n:cap })) + '</p><button type="button" class="ap-btn ghost" data-mem="s6showall" style="margin-bottom:6px;">' + esc(t('s6ShowAll')) + '</button>';
     h += '<div class="s6-btns" style="margin-top:12px;"><button type="button" class="ap-btn" data-mem="s6xlsx">' + esc(t('s6Excel')) + '</button><button type="button" class="ap-btn" data-mem="s6pdf">' + esc(t('s6Pdf')) + '</button><button type="button" class="ap-btn ghost" data-mem="s6repback">' + esc(t('s6Back')) + '</button><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>';
     memSheetShow(h);
@@ -6442,6 +6477,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(act === 's6unpick'){ f.mid = ''; f.mname = ''; f.mq = ''; s6RepForm(''); return true; }
     if(act === 's6status'){ f.status = tg.getAttribute('data-v'); s6RepForm(''); return true; }
     if(act === 's6preset'){ var v = tg.getAttribute('data-v'); if(v === 'all'){ f.from = ''; f.to = ''; } else if(v === 'month'){ f.from = (mem.today || '').slice(0, 7) + '-01'; f.to = mem.today; } else { f.from = s6FyStart(); f.to = mem.today; } s6RepForm(''); return true; }
+    if(act === 's6view'){ s6.rep.view = tg.getAttribute('data-v'); s6RepShow(); return true; }
     if(act === 's6showall'){ s6.rep.cap = 100000; s6RepShow(); return true; }
     if(act === 's6xlsx'){ s6Xlsx(); return true; }
     if(act === 's6pdf'){ s6Pdf(); return true; }
