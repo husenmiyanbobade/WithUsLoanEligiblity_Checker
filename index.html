@@ -1146,6 +1146,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   .s6c-det{ display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:5px; font-size:12.5px; color:var(--ink); }
   .s6c-det i{ font-style:normal; color:var(--ink-soft); margin-right:5px; }
   .s6c.tot{ background:var(--bg,#f3f4f6); font-weight:600; }
+  .adm-note{ background:var(--bg,#f6f6f4); border-radius:10px; padding:6px 10px; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -1677,6 +1678,10 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   I18N.en.lgAsk = 'Sign out of this device?'; I18N.mr.lgAsk = 'या फोनवरून साइन आउट करायचे?';
   I18N.en.apNotDisbChip = 'Not disbursed'; I18N.mr.apNotDisbChip = 'वितरित नाही'; I18N.en.apNotDisbHint = 'Accepted applications where the amount is not yet given.'; I18N.mr.apNotDisbHint = 'मंजूर अर्ज ज्यांची रक्कम अजून दिलेली नाही.';
   I18N.en.viewCards = 'Cards'; I18N.mr.viewCards = 'कार्ड'; I18N.en.viewTable = 'Table'; I18N.mr.viewTable = 'तक्ता';
+  I18N.en.cuNewLoans = 'Loans in the Excel not yet in the app (will be added)'; I18N.mr.cuNewLoans = 'एक्सेलमध्ये असलेली पण अ‍ॅपमध्ये नसलेली कर्जे (जोडली जातील)';
+  I18N.en.cuRenamed = 'Loan names corrected to the Excel spelling'; I18N.mr.cuRenamed = 'एक्सेलप्रमाणे दुरुस्त होणारी कर्ज नावे';
+  I18N.en.cuDoneSub2 = '{n} loans added, {r} names corrected, {d} earlier closed accounts matched.'; I18N.mr.cuDoneSub2 = '{n} कर्जे जोडली, {r} नावे दुरुस्त केली, {d} आधीची बंद खाती जुळवली.';
+  I18N.en.xcAppOnly = '{n} payments worth {a} were entered in the app and are not in the Excel yet. They are not counted as differences.'; I18N.mr.xcAppOnly = '{a} किमतीचे {n} भरणे अ‍ॅपमध्ये नोंदवले आहेत, एक्सेलमध्ये अजून नाहीत. ते फरक म्हणून धरलेले नाहीत.';
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
                      'paid':'v_paid', 'pending':'v_pending', 'yes':'v_yes', 'no':'v_no', 'not specified':'v_notspec' };
@@ -1866,6 +1871,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       var keep = hasSrnoColumn
         ? (r._srnoRaw !== null && r._srnoRaw !== undefined && String(r._srnoRaw).trim() !== '')
         : r._hasIdentity;
+      if(keep && r.applicant === 'Unnamed applicant' && !r.takenDate && !r.repayDate && !r.takenAmt && !r.repayAmt && !r.fine && !r.guarantor) keep = false;   // numbered but empty row
       return keep;
     }).map(function(r){
       delete r._srnoRaw;
@@ -6366,6 +6372,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var r = xc.res, h = '<h3>' + esc(t('xcTitle')) + '</h3>';
     h += r.clean ? '<div class="ap-note" style="border-color:var(--green);">' + esc('✓ ' + t('xcClean')) + '</div>' : '<div class="ap-warn">' + esc(t('xcDiff')) + '</div>';
     if(r.lines.length){ h += '<p class="adm-lbl">' + esc(t('xcTotals')) + '</p><div class="adm-card"><div class="adm-act" style="border:0;"><span></span><small class="mem-sm">' + esc(t('xcExcel') + ' / ' + t('xcApp')) + '</small></div>' + r.lines.map(function(l){ return '<div class="adm-act"><span>' + esc((l.ok ? '✓ ' : '✗ ') + l.label) + '</span><b style="font-size:12.5px;">' + esc(indian(l.excel) + ' / ' + indian(l.app)) + '</b></div>'; }).join('') + '</div>'; }
+    if(r.appOnly && r.appOnly.count) h += '<p class="mem-note">' + esc(t('xcAppOnly', { n:r.appOnly.count, a:memMoney(r.appOnly.amount) })) + '</p>';
     if(r.memberDiffs.length){
       h += '<p class="adm-lbl">' + esc(t('xcMembersDiff')) + ' · ' + r.memberDiffCount + '</p><div class="adm-card">' + r.memberDiffs.map(function(d){
         var ms = d.months.map(function(m){ return memMlabel(m.m) + (m.app ? ' (' + t('xcOnlyApp') + ')' : ' (' + t('xcOnlyExcel') + ')'); }).join(', ');
@@ -6712,6 +6719,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       h += '<div class="adm-chk"><div>' + esc(l.label) + '<small>' + esc(t('admExcel')) + ' ' + indian(l.excel) + ' · ' + esc(t('admSheetCol')) + ' ' + indian(l.sheet) + '</small></div><span class="adm-pill ' + (l.ok ? 'on' : 'off') + '">' + esc(t(l.ok ? 'admOkPill' : 'admDiffPill')) + '</span></div>';
     });
     h += '</div>';
+    (res.notes || []).forEach(function(n){ h += '<div class="adm-chk adm-note"><div>' + esc(n.label) + '<small>' + esc(String(n.count)) + '</small></div><span class="adm-sub">' + (n.amount ? indian(n.amount) : '') + '</span></div>'; });
     if(res.memberDiffCount){
       h += '<p class="adm-lbl">' + esc(t('admMemberDiffs', { n:res.memberDiffCount })) + '</p>';
       res.memberDiffs.forEach(function(d){ h += '<div class="adm-chk"><div>' + esc(d.name) + '<small>' + esc(d.id) + '</small></div><span class="adm-sub">' + indian(d.excel) + ' / ' + indian(d.sheet) + '</span></div>'; });
@@ -6776,7 +6784,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var p = cu.plan, h = '<h3>' + esc(t('cuTitle')) + '</h3>';
     if(cu.noSheet) h += '<div class="ap-warn">' + esc(t('cuNoSheet')) + '</div>';
     function row(lbl, n, names){ return '<div class="adm-act"><span>' + esc(lbl) + (names && names.length ? '<details><summary class="mem-sm">' + esc(t('cuShow')) + '</summary><small class="mem-sm">' + esc(names.join(', ')) + '</small></details>' : '') + '</span><b>' + n + '</b></div>'; }
-    h += '<div class="adm-card">' + row(t('cuNew'), p.newMembers.length, p.newMembers.map(function(x){ return x.name; })) + row(t('cuAlready'), p.alreadyMembers.length, p.alreadyMembers.map(function(x){ return x.name; })) + row(t('cuBlank'), p.blankLoanRows) + row(t('cuLinked'), p.loansLinkedToClosed) + '</div>';
+    h += '<div class="adm-card">' + row(t('cuNew'), p.newMembers.length, p.newMembers.map(function(x){ return x.name; })) + row(t('cuAlready'), p.alreadyMembers.length, p.alreadyMembers.map(function(x){ return x.name; })) + row(t('cuBlank'), p.blankLoanRows) + row(t('cuNewLoans'), (p.newLoans || []).length, (p.newLoans || []).map(function(x){ return x.name + ' ' + memD(x.taken) + ' ' + memMoney(x.amount); })) + row(t('cuRenamed'), (p.renamedLoans || []).length, (p.renamedLoans || []).map(function(x){ return x.from + ' → ' + x.to; })) + row(t('cuLinked'), p.loansLinkedToClosed) + '</div>';
     if(p.unmatched.length){
       h += '<p class="adm-lbl" style="margin-top:14px;">' + esc(t('cuUnmatched')) + ' · ' + p.unmatched.length + '</p><p class="adm-sub">' + esc(t('cuUnmatchedSub')) + '</p>';
       p.unmatched.forEach(function(u, i){
@@ -6784,7 +6792,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
           u.candidates.map(function(c){ return '<button type="button" class="mc-chip' + (cu.pick[i] === c.id ? ' active' : '') + '" data-adm="cupick" data-i="' + i + '" data-to="' + esc(c.id) + '">' + esc(c.name) + '</button>'; }).join('') + '</div></div>';
       });
     }
-    var none = !p.newMembers.length && !p.blankLoanRows && !p.loansLinkedToClosed && !p.unmatched.length;
+    var none = !p.newMembers.length && !p.blankLoanRows && !p.loansLinkedToClosed && !p.unmatched.length && !(p.newLoans || []).length && !(p.renamedLoans || []).length && !p.adoptCount;
     if(none) h += '<p class="adm-sub">' + esc(t('cuNothing')) + '</p>';
     admShow(h + admBtnRow((none ? [] : ['<button type="button" class="ap-btn" data-adm="cuapply">' + esc(t('cuApply')) + '</button>']).concat(['<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>'])));
   }
@@ -6796,7 +6804,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       if(res && res.ok){
         try{ localStorage.removeItem('withusMemCache'); localStorage.removeItem('withusLnCache'); }catch(e){}
         memLoad(true); lnBookLoad(); s6.dashAt = 0;
-        admShow('<h3>' + esc(t('cuDone')) + '</h3><p class="adm-sub">' + esc(t('cuDoneSub', { a:res.added, l:res.linked, x:res.linkedApproved, b:res.removedBlank })) + '</p>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>']));
+        admShow('<h3>' + esc(t('cuDone')) + '</h3><p class="adm-sub">' + esc(t('cuDoneSub', { a:res.added, l:res.linked, x:res.linkedApproved, b:res.removedBlank }) + ' ' + t('cuDoneSub2', { n:res.addedLoans || 0, r:res.renamed || 0, d:res.adopted || 0 })) + '</p>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>']));
       } else { tg.disabled = false; admSay(admErr(res && res.error)); }
     }).catch(function(){ tg.disabled = false; admSay(t('admFail')); });
   }
