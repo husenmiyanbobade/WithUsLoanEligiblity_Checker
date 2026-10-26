@@ -521,6 +521,11 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   .mc-btn{ flex:none; display:inline-flex; align-items:center; justify-content:center; gap:5px; min-width:104px; min-height:44px; padding:0 12px; border-radius:999px; font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--ink); background:var(--card); color:var(--ink); }
   .mc-btn.paid{ border-color:var(--green); background:var(--green-soft); color:var(--green); }
   .mc-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .mc-foldbtn{ display:flex; width:100%; align-items:center; justify-content:space-between; gap:8px; margin-top:14px; padding:12px 16px; border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--ink); font:inherit; font-weight:600; font-size:14px; cursor:pointer; }
+  .mc-foldbtn .chev{ transition:transform .15s; }
+  .mc-foldbtn[aria-expanded="true"] .chev{ transform:rotate(180deg); }
+  .mc-fold{ margin-top:10px; }
+  .mc-fold[hidden]{ display:none; }
   .mc-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
   .mc-pre{ white-space:pre-wrap; word-break:break-word; margin:10px 0 0; padding:14px; border-radius:16px; background:var(--paper); border:1px solid var(--line-soft); font:inherit; font-size:13px; line-height:1.5; max-height:340px; overflow-y:auto; color:var(--ink); }
   .mc-import{ margin-top:18px; }
@@ -1453,12 +1458,15 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
         </div>
         <p class="mc-msg" id="apMsg" role="status" aria-live="polite"></p>
         <div class="mc-chips" id="apChips"></div>
-        <div id="apList"></div>
         <div class="mc-actions">
           <button type="button" class="clear-filter-btn" id="apGen" style="background:var(--ink); color:var(--card); border-color:var(--ink);" data-i18n="apGen">Generate list</button>
           <button type="button" class="clear-filter-btn" id="apGenDis" data-i18n="apGenDis">Loan details list</button>
         </div>
         <div id="apListResult" style="display:none;"></div>
+        <button type="button" class="mc-foldbtn" data-fold="apList" aria-expanded="false"><span class="fl" data-i18n="foldShow">Show list</span><span class="chev">▾</span></button>
+<div class="mc-fold" id="fold_apList" hidden>
+        <div id="apList"></div>
+        </div>
         <div id="apUndo"></div>
       </div>
     </div>
@@ -1527,13 +1535,15 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       </div>
       <div id="monMode" class="mode-row"></div>
       <div id="monUndo"></div>
-      <div class="mc-list" id="monList"></div>
-
       <div class="mc-actions">
         <button type="button" class="clear-filter-btn" id="monGenAll" style="background:var(--ink); color:var(--card); border-color:var(--ink);" data-i18n="monGenAll">Generate list</button>
         <button type="button" class="clear-filter-btn" id="monGenUnpaid" data-i18n="monGenUnpaid">Unpaid list</button>
       </div>
       <div id="monListResult" style="display:none;"></div>
+      <button type="button" class="mc-foldbtn" data-fold="monList" aria-expanded="false"><span class="fl" data-i18n="foldShow">Show list</span><span class="chev">▾</span></button>
+<div class="mc-fold" id="fold_monList" hidden>
+      <div class="mc-list" id="monList"></div>
+      </div>
 
       <details class="mc-import">
         <summary data-i18n="monImportTitle">Import paid members from a WhatsApp list</summary>
@@ -1563,13 +1573,15 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
           <button type="button" class="mc-chip rp-chip" data-f="received" data-i18n="rpReceived">Received</button>
         </div>
         <div id="rpUndo"></div>
-        <div class="mc-list" id="rpList" style="padding:0 10px 10px;"></div>
-
         <div class="mc-actions">
           <button type="button" class="clear-filter-btn" id="rpGenAll" style="background:var(--ink); color:var(--card); border-color:var(--ink);" data-i18n="rpGenAll">Generate list</button>
           <button type="button" class="clear-filter-btn" id="rpGenPending" data-i18n="rpGenPending">Pending list</button>
         </div>
         <div id="rpListResult" style="display:none;"></div>
+        <button type="button" class="mc-foldbtn" data-fold="rpList" aria-expanded="false"><span class="fl" data-i18n="foldShow">Show list</span><span class="chev">▾</span></button>
+<div class="mc-fold" id="fold_rpList" hidden>
+        <div class="mc-list" id="rpList" style="padding:0 10px 10px;"></div>
+        </div>
 
         <details class="mc-import">
           <summary data-i18n="rpImportTitle">Import received loans from a WhatsApp list</summary>
@@ -1682,6 +1694,27 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   I18N.en.cuRenamed = 'Loan names corrected to the Excel spelling'; I18N.mr.cuRenamed = 'एक्सेलप्रमाणे दुरुस्त होणारी कर्ज नावे';
   I18N.en.cuDoneSub2 = '{n} loans added, {r} names corrected, {d} earlier closed accounts matched.'; I18N.mr.cuDoneSub2 = '{n} कर्जे जोडली, {r} नावे दुरुस्त केली, {d} आधीची बंद खाती जुळवली.';
   I18N.en.xcAppOnly = '{n} payments worth {a} were entered in the app and are not in the Excel yet. They are not counted as differences.'; I18N.mr.xcAppOnly = '{a} किमतीचे {n} भरणे अ‍ॅपमध्ये नोंदवले आहेत, एक्सेलमध्ये अजून नाहीत. ते फरक म्हणून धरलेले नाहीत.';
+  I18N.en.foldShow = 'Show list'; I18N.mr.foldShow = 'यादी दाखवा';
+  I18N.en.foldHide = 'Hide list'; I18N.mr.foldHide = 'यादी लपवा';
+  /* long member / loan lists stay folded until you ask for them (v38) */
+  (function(){
+    function key(k){ return 'withusFold_' + k; }
+    function setFold(k, open, save){
+      var b = document.querySelector('.mc-foldbtn[data-fold="' + k + '"]'), f = document.getElementById('fold_' + k); if(!b || !f) return;
+      f.hidden = !open; b.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var l = b.querySelector('.fl'); if(l){ l.setAttribute('data-i18n', open ? 'foldHide' : 'foldShow'); l.textContent = t(open ? 'foldHide' : 'foldShow'); }
+      if(save){ try{ sessionStorage.setItem(key(k), open ? '1' : '0'); }catch(e){} }
+    }
+    document.addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('.mc-foldbtn'); if(b){ var f = document.getElementById('fold_' + b.getAttribute('data-fold')); setFold(b.getAttribute('data-fold'), f && f.hidden, true); return; }
+      var c = e.target.closest && e.target.closest('.mc-chip'); if(!c) return;       // choosing a filter opens that list
+      if(c.closest('#monPaneContrib')) setFold('monList', true, true); else if(c.closest('#monPaneLoan')) setFold('rpList', true, true); else if(c.closest('#apChips')) setFold('apList', true, true);
+    });
+    document.addEventListener('input', function(e){
+      if(e.target.id === 'monSearch') setFold('monList', true, true); else if(e.target.id === 'rpSearch') setFold('rpList', true, true);
+    });
+    ['monList','rpList','apList'].forEach(function(k){ var v = null; try{ v = sessionStorage.getItem(key(k)); }catch(e){} if(v === '1') setFold(k, true, false); });
+  })();
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
                      'paid':'v_paid', 'pending':'v_pending', 'yes':'v_yes', 'no':'v_no', 'not specified':'v_notspec' };

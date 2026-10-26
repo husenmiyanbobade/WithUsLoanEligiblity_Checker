@@ -66,13 +66,23 @@ function out_(o){ return ContentService.createTextOutput(JSON.stringify(o)).setM
 function file_(name){ var it = DriveApp.getFilesByName(name); return it.hasNext() ? it.next() : null; }
 
 /* ---------- the database (Google Sheet) ---------- */
-function props_(){ return PropertiesService.getScriptProperties(); }
+// Each read of a script property is a slow call to Google. The same few properties were read thousands of times in one request
+// (every row lookup asked for the Sheet id again), which made some screens take minutes. Now each property is read once per request.
+var PCACHE_ = {};
+function props_(){
+  var p = PropertiesService.getScriptProperties();
+  return {
+    getProperty: function(k){ if(Object.prototype.hasOwnProperty.call(PCACHE_, k)) return PCACHE_[k]; var v = p.getProperty(k); PCACHE_[k] = v; return v; },
+    setProperty: function(k, v){ p.setProperty(k, v); PCACHE_[k] = String(v); },
+    deleteProperty: function(k){ p.deleteProperty(k); PCACHE_[k] = null; }
+  };
+}
 function sheetReady_(){ return !!props_().getProperty('sheetId'); }
 // Speed: opening the spreadsheet and reading a tab are the slow parts of every request, so each is done at most once per
 // request and remembered here. Any write clears the remembered rows of that tab. doPost/doGet start with resetCache_().
 var BOOK_ = null, BOOK_ID_ = '', TABS_ = {}, ROWS_ = {};
 var DIRTY_ = false;
-function resetCache_(){ BOOK_ = null; BOOK_ID_ = ''; TABS_ = {}; ROWS_ = {}; DIRTY_ = false; }
+function resetCache_(){ PCACHE_ = {}; BOOK_ = null; BOOK_ID_ = ''; TABS_ = {}; ROWS_ = {}; DIRTY_ = false; }
 // Answers that are expensive to work out (member list, month view, profile, loan book) are kept for a few minutes. Any write to the
 // Sheet changes 'dataVer', which makes every kept answer stale at once, so a screen never shows old numbers after a change.
 function markDirty_(){ if(DIRTY_) return; DIRTY_ = true; props_().setProperty('dataVer', String(Date.now()) + '-' + Math.floor(Math.random() * 1e6)); }
@@ -425,32 +435,42 @@ function check_(){
   var ds = readDataset_();
   if(!ds || !ds.memberData) return { ok:false, error:'no-dataset' };
   var md = ds.memberData, rowsX = ds.rows || [];
-  var members = rows_('Members'), loans = rows_('Loans'), ledger = rows_('Ledger').filter(function(r){ return !isTrue_(r.Voided); });
+  var all = rows_('Members'), loans = rows_('Loans'), ledger = rows_('Ledger').filter(function(r){ return !isTrue_(r.Voided); });
+  var members = all.filter(function(m){ return !isClosedSrc_(m); });          // closed accounts have their own Excel sheet: they are not counted with members
+  var closedS = all.filter(isClosedSrc_);
   function sum(list, f){ return list.reduce(function(s, x){ return s + num_(f(x)); }, 0); }
-  var lines = [];
+  var lines = [], notes = [];
   function line(label, excel, sheet){ lines.push({ label:label, excel:excel, sheet:sheet, ok:Math.abs(excel - sheet) < 0.5 }); }
-  var closedAdded = members.filter(function(m){ return m.Source === 'import-closed'; }).length;
-  line('Members' + (closedAdded ? ' (+' + closedAdded + ' closed accounts added)' : ''), md.members.length + closedAdded, members.length);
+  line('Members (closed accounts not counted)', md.members.length, members.length);
+  var closedX = md.closedAccounts ? md.closedAccounts.length : 0;
+  if(closedX || closedS.length) line('Closed accounts (Exited members)', closedX || closedS.length, closedS.length);
+  // The Excel is only updated when someone updates it, while the app keeps taking entries: compare what the import wrote, and show the app's own entries on their own.
+  var impL = ledger.filter(function(r){ return r.Pot === 'deposit' && String(r.EnteredBy) === 'import'; });
+  var appL = ledger.filter(function(r){ return r.Pot === 'deposit' && String(r.EnteredBy) !== 'import'; });
   var depX = sum(md.members, function(m){ return m.depositCurrent; });
-  var depS = sum(ledger.filter(function(r){ return r.Pot === 'deposit'; }), function(r){ return r.Amount; });
-  line('Deposit pot (total of member deposits)', depX, depS);
+  line('Deposit pot (as imported from Excel)', depX, sum(impL, function(r){ return r.Amount; }));
+  var appSum = sum(appL, function(r){ return r.Amount; });
+  if(appL.length) notes.push({ label:'Entered in the app after the import (not in Excel)', amount:r2_(appSum), count:appL.length });
   var openX = sum(md.members, function(m){ return m.depositPrior; });
   line('Opening deposits', openX, sum(members, function(m){ return m.OpeningDeposit; }));
-  var blankX = rowsX.filter(function(r){ return !String(r.applicant || '').trim() && !num_(r.takenAmt); }).length, blankS = loans.filter(function(r){ return !String(r.ApplicantName || '').trim() && !num_(r.Amount); }).length;
+  var blankX = rowsX.filter(function(r){ return blankName_(r.applicant) && !num_(r.takenAmt); }).length, blankS = loans.filter(function(r){ return blankLoan_(r); }).length;
   line('Loans (count, blank rows left out)', rowsX.length - blankX, loans.length - blankS);
+  if(blankS) notes.push({ label:'Blank loan rows still in the Sheet (clean-up removes them)', amount:0, count:blankS });
   line('Loans (amount taken)', sum(rowsX, function(r){ return r.takenAmt; }), sum(loans, function(r){ return r.Amount; }));
   line('Loans (amount to return)', sum(rowsX, function(r){ return r.repayAmt; }), sum(loans, function(r){ return r.ReturnAmount; }));
   line('Loans (extra / fine)', sum(rowsX, function(r){ return r.fine; }), sum(loans, function(r){ return r.Fine; }));
   var fp = fineFigures_(ds);
-  line('Fine pot (remaining)', fp.remaining, sum(ledger.filter(function(r){ return r.Pot === 'fine'; }), function(r){ return r.Amount; }));
-  // member by member: Excel current deposit against the ledger
-  var byId = {}; ledger.forEach(function(r){ if(r.Pot === 'deposit') byId[r.MemberID] = (byId[r.MemberID] || 0) + num_(r.Amount); });
+  line('Fine pot (remaining)', fp.remaining, sum(ledger.filter(function(r){ return r.Pot === 'fine' && String(r.EnteredBy) === 'import'; }), function(r){ return r.Amount; }));
+  var fineApp = ledger.filter(function(r){ return r.Pot === 'fine' && String(r.EnteredBy) !== 'import'; });
+  if(fineApp.length) notes.push({ label:'Fine pot entries made in the app after the import', amount:r2_(sum(fineApp, function(r){ return r.Amount; })), count:fineApp.length });
+  // member by member: Excel current deposit against what the import wrote
+  var byId = {}; impL.forEach(function(r){ byId[r.MemberID] = (byId[r.MemberID] || 0) + num_(r.Amount); });
   var diffs = [];
   md.members.forEach(function(m, i){
     var id = 'M-' + pad_(i + 1, 4), a = num_(m.depositCurrent), b = byId[id] || 0;
     if(Math.abs(a - b) >= 0.5) diffs.push({ id:id, name:m.name, excel:a, sheet:b });
   });
-  return { ok: lines.every(function(l){ return l.ok; }) && !diffs.length, lines:lines, memberDiffs:diffs.slice(0, 25), memberDiffCount:diffs.length };
+  return { ok: lines.every(function(l){ return l.ok; }) && !diffs.length, lines:lines, notes:notes, memberDiffs:diffs.slice(0, 25), memberDiffCount:diffs.length };
 }
 function totalsCheck_(S){
   var bad = needDb_(); if(bad) return bad;
@@ -1500,7 +1520,8 @@ function goLiveState_(){
   checks.push({ key:'backup', ok:!!(bk && ago(bk.At) <= 24), at:bk ? String(bk.At) : '', note:bk ? '' : 'never' });
   var ca = rows_('ClosedAccounts').length;
   checks.push({ key:'closed', ok:ca > 0, at:'', note:String(ca) });
-  var cuNo = rows_('Loans').filter(function(l){ return !normName_(l.ApplicantName) && !num_(l.Amount); }).length;
+  var cuPaid = {}; rows_('LoanPayments').forEach(function(p){ cuPaid[p.LoanID] = 1; });
+  var cuNo = rows_('Loans').filter(function(l){ return blankLoan_(l, cuPaid); }).length;
   checks.push({ key:'blank', ok:cuNo === 0, at:'', note:String(cuNo) });
   return { ok:true, live:false, canGo:checks.every(function(c){ return c.ok; }), checks:checks, today:today };
 }
@@ -1523,7 +1544,7 @@ function goLiveConfirm_(S, body){
 function excelCheck_(S, body){
   var bad = needDb_(); if(bad) return bad;
   var xm = Array.isArray(body.members) ? body.members.slice(0, 500) : [], xl = Array.isArray(body.loans) ? body.loans.slice(0, 4000) : [], tot = body.totals || {};
-  var today = todayStr_(), members = rows_('Members').filter(function(m){ return String(m.Source) !== 'import-closed'; });
+  var today = todayStr_(), members = rows_('Members').filter(function(m){ return !isClosedSrc_(m); });
   var ledger = rows_('Ledger').filter(function(r){ return !isTrue_(r.Voided); }), dep = depositTotals_(), ci = contribIndex_();
   function sumL(pot){ return ledger.filter(function(r){ return r.Pot === pot; }).reduce(function(a, r){ return a + num_(r.Amount); }, 0); }
   var depApp = sumL('deposit'), fineApp = sumL('fine'), expApp = -ledger.filter(function(r){ return r.Pot === 'fine' && r.Type === 'expense'; }).reduce(function(a, r){ return a + num_(r.Amount); }, 0);
@@ -1531,30 +1552,32 @@ function excelCheck_(S, body){
   function line(label, ex, ap){ if(ex === null || ex === undefined || ex === '') return; ex = num_(ex); lines.push({ label:label, excel:ex, app:r2_(ap), ok:Math.abs(ex - ap) < 0.5 }); }
   var live = members.filter(function(m){ return String(m.Status) !== 'Exited'; });
   line('Members (live)', xm.length, live.length);
-  line('Deposit pot', tot.deposit, depApp);
   line('Fine pot (remaining)', tot.fine, fineApp);
   line('Total expense', tot.expense, expApp);
   // members
   var byNorm = {}, byTok = {}; members.forEach(function(m){ byNorm[normName_(m.Name)] = m; byTok[sortedTokens_(m.Name)] = m; });
-  var seenId = {}, diffs = [], missApp = [], maxD = 0, diffN = 0;
+  var seenId = {}, diffs = [], missApp = [], maxD = 0, diffN = 0, appOnlyN = 0, appOnlyAmt = 0;
   xm.forEach(function(x){
     var raw = String(x.name || '').trim(); if(!raw) return;
     var m = byNorm[normName_(raw)] || byTok[sortedTokens_(raw)];
     if(!m){ missApp.push(raw); return; }
     seenId[m.MemberID] = 1;
     var ex = num_(x.cur), ap = dep[m.MemberID] || 0, md = [], months = x.months || {}, paid = ci[m.MemberID] || {};
+    Object.keys(paid).forEach(function(k){ var c = paid[k]; if(String(c.by) !== 'import' && !(num_(months[k]) > 0)){ ap -= c.amount; appOnlyN++; appOnlyAmt += c.amount; } });   // paid in the app, not yet in the Excel: expected, not a difference
     Object.keys(months).sort().forEach(function(k){
       if(!validMonth_(k) || k > today.slice(0, 7)) return;
       var e = num_(months[k]) > 0, a = !!paid[k], st = startMonth_(m);
+      if(a && !e && String(paid[k].by) !== 'import') return;
       if(e !== a && k >= st) md.push({ m:k, excel:e, app:a });
     });
     if(Math.abs(ex - ap) >= 0.5 || md.length){ diffN++; if(diffs.length < 60) diffs.push({ id:m.MemberID, name:m.Name, excel:ex, app:r2_(ap), months:md.slice(0, 12), status:m.Status }); }
   });
   var missExcel = live.filter(function(m){ return !seenId[m.MemberID]; }).map(function(m){ return m.Name; });
+  if(tot.deposit !== null && tot.deposit !== undefined && tot.deposit !== '') lines.splice(1, 0, { label:'Deposit pot (app entries not yet in Excel left out)', excel:num_(tot.deposit), app:r2_(depApp - appOnlyAmt), ok:Math.abs(num_(tot.deposit) - (depApp - appOnlyAmt)) < 0.5 });
   // loans
   var pi = loanPaidIndex_(), key = function(n, d, a){ return normName_(n) + '|' + String(d || '').slice(0, 10) + '|' + Math.round(num_(a)); };
   var appL = {}, exL = {};
-  rows_('Loans').forEach(function(l){ if(!normName_(l.ApplicantName) && !num_(l.Amount)) return; var k = key(l.ApplicantName, l.TakenDate, l.Amount); (appL[k] || (appL[k] = [])).push(l); });
+  rows_('Loans').forEach(function(l){ if(blankName_(l.ApplicantName) && !num_(l.Amount)) return; var k = key(l.ApplicantName, l.TakenDate, l.Amount); (appL[k] || (appL[k] = [])).push(l); });
   var onlyEx = [], stDiff = [];
   xl.forEach(function(x){
     if(!String(x.name || '').trim()) return;
@@ -1565,11 +1588,11 @@ function excelCheck_(S, body){
   });
   var onlyApp = []; Object.keys(appL).forEach(function(k){ appL[k].forEach(function(l){ onlyApp.push({ id:l.LoanID, name:l.ApplicantName, taken:String(l.TakenDate || ''), amount:num_(l.Amount) }); }); });
   var n = xl.filter(function(x){ return String(x.name || '').trim(); }).length;
-  line('Loans (count)', n, rows_('Loans').filter(function(l){ return normName_(l.ApplicantName) || num_(l.Amount); }).length);
+  line('Loans (count)', n, rows_('Loans').filter(function(l){ return !(blankName_(l.ApplicantName) && !num_(l.Amount)); }).length);
   var ok = lines.every(function(l){ return l.ok; }) && !diffN && !missApp.length && !missExcel.length && !onlyEx.length && !onlyApp.length && !stDiff.length;
   try{ props_().setProperty('lastExcelCheck', JSON.stringify({ at:nowIso_(), clean:ok })); }catch(e){}
   audit_(S, 'excel-check', '', ok ? 'clean' : (diffN + ' member, ' + onlyEx.length + ' + ' + onlyApp.length + ' loan, ' + stDiff.length + ' status differences'));
-  return out_({ ok:true, clean:ok, at:nowIso_(), lines:lines, memberDiffCount:diffN, memberDiffs:diffs, missingInApp:missApp.slice(0, 40), missingInExcel:missExcel.slice(0, 40),
+  return out_({ ok:true, clean:ok, at:nowIso_(), lines:lines, appOnly:{ count:appOnlyN, amount:r2_(appOnlyAmt) }, memberDiffCount:diffN, memberDiffs:diffs, missingInApp:missApp.slice(0, 40), missingInExcel:missExcel.slice(0, 40),
     loanOnlyExcel:onlyEx.slice(0, 40), loanOnlyApp:onlyApp.slice(0, 40), loanStatusDiffs:stDiff.slice(0, 60), counts:{ onlyEx:onlyEx.length, onlyApp:onlyApp.length, stDiff:stDiff.length, missApp:missApp.length, missExcel:missExcel.length } });
 }
 
@@ -1644,6 +1667,9 @@ function waApply_(S, body){
 }
 
 /* ---------- clean-up import: closed accounts, blank loan rows, name matches (admin1) ---------- */
+function isClosedSrc_(m){ return String((m && m.Source) || '').indexOf('import-closed') === 0; }   // 'import-closed' or 'import-closed:<Sr>'
+function blankName_(s){ var n = normName_(s); return !n || n === 'UNNAMED APPLICANT'; }          // the Excel reader names empty rows "Unnamed applicant"
+function blankLoan_(l, paid){ return blankName_(l.ApplicantName) && !num_(l.Amount) && !num_(l.ReturnAmount) && !(paid && paid[l.LoanID]); }
 function normName_(s){ return String(s || '').toUpperCase().replace(/\([^)]*\)/g, ' ').replace(/[^A-Zऀ-ॿ ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
 function sortedTokens_(s){ return normName_(s).split(' ').filter(Boolean).sort().join(' '); }
 // What would change. closedNames = names from the Excel "Closed Account Details" sheet.
@@ -1661,25 +1687,52 @@ function closedRows_(list){
 // A row already imported (same Sr. No.) is skipped. Loans are linked: live member first; a name with exactly one closed account links to
 // it; a name with several closed accounts (and no live member) is left for you to choose.
 function cleanupPlan_(closed){
-  var rowsIn = closedRows_(closed), members = rows_('Members'), have = {}, haveId = {};
+  var rowsIn = closedRows_(closed), members = rows_('Members'), have = {};
   rows_('ClosedAccounts').forEach(function(c){ have[String(c.SrNo)] = c.MemberID; });
+  // closed accounts added by an earlier build (Source 'import-closed' or 'import-closed:<Sr>'): adopt them instead of adding twins
+  var usedId = {}; Object.keys(have).forEach(function(k){ usedId[have[k]] = 1; });
+  var oldClosed = members.filter(function(m){ return isClosedSrc_(m) && !usedId[m.MemberID]; });
+  var adopt = [];
+  rowsIn.forEach(function(r){
+    if(have[String(r.sr)]) return;
+    var hit = null;
+    oldClosed.forEach(function(m){ if(hit) return; var mm = /^import-closed:(\d+)/.exec(String(m.Source)); if(mm && mm[1] === String(r.sr) && !usedId[m.MemberID]) hit = m; });
+    if(!hit) oldClosed.forEach(function(m){ if(!hit && !usedId[m.MemberID] && normName_(m.Name) === normName_(r.name)) hit = m; });
+    if(hit){ usedId[hit.MemberID] = 1; have[String(r.sr)] = hit.MemberID; adopt.push({ sr:r.sr, id:hit.MemberID }); }
+  });
   var live = {}, liveAny = [];
-  members.forEach(function(m){ if(String(m.Source) !== 'import-closed'){ live[normName_(m.Name)] = m; liveAny.push(m); } });
+  members.forEach(function(m){ if(!isClosedSrc_(m)){ live[normName_(m.Name)] = m; liveAny.push(m); } });
   var fresh = [], already = [];
   rowsIn.forEach(function(r){ if(have[String(r.sr)]) already.push({ name:r.name, sr:r.sr, id:have[String(r.sr)] }); else fresh.push(r); });
   var closedBy = {};                                         // normalised name -> [{ sr, id }]
   rowsIn.forEach(function(r){ var k = normName_(r.name); (closedBy[k] || (closedBy[k] = [])).push({ sr:r.sr, name:r.name, id:'closed:' + r.sr, loan:r.loan }); });
-  var loans = rows_('Loans'), blanks = 0, linkClosed = 0, unmatched = {};
+  var paid = {}; rows_('LoanPayments').forEach(function(p){ if(!isTrue_(p.Voided)) paid[p.LoanID] = 1; });
+  var loans = rows_('Loans'), blanks = 0, linkClosed = 0, unmatched = {}, byKey = {}, byId = {};
   loans.forEach(function(l){
+    byId[l.LoanID] = l;
+    if(blankLoan_(l, paid)){ blanks++; return; }
     var nm = normName_(l.ApplicantName);
-    if(!nm && !num_(l.Amount)){ blanks++; return; }
-    if(!nm) return;
+    var k = nm + '|' + String(l.TakenDate || '').slice(0, 10) + '|' + Math.round(num_(l.Amount)); byKey[k] = (byKey[k] || 0) + 1;
+    if(blankName_(l.ApplicantName)) return;
     var mid = String(l.MemberID || '');
     if(mid && memberById_(mid)) return;
     if(live[nm]) return;
     var cb = closedBy[nm];
     if(cb && cb.length === 1){ linkClosed++; return; }
     var u = unmatched[nm] || (unmatched[nm] = { name:String(l.ApplicantName).trim(), norm:nm, count:0, candidates:[] }); u.count++;
+  });
+  // loans in the Excel that the Sheet does not have yet, and loans whose name was corrected in the Excel
+  var ds = null; try{ ds = readDataset_(); }catch(e){}
+  var newLoans = [], renamed = [], exRows = (ds && ds.rows) || [];
+  exRows.forEach(function(r){
+    if(blankName_(r.applicant) && !num_(r.takenAmt)) return;
+    var lid = 'L-' + pad_(r.srno, 4), cur = byId[lid], taken = String(r.takenDate || '').slice(0, 10);
+    var k = normName_(r.applicant) + '|' + taken + '|' + Math.round(num_(r.takenAmt));
+    if(byKey[k] > 0){ byKey[k]--; return; }
+    if(cur && !blankLoan_(cur, paid) && String(cur.TakenDate || '').slice(0, 10) === taken && Math.round(num_(cur.Amount)) === Math.round(num_(r.takenAmt)) && normName_(cur.ApplicantName) !== normName_(r.applicant)){
+      renamed.push({ id:lid, from:String(cur.ApplicantName), to:String(r.applicant).trim(), row:r.srno }); return;
+    }
+    newLoans.push({ srno:r.srno, name:String(r.applicant).trim(), taken:taken, amount:num_(r.takenAmt), repay:num_(r.repayAmt), fine:num_(r.fine) });
   });
   var pool = liveAny.map(function(m){ return { id:m.MemberID, name:m.Name, norm:normName_(m.Name), status:m.Status }; });
   rowsIn.forEach(function(r){ pool.push({ id:'closed:' + r.sr, name:r.name + ' (closed account Sr ' + r.sr + ')', norm:normName_(r.name), status:'Exited' }); });
@@ -1697,11 +1750,11 @@ function cleanupPlan_(closed){
     return u;
   });
   list.sort(function(a, b){ return b.count - a.count || (a.name < b.name ? -1 : 1); });
-  return { newMembers:fresh, alreadyMembers:already, blankLoanRows:blanks, loansLinkedToClosed:linkClosed, unmatched:list };
+  return { newMembers:fresh, alreadyMembers:already, adopt:adopt, blankLoanRows:blanks, loansLinkedToClosed:linkClosed, unmatched:list, newLoans:newLoans, renamedLoans:renamed };
 }
 function cleanupPreview_(S, body){
   var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
-  var p = cleanupPlan_(body.closed); p.ok = true; return out_(p);
+  var p = cleanupPlan_(body.closed); p.ok = true; p.adoptCount = p.adopt.length; delete p.adopt; return out_(p);
 }
 function cleanupApply_(S, body){
   var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
@@ -1710,36 +1763,65 @@ function cleanupApply_(S, body){
   try{
     var plan = cleanupPlan_(body.closed), at = nowIso_(), ids = {};        // 'closed:<sr>' -> MemberID
     rows_('ClosedAccounts').forEach(function(c){ ids['closed:' + c.SrNo] = c.MemberID; });
+    var closedAll = closedRows_(body.closed || []), addC = [], addM = [];
+    plan.adopt.forEach(function(x){
+      ids['closed:' + x.sr] = x.id;
+      closedAll.forEach(function(r){ if(String(r.sr) === String(x.sr)) addC.push({ SrNo:r.sr, MemberID:x.id, Name:r.name, Deposit:r.deposit, LoanAmount:r.loan, LoanReturn:r.lra, LateFees:r.late, Net:r.net, Remarks:r.remarks, ImportedAt:at }); });
+    });
     var maxN = 0; rows_('Members').forEach(function(m){ var n = Number(String(m.MemberID).replace(/\D/g, '')); if(n > maxN) maxN = n; });
-    var addM = [], addC = [];
     plan.newMembers.forEach(function(f){
       maxN++; var id = 'M-' + pad_(maxN, 4); ids['closed:' + f.sr] = id;
       addM.push({ MemberID:id, Name:f.name, Mobile:'', DOB:'', JoinDate:'', Status:'Exited', OpeningDeposit:0, JoiningFee:0, FailedTries:0, Source:'import-closed', CreatedAt:at, CreatedBy:S.u });
       addC.push({ SrNo:f.sr, MemberID:id, Name:f.name, Deposit:f.deposit, LoanAmount:f.loan, LoanReturn:f.lra, LateFees:f.late, Net:f.net, Remarks:f.remarks, ImportedAt:at });
     });
-    if(addM.length){ appendMany_('Members', addM); appendMany_('ClosedAccounts', addC); }
+    if(addM.length) appendMany_('Members', addM);
+    if(addC.length) appendMany_('ClosedAccounts', addC);
     var live = {}, closedBy = {};
-    rows_('Members').forEach(function(m){ if(String(m.Source) !== 'import-closed') live[normName_(m.Name)] = m; });
-    (Array.isArray(body.closed) ? closedRows_(body.closed) : []).forEach(function(r){ var k = normName_(r.name); (closedBy[k] || (closedBy[k] = [])).push(ids['closed:' + r.sr]); });
+    rows_('Members').forEach(function(m){ if(!isClosedSrc_(m)) live[normName_(m.Name)] = m; });
+    closedAll.forEach(function(r){ var k = normName_(r.name); (closedBy[k] || (closedBy[k] = [])).push(ids['closed:' + r.sr]); });
     var approved = {}; (Array.isArray(body.links) ? body.links : []).forEach(function(x){ if(x && x.name && x.to) approved[normName_(x.name)] = String(x.to); });
-    var loans = rows_('Loans'), linked = 0, linkedApproved = 0, removed = 0;
+    var ren = {}; plan.renamedLoans.forEach(function(x){ ren[x.id] = x.to; });
+    var paid = {}; rows_('LoanPayments').forEach(function(p){ if(!isTrue_(p.Voided)) paid[p.LoanID] = 1; });
+    var loans = rows_('Loans'), linked = 0, linkedApproved = 0, removed = 0, renamedN = 0;
     loans.forEach(function(l){
-      var nm = normName_(l.ApplicantName);
-      if(!nm && !num_(l.Amount) && body.removeBlank !== false){ removed++; return; }
-      var mid = String(l.MemberID || '');
-      if(nm && !(mid && memberById_(mid))){
+      if(blankLoan_(l, paid)){ if(body.removeBlank !== false) removed++; return; }
+      var upd = {}, nameNow = l.ApplicantName;
+      if(ren[l.LoanID]){ upd.ApplicantName = ren[l.LoanID]; nameNow = ren[l.LoanID]; renamedN++; l.MemberID = ''; upd.MemberID = ''; }
+      var nm = normName_(nameNow), mid = String(l.MemberID || '');
+      if(!blankName_(nameNow) && !(mid && memberById_(mid))){
         var to = approved[nm], m = live[nm], cb = closedBy[nm];
-        if(to){ to = ids[to] || to; if(memberById_(to)){ update_('Loans', l._row, { MemberID:to }); linkedApproved++; } }
-        else if(m){ update_('Loans', l._row, { MemberID:m.MemberID }); linked++; }
-        else if(cb && cb.length === 1 && cb[0]){ update_('Loans', l._row, { MemberID:cb[0] }); linked++; }
+        if(to){ to = ids[to] || to; if(memberById_(to)){ upd.MemberID = to; linkedApproved++; } }
+        else if(m){ upd.MemberID = m.MemberID; linked++; }
+        else if(cb && cb.length === 1 && cb[0]){ upd.MemberID = cb[0]; linked++; }
       }
+      if(Object.keys(upd).length) update_('Loans', l._row, upd);
     });
     if(removed){
-      var fresh = rows_('Loans').filter(function(l){ return !(!normName_(l.ApplicantName) && !num_(l.Amount)); });
+      var fresh = rows_('Loans').filter(function(l){ return !blankLoan_(l, paid); });
       clearRows_('Loans'); appendMany_('Loans', fresh.map(function(l){ var o = {}; TABS.Loans.forEach(function(k){ o[k] = l[k]; }); return o; }));
     }
-    audit_(S, 'cleanup-import', 'closed accounts', addM.length + ' closed accounts added, ' + linked + ' loans linked, ' + linkedApproved + ' approved links, ' + removed + ' blank loan rows removed');
-    return out_({ ok:true, added:addM.length, linked:linked, linkedApproved:linkedApproved, removedBlank:removed });
+    // loans that are in the Excel but not in the Sheet yet (added after the blank rows are gone, so their numbers are free)
+    var addedL = 0;
+    if(plan.newLoans.length){
+      var haveIds = {}; rows_('Loans').forEach(function(l){ haveIds[l.LoanID] = 1; });
+      var nextN = 0; Object.keys(haveIds).forEach(function(k){ var n = Number(String(k).replace(/\D/g, '')); if(n > nextN) nextN = n; });
+      var byName = {}; rows_('Members').forEach(function(m){ var k = nameKey_(m.Name); if(!byName[k] || isClosedSrc_(byName[k])) byName[k] = m; });
+      var dsx = readDataset_(), exByNo = {}; ((dsx && dsx.rows) || []).forEach(function(r){ exByNo[r.srno] = r; });
+      var nl = [], ng = [];
+      plan.newLoans.forEach(function(x){
+        var r = exByNo[x.srno]; if(!r) return;
+        var lid = 'L-' + pad_(x.srno, 4); if(haveIds[lid]){ nextN++; lid = 'L-' + pad_(nextN, 4); } haveIds[lid] = 1;
+        var m = byName[nameKey_(r.applicant)];
+        nl.push({ LoanID:lid, MemberID:m ? m.MemberID : '', ApplicantName:r.applicant, Amount:num_(r.takenAmt), TakenDate:r.takenDate || '', DueDate:r.repayDate || '', ReturnAmount:num_(r.repayAmt), Fine:num_(r.fine), LateExtra:0, Status:r.status || '', Suspended:r.suspended || '', Source:'import', CreatedAt:at });
+        String(r.guarantor || '').split(/\s*(?:,|&|\+|\n|;|\band\b)\s*/i).forEach(function(g){
+          g = String(g).trim(); if(!g || /^(none|nil|n\/a|-|not specified)$/i.test(g)) return;
+          var gm = byName[nameKey_(g)]; ng.push({ LoanID:lid, MemberID:gm ? gm.MemberID : '', Name:g, Source:'import' });
+        });
+      });
+      if(nl.length){ appendMany_('Loans', nl); if(ng.length) appendMany_('Guarantors', ng); addedL = nl.length; }
+    }
+    audit_(S, 'cleanup-import', 'closed accounts', addM.length + ' closed accounts added, ' + plan.adopt.length + ' adopted, ' + linked + ' loans linked, ' + linkedApproved + ' approved links, ' + removed + ' blank loan rows removed, ' + addedL + ' loans added, ' + renamedN + ' names corrected');
+    return out_({ ok:true, added:addM.length, adopted:plan.adopt.length, linked:linked, linkedApproved:linkedApproved, removedBlank:removed, addedLoans:addedL, renamed:renamedN });
   } finally { lock.releaseLock(); }
 }
 
