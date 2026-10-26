@@ -6660,7 +6660,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   function admSay(txt){ var tt = document.getElementById('apToast'); if(tt && txt){ tt.textContent = txt; tt.classList.add('show'); clearTimeout(admSay.tm); admSay.tm = setTimeout(function(){ tt.classList.remove('show'); }, 2800); } }
   function admErr(code){
     var k = { 'short':'pwShort', 'bad-old':'pwBadOld', 'same-as-old':'pwSame', 'same-as-user':'pwSame', 'forbidden':'admForbid', 'not-set-up':'admDbNo' }[code];
-    return t(k || 'admFail');
+    return t(k || 'admFail') + (!k && code && code !== true ? ' [' + String(code).slice(0, 140) + ']' : '');
   }
   function admWhen(s){
     var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(s || ''));

@@ -110,7 +110,10 @@ function tab_(name){
   var book = ss_();
   if(TABS_[name]) return TABS_[name];
   var s = book.getSheetByName(name);
-  if(!s) throw new Error('missing-tab-' + name);
+  if(!s){                                   // a tab that an older version never created: make it now instead of failing
+    if(!TABS[name]) throw new Error('missing-tab-' + name);
+    s = book.insertSheet(name); writeHeader_(s, name);
+  }
   TABS_[name] = s;
   return s;
 }
