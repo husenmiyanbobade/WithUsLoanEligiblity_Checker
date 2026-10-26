@@ -2166,7 +2166,7 @@ function doPost(e){
     if(body.kind === 'settleConfirm') return settleConfirm_(S, body);
     if(body.kind === 'exitPreview') return exitPreview_(S, body);
     if(body.kind === 'exitConfirm') return exitConfirm_(S, body);
-    if(body.kind === 'closeView') return closeView_(S);
+    if(body.kind === 'closeView') return cachedCall_('cv|' + S.r, function(){ return closeView_(S); });
     if(body.kind === 'bankCheck') return bankCheck_(S, body);
     if(body.kind === 'monthClose') return monthClose_(S, body);
     if(body.kind === 'dashboard') return cachedCall_('db', function(){ return dashboard_(S); });
