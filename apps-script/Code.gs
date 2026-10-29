@@ -87,6 +87,7 @@ function resetCache_(){ PCACHE_ = {}; BOOK_ = null; BOOK_ID_ = ''; TABS_ = {}; R
 // Sheet changes 'dataVer', which makes every kept answer stale at once, so a screen never shows old numbers after a change.
 function markDirty_(){ if(DIRTY_) return; DIRTY_ = true; props_().setProperty('dataVer', String(Date.now()) + '-' + Math.floor(Math.random() * 1e6)); }
 function dataVer_(){ return props_().getProperty('dataVer') || '0'; }
+function bodyKey_(b){ var o = {}; Object.keys(b).sort().forEach(function(k){ if(k !== 'token') o[k] = b[k]; }); var s = JSON.stringify(o), h = 5381; for(var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return s.length + '.' + h; }
 function cachedCall_(name, fn){
   var cache = CacheService.getScriptCache(), ver = dataVer_(), key = 'rc|' + name + '|' + ver + '|' + todayStr_();
   if(key.length > 240) return fn();
@@ -2150,7 +2151,7 @@ function doPost(e){
     if(body.kind === 'memberStatus') return memberStatus_(S, body);
     if(body.kind === 'monthView') return cachedCall_('mv|' + String(body.month), function(){ return monthView_(S, body); });
     if(body.kind === 'monthsSummary') return cachedCall_('ms', function(){ return monthsSummary_(S, body); });
-    if(body.kind === 'penaltyPreview') return penaltyPreview_(S, body);
+    if(body.kind === 'penaltyPreview') return cachedCall_('pp|' + S.r + '|' + bodyKey_(body), function(){ return penaltyPreview_(S, body); });
     if(body.kind === 'penaltyPost') return penaltyPost_(S, body);
     if(body.kind === 'penaltyPay') return penaltyPay_(S, body);
     if(body.kind === 'penaltyPayVoid') return penaltyPayVoid_(S, body);
@@ -2173,7 +2174,7 @@ function doPost(e){
     if(body.kind === 'bankCheck') return bankCheck_(S, body);
     if(body.kind === 'monthClose') return monthClose_(S, body);
     if(body.kind === 'dashboard') return cachedCall_('db', function(){ return dashboard_(S); });
-    if(body.kind === 'report') return report_(S, body);
+    if(body.kind === 'report') return cachedCall_('rp|' + S.r + '|' + bodyKey_(body), function(){ return report_(S, body); });
     if(body.kind === 'excelCheck') return excelCheck_(S, body);
     if(body.kind === 'goLiveView') return goLiveView_(S);
     if(body.kind === 'goLiveConfirm') return goLiveConfirm_(S, body);
@@ -2181,7 +2182,7 @@ function doPost(e){
     if(body.kind === 'waApply') return waApply_(S, body);
     if(body.kind === 'cleanupPreview') return cleanupPreview_(S, body);
     if(body.kind === 'cleanupApply') return cleanupApply_(S, body);
-    if(body.kind === 'settingsGet') return settingsGet_(S);
+    if(body.kind === 'settingsGet') return cachedCall_('sg|' + S.r, function(){ return settingsGet_(S); });
     if(body.kind === 'settingsSet') return settingsSet_(S, body);
     if(body.kind === 'loanDisburse') return loanDisburse_(S, body);
     if(body.kind === 'contribAdd') return contribAdd_(S, body);
@@ -2193,7 +2194,7 @@ function doPost(e){
     if(body.kind === 'setPassword') return setPassword_(S, body);
     if(body.kind === 'setActive') return setActive_(S, body);
     if(body.kind === 'signOutAll') return signOutAll_(S, body);
-    if(body.kind === 'auditList') return auditList_(S, body);
+    if(body.kind === 'auditList') return cachedCall_('al|' + S.r + '|' + bodyKey_(body), function(){ return auditList_(S, body); });
     if(body.kind === 'dbStatus') return dbStatus_(S);
     if(body.kind === 'importDataset') return importDataset_(S, body);
     if(body.kind === 'totalsCheck') return totalsCheck_(S);
