@@ -2048,6 +2048,13 @@ function monthsSummary_(S, body){
   return out_({ ok:true, months:res });
 }
 
+// several profiles in one request (the sheet is read once): used when a search narrows to a few members
+function memberProfiles_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var ids = Array.isArray(body.ids) ? body.ids.slice(0, 8) : [], items = {};
+  ids.forEach(function(id){ try{ items[String(id)] = JSON.parse(memberProfile_(S, { id:String(id) }).getContent()); }catch(e){} });
+  return out_({ ok:true, items:items });
+}
 function memberProfile_(S, body){
   var bad = needDb_(); if(bad) return bad;
   var mem = memberById_(body.id); if(!mem) return out_({ ok:false, error:'no-member' });
@@ -2146,6 +2153,7 @@ function doPost(e){
     // members and contributions
     if(body.kind === 'members') return cachedCall_('members', function(){ return membersList_(S); });
     if(body.kind === 'memberProfile') return cachedCall_('mp|' + String(body.id), function(){ return memberProfile_(S, body); });
+    if(body.kind === 'memberProfiles') return memberProfiles_(S, body);
     if(body.kind === 'memberAdd') return memberAdd_(S, body);
     if(body.kind === 'memberEdit') return memberEdit_(S, body);
     if(body.kind === 'memberStatus') return memberStatus_(S, body);
