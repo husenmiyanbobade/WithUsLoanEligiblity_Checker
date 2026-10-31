@@ -20,6 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
+var CODE_VER = 'V21 \u00B7 v44';   // shown in the app: Settings > Version
 var SCHEMA_VER = 5;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
@@ -1836,7 +1837,7 @@ function settingsGet_(S){
   var bad = needDb_(); if(bad) return bad;
   var defaults = { ContributionAmount:500, JoiningFee:0, PenaltyAmount:500, SocietyUPI:'', ExpenseCategories:EXPENSE_CATS_.join(', '), FinancialYearStartMonth:4, TrackingStartMonth:'2026-01', SuspensionMonths:6, OverdueDay:15 };
   var list = SETTING_SHOW_.map(function(k){ return { key:k, value:setting_(k, defaults[k]), editable:!!SETTING_EDIT_[k] }; });
-  return out_({ ok:true, settings:list, canEdit:S.r === 'admin1' });
+  return out_({ ok:true, settings:list, canEdit:S.r === 'admin1', codeVer:CODE_VER });
 }
 function settingsSet_(S, body){
   var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
