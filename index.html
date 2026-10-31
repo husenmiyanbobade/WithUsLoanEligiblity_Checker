@@ -54,6 +54,39 @@
     return p;
   };
 })();
+
+/* leaving the app: the phone's Back button on the first screen asks before the app closes */
+(function(){
+  if(!window.history || !history.pushState) return;
+  var exiting = false, box = null;
+  function mr(){ return document.documentElement.lang === 'mr'; }
+  function arm(){ try{ history.pushState({ withusGuard:1 }, ''); }catch(e){} }
+  function openSheet(){
+    var ids = ['memSheet', 'admSheet', 'apSheet'];
+    for(var i = 0; i < ids.length; i++){ var e = document.getElementById(ids[i]); if(e && e.style.display !== 'none' && e.innerHTML) return e; }
+    return null;
+  }
+  function hideBox(){ if(box){ box.remove(); box = null; } }
+  function ask(){
+    if(box) return;
+    box = document.createElement('div'); box.className = 'ap-overlay'; box.style.zIndex = '1300'; box.style.alignItems = 'center'; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true');
+    box.innerHTML = '<div class="ap-sheet" style="border-radius:22px; max-width:340px; margin:0 20px;"><h3 style="margin-top:4px;">' + (mr() ? '\u0905\u0945\u092A\u092E\u0927\u0942\u0928 \u092C\u093E\u0939\u0947\u0930 \u092A\u0921\u093E\u092F\u091A\u0947?' : 'Exit the app?') + '</h3><p class="adm-sub">' + (mr() ? '\u0924\u0941\u092E\u094D\u0939\u093E\u0932\u093E \u0916\u093E\u0924\u094D\u0930\u0940 \u0906\u0939\u0947 \u0915\u0940 \u0924\u0941\u092E\u094D\u0939\u0940 \u0905\u0945\u092A\u092E\u0927\u0942\u0928 \u092C\u093E\u0939\u0947\u0930 \u092A\u0921\u0942 \u0907\u091A\u094D\u091B\u093F\u0924\u093E? \u0924\u0941\u092E\u091A\u093E \u0938\u0924\u094D\u0930 \u091A\u093E\u0932\u0942 \u0930\u093E\u0939\u0940\u0932.' : 'Are you sure you want to exit the application? You will stay signed in.') + '</p><div class="ap-btnrow"><button type="button" class="ap-btn" data-exit="yes">' + (mr() ? '\u0939\u094B\u092F, \u092C\u093E\u0939\u0947\u0930 \u092A\u0921\u093E' : 'Yes, exit') + '</button><button type="button" class="ap-btn ghost" data-exit="no">' + (mr() ? '\u0930\u0926\u094D\u0926 \u0915\u0930\u093E' : 'Cancel') + '</button></div></div>';
+    box.addEventListener('click', function(e){
+      var b = e.target.closest && e.target.closest('[data-exit]');
+      if(b && b.getAttribute('data-exit') === 'yes'){ exiting = true; hideBox(); try{ history.go(-1); }catch(x){} setTimeout(function(){ try{ window.close(); }catch(x){} }, 250); }
+      else if(b || e.target === box){ hideBox(); arm(); }
+    });
+    document.body.appendChild(box);
+  }
+  window.addEventListener('popstate', function(){
+    if(exiting) return;
+    var sh = openSheet();
+    if(sh){ arm(); var c = sh.querySelector('[data-mem="close"],[data-adm="close"],[data-mem="back"],[data-adm="back"]'); if(c) c.click(); else { sh.style.display = 'none'; sh.innerHTML = ''; } return; }
+    if(box){ hideBox(); arm(); return; }
+    ask();                                   // the guard entry stays used up while the question is open: "Yes" then really leaves
+  });
+  window.addEventListener('load', function(){ arm(); });
+})();
 </script>
 <script>
 var XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
@@ -561,9 +594,10 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   .mc-btn{ flex:none; display:inline-flex; align-items:center; justify-content:center; gap:5px; min-width:104px; min-height:44px; padding:0 12px; border-radius:999px; font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; border:1.5px solid var(--ink); background:var(--card); color:var(--ink); }
   .mc-btn.paid{ border-color:var(--green); background:var(--green-soft); color:var(--green); }
   .mc-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
-  .net-ov{ position:fixed; inset:0; z-index:1200; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:rgba(11,18,32,.5); color:#fff; font-size:14px; font-weight:600; opacity:0; visibility:hidden; transition:opacity .18s, visibility .18s; -webkit-tap-highlight-color:transparent; }
+  .net-ov{ position:fixed; inset:0; z-index:1200; background:radial-gradient(circle at 50% 50%, rgba(11,18,32,.78) 0, rgba(11,18,32,.62) 130px, rgba(11,18,32,.5) 260px); color:#fff; font-size:14px; font-weight:600; opacity:0; visibility:hidden; transition:opacity .18s, visibility .18s; -webkit-tap-highlight-color:transparent; }
   .net-ov.on{ opacity:1; visibility:visible; }
-  .net-logo{ position:relative; width:68px; height:68px; display:flex; align-items:center; justify-content:center; }
+  .net-logo{ position:absolute; left:50%; top:50%; margin:-34px 0 0 -34px; width:68px; height:68px; display:flex; align-items:center; justify-content:center; }
+  .net-ov > span{ position:absolute; left:0; right:0; top:calc(50% + 46px); text-align:center; text-shadow:0 1px 6px rgba(0,0,0,.5); }
   .net-logo img{ width:46px; height:46px; border-radius:50%; }
   .net-logo:before{ content:""; position:absolute; inset:0; border:3px solid rgba(255,255,255,.25); border-top-color:#c8962e; border-radius:50%; animation:netspin 1s linear infinite; }
   @keyframes netspin{ to{ transform:rotate(360deg); } }
@@ -1762,7 +1796,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     });
     ['monList','rpList','apList'].forEach(function(k){ var v = null; try{ v = sessionStorage.getItem(key(k)); }catch(e){} if(v === '1') setFold(k, true, false); });
   })();
-  var APP_VER = 'V21 \u00B7 v44';
+  var APP_VER = 'V22 \u00B7 v45';
   (function(){ var f = document.getElementById('verFoot'); if(f) f.textContent = 'WITH US \u00B7 ' + APP_VER; })();
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
@@ -5369,7 +5403,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }, 450);
   }
   function memOpenProfile(id){
-    mem.kind = 'profile'; mem.profId = id;
+    mem.kind = 'profile'; if(mem.profId !== id) mem.recOpen = false; mem.profId = id;
     var c = mem.pc && mem.pc[id], m0 = memById(id);
     if(c){ mem.prof = c; memProfileRender(); }
     else if(m0){
@@ -5398,13 +5432,14 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     h += '</div>';
     h += memEligHtml(m) + memPenCard(p, isOwner) + lnProfileHtml(p);
     h += '<div class="adm-card"><div class="adm-act" style="border:0;"><span>' + esc(t('memMobile')) + '</span><b>' + (m.mobile ? '<a href="tel:' + esc(m.mobile) + '">' + esc(m.mobile) + '</a>' : '-') + '</b></div><div class="adm-act"><span>' + esc(t('memDob')) + '</span><b>' + esc(m.dob ? memD(m.dob) : t('memNoDob')) + '</b></div><div class="adm-act"><span>' + esc(t('memJoined')) + '</span><b>' + esc(m.joinDate ? memD(m.joinDate) + ' · ' + lnDuration(m.joinDate) : '-') + '</b></div></div>';
-    h += '<p class="adm-lbl">' + esc(t('memReceipts')) + '</p>';
+    h += '<button type="button" class="mc-foldbtn" data-mem="recfold" aria-expanded="' + (mem.recOpen ? 'true' : 'false') + '"><span>' + esc(t('memReceipts')) + (p.receipts.length ? ' (' + Math.min(8, p.receipts.length) + ')' : '') + '</span><span class="chev">\u25BE</span></button><div class="mc-fold" id="memRecBox"' + (mem.recOpen ? '' : ' hidden') + '>';
     if(!p.receipts.length) h += '<p class="adm-sub">' + esc(t('memNoReceipts')) + '</p>';
     p.receipts.slice(0, 8).forEach(function(r){
       var label = r.months.map(memMshort).join(', ') + ' ' + r.months[r.months.length - 1].slice(0, 4);
       var can = memCanVoid(r), key = r.receipt || r.contribId;
       h += '<div class="adm-act"><span>' + esc(label) + '<small class="mem-sm">' + esc(memMoney(r.amount) + ' · ' + memD(r.date) + (r.mode ? ' · ' + memModeName(r.mode) : '') + (r.receipt ? ' · ' + r.receipt : '')) + '</small></span>' + (can && m.status !== 'Exited' ? '<button type="button" class="adm-ob danger mem-void" data-mem="void" data-rc="' + esc(r.receipt) + '" data-cid="' + esc(r.contribId) + '" data-k="' + esc(key) + '">' + esc(t('memVoid')) + '</button>' : '') + '</div>';
     });
+    h += '</div>';
     var btns = [];
     if(m.status !== 'Exited' && p.penaltyDue > 0) btns.push('<button type="button" class="ap-btn" data-mem="penpay" data-id="' + esc(m.id) + '">' + esc(t('penPay')) + '</button>');
     if(m.status !== 'Exited') btns.push('<button type="button" class="ap-btn" data-mem="rec" data-id="' + esc(m.id) + '">' + esc(t('memRecord')) + '</button>');
@@ -6630,6 +6665,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(act === 'filter'){ mem.filter = tg.getAttribute('data-f'); memRender(); return; }
     if(act === 'add'){ memAddOpen(); return; }
     if(act === 'recpick'){ memPickOpen(); return; }
+    if(act === 'recfold'){ mem.recOpen = !mem.recOpen; var rb = document.getElementById('memRecBox'); if(rb) rb.hidden = !mem.recOpen; tg.setAttribute('aria-expanded', mem.recOpen ? 'true' : 'false'); return; }
     if(act === 'open'){ memOpenProfile(id); return; }
     if(act === 'mprev' || act === 'mnext'){ var nm = memAddM(mem.month, act === 'mprev' ? -1 : 1); if(nm < mem.trackStart || nm > mem.cur) return; mem.month = nm; mem.mv = null; memRender(); memMonthLoad(); return; }
     if(act === 'mmode'){ mem.mode = tg.getAttribute('data-m'); try{ localStorage.setItem('withusMemMode', mem.mode); }catch(e){} memRender(); return; }
