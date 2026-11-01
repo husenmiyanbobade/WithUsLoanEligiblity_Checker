@@ -5629,7 +5629,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var pend = p.penaltyPending || [];
     if(!p.penalties.length && !pend.length) h += '<p class="adm-sub">' + esc(t('penNone')) + '</p>';
     pend.forEach(function(mo){ h += '<div class="adm-act"><span>' + esc(memMlabel(mo)) + '<small class="mem-sm">' + esc(memMoney(p.penaltyAmount) + ' \u00B7 ' + (document.documentElement.lang === 'mr' ? '\u0905\u091C\u0942\u0928 \u0932\u093E\u0935\u0932\u093E \u0928\u093E\u0939\u0940' : 'not charged yet')) + '</small></span><b>' + esc(t('penOut', { a:memMoney(p.penaltyAmount) })) + '</b></div>'; });
-    if(pend.length) h += '<p class="adm-sub">' + esc(document.documentElement.lang === 'mr' ? 'More > \u092E\u0939\u093F\u0928\u093E\u0905\u0916\u0947\u0930 \u0926\u0902\u0921 \u092E\u0927\u0942\u0928 \u0926\u0902\u0921 \u0932\u093E\u0935\u093E.' : 'Charge it in More > Month-end penalties; then it can be paid here.') + '</p>';
+    if(pend.length) h += '<p class="adm-sub">' + esc(document.documentElement.lang === 'mr' ? '\u0926\u0902\u0921 \u0932\u093E\u0935\u093E\u092F\u091A\u093E \u0906\u0939\u0947: Members \u091F\u0945\u092C > \u0926\u0902\u0921.' : 'Not charged yet. Charge it from the Members tab > Penalties button.') + '</p>' + (isOwner || true ? '<button type="button" class="ap-btn ghost" data-mem="penopen">' + esc(t('penBtn')) + '</button>' : '');
     p.penalties.slice().reverse().forEach(function(x){
       var st = x.status === 'Waived' ? t('penWaived') : x.status === 'Paid' ? t('penPaid') : x.status === 'Part paid' ? t('penPart') : t('penUnpaid');
       var right = x.outstanding > 0 ? '<b>' + esc(t('penOut', { a:memMoney(x.outstanding) })) + '</b>' : '';
@@ -6624,7 +6624,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ gl.busy = false; tg.disabled = false; s6Say(t('memEGeneric')); });
   }
   var st6 = { data:null, key:'' };
-  var BUILD_INFO = { app:'V24', build:'v47', date:'1 Nov 2026', cache:'withus-v47' };
+  var BUILD_INFO = { app:'V25', build:'v48', date:'1 Nov 2026', cache:'withus-v48' };
   function s6VerOpen(){
     mem.kind = 's6form'; var mr = document.documentElement.lang === 'mr', w = getWho() || {};
     function row(l, v){ return '<div class="adm-act"><span>' + esc(l) + '</span><b style="text-align:right;">' + esc(v) + '</b></div>'; }
@@ -6988,8 +6988,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
         admChecksView(res.check, head); return;
       }
       var e = res && res.error;
-      if(e === 'already-imported') admShow('<h3>' + esc(t('admImport')) + '</h3><div class="ap-warn">' + esc(t('admImportAgain', { m:res.members })) + '</div>' + admBtnRow(['<button type="button" class="ap-btn ap-danger" data-adm="replace">' + esc(t('admReplace')) + '</button>', '<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>']));
-      else admShow('<h3>' + esc(t('admImport')) + '</h3><div class="ap-note">' + esc(e === 'has-live-data' ? t('admLive') : e === 'no-dataset' ? t('admNoData') : admErr(e)) + '</div>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>']));
+      if(e === 'already-imported') admShow('<h3>' + esc(t('admImport')) + '</h3><div class="ap-warn">' + esc(t('admImportAgain', { m:res.members })) + '</div>' + admBtnRow(['<button type="button" class="ap-btn" data-adm="ixopen">Replace everything from a fresh Excel</button>', '<button type="button" class="ap-btn ap-danger" data-adm="replace">' + esc(t('admReplace')) + '</button>', '<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>']));
+      else admShow('<h3>' + esc(t('admImport')) + '</h3><div class="ap-note">' + esc(e === 'has-live-data' ? t('admLive') : e === 'no-dataset' ? t('admNoData') : admErr(e)) + '</div>' + admBtnRow((e === 'has-live-data' ? ['<button type="button" class="ap-btn" data-adm="ixopen">Replace everything from a fresh Excel</button>'] : []).concat(['<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>'])));
     }).catch(function(){ admShow('<h3>' + esc(t('admImport')) + '</h3><div class="ap-note">' + esc(t('admFail')) + '</div>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>'])); });
   }
   function admDoExport(){
@@ -7004,6 +7004,54 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ admSay(t('admFail')); });
   }
 
+
+
+  /* ----- replace everything from a fresh Excel (v47) ----- */
+  var ix = { ds:null, closedN:0, name:'', backup:false };
+  function ixOpen(){
+    ix = { ds:null, closedN:0, name:'', backup:false };
+    admShow('<h3>Replace from a fresh Excel</h3><div class="ap-warn">This removes everything entered in the app (payments, receipts, penalties, exits, new loans) and loads the Excel again. Admin accounts and settings stay.</div><p class="adm-sub">Step 1: download the backup. Step 2: choose the Excel file. Step 3: confirm.</p>' + admBtnRow(['<button type="button" class="ap-btn" data-adm="ixbackup">1. Download backup</button>', '<label class="ap-btn" style="display:block; text-align:center; cursor:pointer;">2. Choose Excel file<input type="file" id="ixFile" accept=".xlsx,.xls" style="display:none;"></label>', '<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>']));
+  }
+  function ixRead(file){
+    admShow('<h3>Replace from a fresh Excel</h3>' + s6Skel());
+    var go = function(){
+      var rd = new FileReader();
+      rd.onerror = function(){ admShow('<h3>Replace from a fresh Excel</h3><div class="ap-note">Could not read that file.</div>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="ixopen">' + esc(t('admBack')) + '</button>'])); };
+      rd.onload = function(ev){
+        try{
+          var wb = XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
+          var loanName = null, memName = null, closedName = null;
+          wb.SheetNames.forEach(function(n){ if(/closed/i.test(n)) closedName = n; else if(/loan/i.test(n) && !loanName) loanName = n; else if(/member/i.test(n) && !memName) memName = n; });
+          if(!loanName || !memName) throw new Error('sheets');
+          var rows = normalizeRows(XLSX.utils.sheet_to_json(wb.Sheets[loanName], { defval:'' }));
+          var md = normalizeMemberRows(XLSX.utils.sheet_to_json(wb.Sheets[memName], { header:1, defval:'' }));
+          md.fineInfo = null;
+          [loanName].concat(wb.SheetNames).some(function(n){ var sh = wb.Sheets[n]; if(!sh) return false; var fi = parseFineTable(XLSX.utils.sheet_to_json(sh, { header:1, defval:'' })); if(fi){ md.fineInfo = fi; return true; } return false; });
+          if(!rows.length || !md.members.length) throw new Error('empty');
+          var closed = [], nn = function(x){ return typeof x === 'number' ? x : 0; };
+          if(closedName) XLSX.utils.sheet_to_json(wb.Sheets[closedName], { header:1, defval:'' }).forEach(function(r){ if(typeof r[0] === 'number' && String(r[1]).trim()) closed.push({ sr:r[0], name:String(r[1]).trim(), deposit:nn(r[2]), loan:nn(r[3]), lra:nn(r[4]), late:nn(r[5]), net:nn(r[6]), remarks:String(r[7] || '') }); });
+          ix.ds = { rows:rows, memberData:md }; ix.closedN = closed.length; ix.name = file.name;
+          admShow('<h3>Replace from a fresh Excel</h3><div class="adm-card"><div class="adm-act"><span>File</span><b style="word-break:break-all;">' + esc(file.name) + '</b></div><div class="adm-act"><span>Members</span><b>' + md.members.length + '</b></div><div class="adm-act"><span>Loan rows</span><b>' + rows.length + '</b></div><div class="adm-act"><span>Closed accounts (for Clean-up import)</span><b>' + closed.length + '</b></div></div><div class="ap-warn">All app entries will be deleted. Type REPLACE ALL to confirm.</div><input class="adm-in" id="ixPhrase" type="text" autocomplete="off" placeholder="REPLACE ALL">' + admBtnRow(['<button type="button" class="ap-btn ap-danger" data-adm="ixgo">Replace everything</button>', '<button type="button" class="ap-btn ghost" data-adm="ixopen">' + esc(t('admBack')) + '</button>']));
+        }catch(e){ admShow('<h3>Replace from a fresh Excel</h3><div class="ap-note">This does not look like the WITH US finance Excel (needs the Member Details and LoanRepayment Details sheets).</div>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="ixopen">' + esc(t('admBack')) + '</button>'])); }
+      };
+      rd.readAsArrayBuffer(file);
+    };
+    if(typeof XLSX === 'undefined') loadXlsx(go, function(){ admSay(t('admNoXlsx')); ixOpen(); }); else go();
+  }
+  function ixGo(){
+    var v = (document.getElementById('ixPhrase') || {}).value || '';
+    if(v.trim() !== 'REPLACE ALL'){ admSay('Type REPLACE ALL exactly.'); return; }
+    admBusy();
+    admCall({ kind:'importDataset', replace:true, wipe:'REPLACE ALL', dataset:ix.ds }).then(function(res){
+      if(res && res.ok){
+        var head = '<div class="ap-rows"><div><b>' + esc(t('admImported', { m:res.members, c:res.contributions, l:res.loans })) + '</b></div></div><p class="adm-sub">Next: Clean-up import (choose the same Excel), then Check totals.</p>';
+        if(res.loansWithoutMember) head += '<p class="adm-sub">' + esc(t('admLoansNoMember', { n:res.loansWithoutMember })) + '</p>';
+        admChecksView(res.check, head); return;
+      }
+      var e = res && res.error, msg = e === 'no-recent-backup' ? 'Download the backup first (step 1), then try again.' : e === 'golive-locked' ? 'The app is already live, so the import is locked.' : admErr(e);
+      admShow('<h3>Replace from a fresh Excel</h3><div class="ap-note">' + esc(msg) + '</div>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="ixopen">' + esc(t('admBack')) + '</button>']));
+    }).catch(function(){ admShow('<h3>Replace from a fresh Excel</h3><div class="ap-note">' + esc(t('admFail')) + '</div>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="ixopen">' + esc(t('admBack')) + '</button>'])); });
+  }
 
   /* ----- clean-up import: closed accounts, blank loan rows, name matches (v32) ----- */
   var cu = { names:[], plan:null, pick:{}, noSheet:false };
@@ -7063,7 +7111,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
 
   (function(){
     var el = document.getElementById('admSheet');
-    el.addEventListener('change', function(e){ if(e.target && e.target.id === 'cuFile' && e.target.files && e.target.files[0]) cuRead(e.target.files[0]); });
+    el.addEventListener('change', function(e){ if(e.target && e.target.id === 'ixFile' && e.target.files && e.target.files[0]) ixRead(e.target.files[0]); if(e.target && e.target.id === 'cuFile' && e.target.files && e.target.files[0]) cuRead(e.target.files[0]); });
     el.addEventListener('click', function(e){
       if(e.target === el){ admClose(); return; }
       var tg = e.target.closest ? e.target.closest('[data-adm]') : null; if(!tg) return;
@@ -7086,6 +7134,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
         return;
       }
       if(act === 'replace'){ admDoImport(true); return; }
+      if(act === 'ixopen'){ ixOpen(); return; }
+      if(act === 'ixbackup'){ admDoExport(); return; }
+      if(act === 'ixgo'){ if(adm.armed !== 'ixgo'){ adm.armed = 'ixgo'; tg.textContent = t('admTapAgain'); tg.classList.add('arm'); return; } adm.armed = ''; ixGo(); return; }
       if(act === 'check'){ admBusy(); admCall({ kind:'totalsCheck' }).then(function(res){ if(res && res.ready) admChecksView(res, ''); else admShow('<h3>' + esc(t('admCheck')) + '</h3><div class="ap-note">' + esc(admErr(res && res.error)) + '</div>' + admBtnRow(['<button type="button" class="ap-btn ghost" data-adm="back">' + esc(t('admBack')) + '</button>'])); }).catch(function(){ admSay(t('admFail')); admOpen(); }); return; }
       if(act === 'export'){ admDoExport(); return; }
     });
