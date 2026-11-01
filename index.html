@@ -67,13 +67,19 @@
     return null;
   }
   function hideBox(){ if(box){ box.remove(); box = null; } }
+  function showBye(){
+    var d = document.createElement('div'); d.className = 'ap-overlay'; d.style.zIndex = '1400'; d.style.background = '#134E3F'; d.style.alignItems = 'center'; d.style.flexDirection = 'column'; d.style.gap = '14px'; d.style.color = '#fff'; d.style.textAlign = 'center'; d.style.padding = '24px';
+    d.innerHTML = '<img src="logo-128.png" alt="" width="72" height="72" style="border-radius:50%;"><b style="font-size:18px;">' + (mr() ? '\u0905\u0945\u092A \u092C\u0902\u0926 \u0915\u0930\u093E\u092F\u0932\u093E \u0924\u092F\u093E\u0930' : 'You can close the app now') + '</b><span style="font-size:14px; opacity:.9; max-width:300px;">' + (mr() ? '\u092E\u093E\u0917\u0947 \u092C\u091F\u0923 \u0906\u0923\u0916\u0940 \u090F\u0915\u0926\u093E \u0926\u093E\u092C\u093E \u0915\u093F\u0902\u0935\u093E \u0905\u0945\u092A \u0938\u094D\u0935\u093E\u0907\u092A \u0915\u0930\u093E. \u0924\u0941\u092E\u094D\u0939\u0940 \u0932\u0949\u0917 \u0907\u0928 \u0930\u093E\u0939\u093E\u0932.' : 'Press Back once more, or swipe the app away. You stay signed in.') + '</span><button type="button" class="ap-btn" style="background:#fff; color:#134E3F; padding:10px 22px; margin-top:8px;">' + (mr() ? '\u092A\u0941\u0928\u094D\u0939\u093E \u0909\u0918\u0921\u093E' : 'Open the app again') + '</button>';
+    d.querySelector('button').addEventListener('click', function(){ d.remove(); exiting = false; arm(); });
+    document.body.appendChild(d);
+  }
   function ask(){
     if(box) return;
     box = document.createElement('div'); box.className = 'ap-overlay'; box.style.zIndex = '1300'; box.style.alignItems = 'center'; box.setAttribute('role', 'alertdialog'); box.setAttribute('aria-modal', 'true');
     box.innerHTML = '<div class="ap-sheet" style="border-radius:22px; max-width:340px; margin:0 20px;"><h3 style="margin-top:4px;">' + (mr() ? '\u0905\u0945\u092A\u092E\u0927\u0942\u0928 \u092C\u093E\u0939\u0947\u0930 \u092A\u0921\u093E\u092F\u091A\u0947?' : 'Exit the app?') + '</h3><p class="adm-sub">' + (mr() ? '\u0924\u0941\u092E\u094D\u0939\u093E\u0932\u093E \u0916\u093E\u0924\u094D\u0930\u0940 \u0906\u0939\u0947 \u0915\u0940 \u0924\u0941\u092E\u094D\u0939\u0940 \u0905\u0945\u092A\u092E\u0927\u0942\u0928 \u092C\u093E\u0939\u0947\u0930 \u092A\u0921\u0942 \u0907\u091A\u094D\u091B\u093F\u0924\u093E? \u0924\u0941\u092E\u091A\u093E \u0938\u0924\u094D\u0930 \u091A\u093E\u0932\u0942 \u0930\u093E\u0939\u0940\u0932.' : 'Are you sure you want to exit the application? You will stay signed in.') + '</p><div class="ap-btnrow"><button type="button" class="ap-btn" data-exit="yes">' + (mr() ? '\u0939\u094B\u092F, \u092C\u093E\u0939\u0947\u0930 \u092A\u0921\u093E' : 'Yes, exit') + '</button><button type="button" class="ap-btn ghost" data-exit="no">' + (mr() ? '\u0930\u0926\u094D\u0926 \u0915\u0930\u093E' : 'Cancel') + '</button></div></div>';
     box.addEventListener('click', function(e){
       var b = e.target.closest && e.target.closest('[data-exit]');
-      if(b && b.getAttribute('data-exit') === 'yes'){ exiting = true; hideBox(); try{ history.go(-1); }catch(x){} setTimeout(function(){ try{ window.close(); }catch(x){} }, 250); }
+      if(b && b.getAttribute('data-exit') === 'yes'){ exiting = true; hideBox(); try{ window.close(); }catch(x){} setTimeout(showBye, 300); }
       else if(b || e.target === box){ hideBox(); arm(); }
     });
     document.body.appendChild(box);
@@ -1044,7 +1050,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   @keyframes s6sk{ to{ background-position:-200% 0; } }
   @media (prefers-reduced-motion:reduce){ *{ animation-duration:.01ms !important; transition-duration:.01ms !important; } }
   /* single-line brand */
-  .brand-title{ white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }
+  .brand-title{ white-space:normal !important; overflow:visible !important; text-overflow:clip !important; font-size:clamp(15px,4.6vw,19px) !important; line-height:1.15 !important; }
   /* Home: society at a glance */
   #dashCard{ padding:16px 16px 14px; }
   .s6-hd{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px; }
@@ -1087,6 +1093,12 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   .mc-chip.pen{ border-style:dashed; color:var(--ink-soft); }
   /* v27: loans */
   .mem-loan{ border:1px solid var(--line-soft); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:4px; cursor:pointer; }
+  .gr-row{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:start; padding:10px 0; border-bottom:1px solid var(--line-soft); }
+  .gr-row:last-child{ border-bottom:0; }
+  .gr-n{ min-width:0; overflow-wrap:anywhere; line-height:1.3; }
+  .gr-n small, .gr-a small{ display:block; font-size:12px; color:var(--ink-mute); margin-top:2px; }
+  .gr-a{ text-align:right; white-space:nowrap; }
+  .gr-a b{ display:block; }
   .mem-det summary{ cursor:pointer; font-size:13.5px; font-weight:600; padding:8px 0; min-height:36px; }
   /* v26: penalties */
   .pen-month{ display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:52px; padding:6px 14px; border-bottom:1px solid var(--line-soft); cursor:pointer; }
@@ -1688,7 +1700,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   </div>
 
 </main>
-<p class="ver-foot" id="verFoot"></p>
+
 
 
 
@@ -1796,8 +1808,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     });
     ['monList','rpList','apList'].forEach(function(k){ var v = null; try{ v = sessionStorage.getItem(key(k)); }catch(e){} if(v === '1') setFold(k, true, false); });
   })();
-  var APP_VER = 'V22 \u00B7 v45';
-  (function(){ var f = document.getElementById('verFoot'); if(f) f.textContent = 'WITH US \u00B7 ' + APP_VER; })();
+  var APP_VER = 'V23 \u00B7 v46';
   var MR_MONTHS = ["जाने", "फेब्रु", "मार्च", "एप्रि", "मे", "जून", "जुलै", "ऑग", "सप्टें", "ऑक्टो", "नोव्हें", "डिसें"];
   var VALUE_KEYS = { 'active':'v_active', 'closed':'v_closed', 'in process':'v_inprocess', 'inprocess':'v_inprocess',
                      'paid':'v_paid', 'pending':'v_pending', 'yes':'v_yes', 'no':'v_no', 'not specified':'v_notspec' };
@@ -5205,6 +5216,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
         mem.list = res.members; mem.cur = res.month; mem.amount = res.amount; mem.today = res.today; mem.fee = res.joiningFee || 0; mem.trackStart = res.trackStart || '2026-01'; mem.penAmt = res.penaltyAmount || 500; mem.loaded = true; mem.failed = false; mem.fetchedAt = Date.now();
         if(!mem.month) mem.month = mem.cur;
         memCacheSave(); try{ s6DashCard(); }catch(e){}
+        setTimeout(function(){ try{ memWarmProfiles(); }catch(e){} }, 2500);
         if(!mem.prefetched){ mem.prefetched = true; setTimeout(function(){ try{ lnBookLoad(); }catch(e){} try{ if(mem.cur){ monDbLoad(mem.cur, true); rpDbLoad(mem.cur, true); } monDbSummary(); }catch(e){} }, 3000); }
       } else if(!(res && res.ok) && !mem.loaded) mem.failed = true;
       if(done) done(!!(res && res.ok), !!(res && res.error === 'not-set-up'));
@@ -5388,6 +5400,20 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function memStatusPill(s){ return s === 'Exited' ? '<span class="mem-pill off">' + esc(t('memStatusExit')) + '</span>' : s === 'Suspended' ? '<span class="mem-pill gold">' + esc(t('memStatusSusp')) + '</span>' : '<span class="mem-pill green">' + esc(t('memStatusActive')) + '</span>'; }
 
+  var memWarming = false;
+  function memWarmProfiles(){
+    if(memWarming || !mem.list || !mem.list.length) return;
+    var g = admGen, pending = mem.list.map(function(m){ return m.id; }).filter(function(id){ return !(mem.pc && mem.pc[id]); });
+    if(!pending.length) return;
+    memWarming = true;
+    (function next(){
+      if(g !== admGen || !pending.length){ memWarming = false; if(g !== admGen) setTimeout(memWarmProfiles, 3000); return; }
+      var ids = pending.splice(0, 20);
+      admCall({ kind:'memberProfiles', ids:ids }, true).then(function(res){
+        if(res && res.ok && res.items && g === admGen){ mem.pc = mem.pc || {}; Object.keys(res.items).forEach(function(k){ if(res.items[k] && res.items[k].ok && !mem.pc[k]) mem.pc[k] = res.items[k]; }); }
+      }).catch(function(){}).then(function(){ setTimeout(next, 700); });
+    })();
+  }
   var memPfT = 0;
   function memPrefetchSoon(){
     clearTimeout(memPfT);
@@ -5728,7 +5754,12 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }
     h += '</div>';
     if((p.guarantorFor || []).length){
-      h += '<div class="adm-card"><p class="adm-lbl">' + esc(t('lnGuarOf')) + '</p>' + p.guarantorFor.slice(0, 8).map(function(g){ return '<div class="adm-act"><span>' + esc(g.borrower) + '</span><b>' + esc(memMoney(g.amount)) + ' · ' + esc(memD(g.due)) + '</b></div>'; }).join('') + '</div>';
+      var gOpen = p.guarantorFor.filter(function(g){ return g.st !== 'Closed'; }), gPast = p.guarantorFor.filter(function(g){ return g.st === 'Closed'; });
+      function gRow(g){ return '<div class="gr-row"><span class="gr-n">' + esc(g.borrower || '-') + '<small>' + esc(g.loan) + (g.st && g.st !== 'Closed' && g.st !== 'Active' ? ' \u00B7 ' + esc(g.st) : '') + '</small></span><span class="gr-a"><b>' + esc(memMoney(g.amount)) + '</b><small>' + esc(memD(g.due)) + '</small></span></div>'; }
+      h += '<div class="adm-card"><p class="adm-lbl">' + esc(t('lnGuarOf')) + '</p>';
+      h += gOpen.length ? gOpen.map(gRow).join('') : '<p class="adm-sub">' + esc(document.documentElement.lang === 'mr' ? '\u0938\u0927\u094D\u092F\u093E \u0915\u094B\u0923\u0924\u094D\u092F\u093E\u0939\u0940 \u0915\u0930\u094D\u091C\u093E\u091A\u0947 \u091C\u093E\u092E\u0940\u0928\u0926\u093E\u0930 \u0928\u093E\u0939\u0940' : 'Not a guarantor for any open loan.') + '</p>';
+      if(gPast.length) h += '<details class="mem-det"><summary>' + esc((document.documentElement.lang === 'mr' ? '\u092E\u093E\u0917\u0940\u0932 \u091C\u093E\u092E\u0940\u0928\u0926\u093E\u0930\u0940' : 'Past guarantees') + ' (' + gPast.length + ')') + '</summary>' + gPast.map(gRow).join('') + '</details>';
+      h += '</div>';
     }
     return h;
   }
@@ -5869,17 +5900,28 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ memSheetClose(); admSay(t('memEGeneric')); });
   }
   function lnSettleRender(){
-    var r = ln.settle, l = r.loan, armed = mem.armed === 'settle';
-    var h = '<h3>' + esc(t('lnSettleTitle', { n:l.name })) + '</h3><div class="ap-note" id="memMsg" style="display:none;"></div><p class="adm-sub">' + esc(t('lnSettleSub')) + '</p>';
-    h += '<div class="adm-card">' + lnRow(t('lnSettleOwed'), esc(memMoney(r.owed))) + r.plan.map(function(p){ return lnRow((p.role === 'borrower' ? t('lnSettleOwn') : t('lnSettleG')) + ' · ' + p.name, esc(memMoney(p.amount))); }).join('') + lnRow(t('lnSettleCovered'), esc(memMoney(r.covered))) + '</div>';
-    if(r.short > 0) h += '<div class="ap-warn">' + esc(t('lnSettleShort', { n:memMoney(r.short) })) + '</div>';
-    h += '<div class="ap-btnrow">' + (r.plan.length ? '<button type="button" class="ap-btn' + (armed ? ' ap-danger' : '') + '" data-mem="lnsettlego">' + esc(armed ? t('lnSettleTap', { n:memMoney(r.covered) }) : t('lnSettleConfirm')) + '</button>' : '') + '<button type="button" class="ap-btn ghost" data-mem="lnback">' + esc(t('memCancel')) + '</button></div>';
+    var r = ln.settle, l = r.loan, mr = document.documentElement.lang === 'mr', armed = mem.armed;
+    var own = r.plan.filter(function(p){ return p.role === 'borrower'; })[0], ownAmt = own ? own.amount : 0, rest = Math.max(0, Math.round((r.owed - ownAmt) * 100) / 100);
+    var wg = r.withGuarantors || { plan:[], covered:0, short:r.short }, gp = wg.plan.filter(function(p){ return p.role === 'guarantor'; });
+    var h = '<h3>' + esc(t('lnSettleTitle', { n:l.name })) + '</h3><div class="ap-note" id="memMsg" style="display:none;"></div><p class="adm-sub">' + esc(mr ? '\u092A\u094D\u0930\u0925\u092E \u0915\u0930\u094D\u091C\u0926\u093E\u0930\u093E\u091A\u094D\u092F\u093E \u0938\u094D\u0935\u0924\u0903\u091A\u094D\u092F\u093E \u0920\u0947\u0935\u0940\u0924\u0942\u0928 \u0918\u094D\u092F\u093E. \u0909\u0930\u0932\u0947\u0932\u0940 \u0930\u0915\u094D\u0915\u092E \u0938\u092D\u093E\u0938\u0926\u093E\u0928\u0947 \u0938\u094D\u0935\u0924\u0903 \u092D\u0930\u0932\u0940 \u0924\u0930 \u091C\u093E\u092E\u0940\u0928\u0926\u093E\u0930\u093E\u0902\u0915\u0921\u0942\u0928 \u0915\u093E\u0939\u0940\u0939\u0940 \u0918\u0947\u0924 \u0928\u093E\u0939\u0940.' : "Step 1 takes the borrower's own deposit. If the member pays the rest himself, nothing is taken from the guarantors. Only if he does not pay, take the rest from the guarantors.") + '</p>';
+    h += '<div class="adm-card">' + lnRow(t('lnSettleOwed'), esc(memMoney(r.owed))) + lnRow(t('lnSettleOwn'), esc(memMoney(ownAmt))) + lnRow(mr ? '\u0909\u0930\u0932\u0947\u0932\u0940 \u0930\u0915\u094D\u0915\u092E' : 'Remaining after own deposit', '<b style="color:var(--rust)">' + esc(memMoney(rest)) + '</b>') + '</div>';
+    var act = '';
+    if(ownAmt > 0) act += '<button type="button" class="ap-btn' + (armed === 'settle0' ? ' ap-danger' : '') + '" data-mem="lnsettlego" data-g="0">' + esc(armed === 'settle0' ? t('lnSettleTap', { n:memMoney(ownAmt) }) : (rest > 0 ? (mr ? '\u0938\u094D\u0935\u0924\u0903\u091A\u094D\u092F\u093E \u0920\u0947\u0935\u0940\u0924\u0942\u0928 \u0918\u094D\u092F\u093E (\u0909\u0930\u0932\u0947\u0932\u0940 \u0924\u094B \u0938\u094D\u0935\u0924\u0903 \u092D\u0930\u0947\u0932)' : 'Take own deposit only (member pays the rest)') : t('lnSettleConfirm'))) + '</button>';
+    if(rest > 0){
+      if(gp.length) h += '<p class="adm-lbl" style="margin-top:14px;">' + esc(mr ? '\u091C\u093E\u092E\u0940\u0928\u0926\u093E\u0930\u093E\u0902\u0915\u0921\u0942\u0928 (\u0938\u092D\u093E\u0938\u0926\u093E\u0928\u0947 \u0928 \u092D\u0930\u0932\u094D\u092F\u093E\u0938\u091A)' : 'From guarantors (only if the member does not pay)') + '</p><div class="adm-card">' + gp.map(function(p){ return lnRow(t('lnSettleG') + ' \u00B7 ' + p.name, esc(memMoney(p.amount))); }).join('') + '</div>';
+      if(wg.short > 0) h += '<div class="ap-warn">' + esc(t('lnSettleShort', { n:memMoney(wg.short) })) + '</div>';
+      if(gp.length) act += '<button type="button" class="ap-btn ghost' + (armed === 'settle1' ? ' ap-danger' : '') + '" data-mem="lnsettlego" data-g="1">' + esc(armed === 'settle1' ? t('lnSettleTap', { n:memMoney(wg.covered - ownAmt) }) : (mr ? '\u0938\u092D\u093E\u0938\u0926\u093E\u0928\u0947 \u092D\u0930\u0932\u0947 \u0928\u093E\u0939\u0940: \u091C\u093E\u092E\u0940\u0928\u0926\u093E\u0930\u093E\u0902\u0915\u0921\u0942\u0928 \u0918\u094D\u092F\u093E' : 'Member did not pay: also take from guarantors')) + '</button>';
+      else if(!ownAmt) h += '<div class="ap-warn">' + esc(t('lnSettleNone')) + '</div>';
+      h += '<p class="mem-note">' + esc(mr ? '\u0938\u092D\u093E\u0938\u0926\u093E\u0928\u0947 \u0930\u0915\u094D\u0915\u092E \u0938\u094D\u0935\u0924\u0903 \u092D\u0930\u0932\u094D\u092F\u093E\u0938 \u0924\u0940 \u0915\u0930\u094D\u091C \u092A\u0930\u0924\u092B\u0947\u0921 \u092E\u094D\u0939\u0923\u0942\u0928 \u0928\u094B\u0902\u0926\u0935\u093E.' : "If the member pays himself, record it as a normal loan repayment (UPI or Bank).") + '</p>';
+    }
+    h += '<div class="ap-btnrow">' + act + '<button type="button" class="ap-btn ghost" data-mem="lnback">' + esc(t('memCancel')) + '</button></div>';
     var keep = mem.armed; memSheetShow(h); mem.armed = keep;
   }
   function lnSettleGo(btn){
-    if(mem.armed !== 'settle'){ mem.armed = 'settle'; lnSettleRender(); return; }
+    var g = btn.getAttribute('data-g') === '1', key = g ? 'settle1' : 'settle0';
+    if(mem.armed !== key){ mem.armed = key; lnSettleRender(); return; }
     mem.armed = ''; btn.disabled = true;
-    admCall({ kind:'settleConfirm', loanId:ln.settle.loan.id }).then(function(res){
+    admCall({ kind:'settleConfirm', loanId:ln.settle.loan.id, guarantors:g }).then(function(res){
       if(res && res.ok){ admSay(t('lnSettled')); memLoad(true); lnBookLoad(); lnOpen(ln.settle.loan.id); }
       else { btn.disabled = false; var e = document.getElementById('memMsg'); if(e){ e.textContent = lnErr(res); e.style.display = 'block'; } }
     }).catch(function(){ btn.disabled = false; admSay(t('memEGeneric')); });
@@ -6090,6 +6132,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(e === 'penalties-pending') return t('s6EPen', { n:res.count });
     if(e === 'already-closed') return t('s6EAlready');
     if(e === 'changed') return t('s6ExitChanged');
+    if(e === 'need-reason') return document.documentElement.lang === 'mr' ? '\u092A\u0930\u0924\u093E\u0935\u093E \u092C\u0926\u0932\u0932\u094D\u092F\u093E\u0938 \u0915\u093E\u0930\u0923 \u0932\u093F\u0939\u093E.' : 'Please write the reason for changing the refund.';
+    if(e === 'bad-refund') return (document.documentElement.lang === 'mr' ? '\u0930\u0915\u094D\u0915\u092E \u091C\u093E\u0938\u094D\u0924\u0940\u0924 \u091C\u093E\u0938\u094D\u0924 ' : 'The refund can be at most ') + memMoney(res.max || 0);
     if(e === 'bad-amount') return t('s6EAmounts');
     return memErr(res);
   }
@@ -6171,7 +6215,11 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     h += '<div class="adm-card"><div class="s6eq"><span>' + esc(t('s6ExitDeposit')) + '</span><b>' + esc(memMoney(d.gross)) + '</b></div>' +
       '<div class="s6eq"><span>− ' + esc(t('s6ExitPen')) + '</span><b>' + esc(memMoney(d.penTake)) + '</b></div>' +
       '<div class="s6eq"><span>− ' + esc(t('s6ExitArr', { n:d.arrearsMonths.length })) + '</span><b>' + esc(memMoney(d.arrTake)) + '</b></div>' +
-      '<div class="s6eq tot"><span>' + esc(t('s6ExitRefund')) + '</span><b>' + esc(memMoney(d.refund)) + '</b></div></div>';
+      '<div class="s6eq tot"><span>' + esc(t('s6ExitRefund')) + ' (' + esc(document.documentElement.lang === 'mr' ? '\u0917\u0923\u0928\u0947\u092A\u094D\u0930\u092E\u093E\u0923\u0947' : 'calculated') + ')</span><b>' + esc(memMoney(d.refund)) + '</b></div></div>';
+    var mx = Math.max(0, Math.round((d.gross - d.penTake) * 100) / 100), ex = s6.exit;
+    if(ex.custom === undefined) ex.custom = String(d.refund);
+    h += memFld(document.documentElement.lang === 'mr' ? '\u092A\u094D\u0930\u0924\u094D\u092F\u0915\u094D\u0937 \u0926\u094D\u092F\u093E\u092F\u091A\u093E \u092A\u0930\u0924\u093E\u0935\u093E (\u092C\u0926\u0932\u0924\u093E \u092F\u0947\u0924\u094B)' : 'Refund to pay (you can change it)', '<input class="adm-in" data-f="s6exitref" type="number" inputmode="decimal" min="0" max="' + mx + '" value="' + esc(ex.custom) + '">') +
+      '<p class="adm-sub" style="margin-top:-6px;">' + esc((document.documentElement.lang === 'mr' ? '\u0915\u092E\u093E\u0932: ' : 'Highest allowed: ') + memMoney(mx)) + '</p><div id="s6exitnotebox" style="' + (Math.abs(Number(ex.custom) - d.refund) > 0.009 ? '' : 'display:none;') + '">' + memFld(document.documentElement.lang === 'mr' ? '\u0915\u093E\u0930\u0923 (\u0906\u0935\u0936\u094D\u092F\u0915)' : 'Reason for the change (required)', '<input class="adm-in" data-f="s6exitnote" type="text" maxlength="100" autocomplete="off" value="' + esc(ex.note || '') + '">') + '</div>';
     if(d.shortfall > 0) h += '<div class="ap-warn">' + esc(t('s6ExitShort', { a:memMoney(d.shortfall) })) + '</div>';
     h += '<p class="mem-note">' + esc(t('s6ExitNote')) + '</p><div class="ap-btnrow"><button type="button" class="ap-btn" data-mem="s6exitgo">' + esc(t('s6ExitGo')) + '</button><button type="button" class="ap-btn ghost" data-mem="s6exitback">' + esc(t('s6Back')) + '</button></div>';
     memSheetShow(h);
@@ -6179,7 +6227,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   function s6ExitGo(tg){
     if(mem.armed !== 's6exit'){ mem.armed = 's6exit'; tg.textContent = t('admTapAgain'); tg.classList.add('arm'); return; }
     mem.armed = ''; tg.disabled = true; var d = s6.exit.data;
-    admCall({ kind:'exitConfirm', id:s6.exit.id, confirmRefund:d.refund }).then(function(res){
+    var cr = s6.exit.custom === undefined ? d.refund : Number(s6.exit.custom);
+    if(!isFinite(cr) || cr < 0){ tg.disabled = false; mem.armed = ''; s6Say(t('memEGeneric')); return; }
+    admCall({ kind:'exitConfirm', id:s6.exit.id, confirmRefund:d.refund, customRefund:cr, note:s6.exit.note || '' }).then(function(res){
       if(res && res.ok){
         s6.dashAt = 0; memLoad(true); fp.at = 0; fpLoad(true);
         memSheetShow('<h3>' + esc(t('s6ExitDone')) + '</h3><p class="adm-sub">' + esc(t('s6ExitDoneSub', { n:res.name, a:memMoney(res.refund) })) + '</p><div class="ap-btnrow"><button type="button" class="ap-btn" data-mem="close">' + esc(t('memDone')) + '</button></div>');
@@ -6359,7 +6409,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     function grp(title, items){ return items.length ? '<p class="mo-lbl">' + esc(title) + '</p><div class="mo-grp">' + items.join('') + '</div>' : ''; }
     el.innerHTML = grp(t('moGMoney'), [li('s6wa', t('waMenu')), li('s6reports', t('s6BtnReports')), li('s6close', t('s6BtnClose'))]) +
       grp(t('moGCheck'), [li('s6xc', t('xcMenu')), li('s6audit', t('moAudit'))]) +
-      grp(t('moGAdmin'), [li('s6settings', t('moSettings'))].concat(owner ? [li('s6admins', t('moAdmins')), li('s6golive', t('glMenu'))] : []));
+      grp(t('moGAdmin'), [li('s6settings', t('moSettings'))].concat(owner ? [li('s6admins', t('moAdmins')), li('s6golive', t('glMenu'))] : []).concat([li('s6version', document.documentElement.lang === 'mr' ? '\u0906\u0935\u0943\u0924\u094D\u0924\u0940' : 'Version')]));
     xlPlace(true);
   }
   function xlPlace(on){
@@ -6570,6 +6620,32 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ gl.busy = false; tg.disabled = false; s6Say(t('memEGeneric')); });
   }
   var st6 = { data:null, key:'' };
+  var BUILD_INFO = { app:'V23', build:'v46', date:'1 Nov 2026', cache:'withus-v46' };
+  function s6VerOpen(){
+    mem.kind = 's6form'; var mr = document.documentElement.lang === 'mr', w = getWho() || {};
+    function row(l, v){ return '<div class="adm-act"><span>' + esc(l) + '</span><b style="text-align:right;">' + esc(v) + '</b></div>'; }
+    function show(sc, db){
+      var h = '<h3>' + esc(mr ? '\u0906\u0935\u0943\u0924\u094D\u0924\u0940' : 'Version') + '</h3><div class="adm-card">' +
+        row(mr ? '\u0905\u0945\u092A' : 'App', BUILD_INFO.app + ' \u00B7 ' + BUILD_INFO.build) +
+        row(mr ? '\u092C\u093F\u0932\u094D\u0921 \u0924\u093E\u0930\u0940\u0916' : 'Build date', BUILD_INFO.date) +
+        row(mr ? '\u0938\u094D\u0915\u094D\u0930\u093F\u092A\u094D\u091F (Code.gs)' : 'Script (Code.gs)', sc || '...') +
+        row(mr ? '\u0938\u0935\u094D\u0939\u093F\u0938 \u0935\u0930\u094D\u0915\u0930 \u0915\u0945\u0936' : 'Saved-copy cache', (swc || BUILD_INFO.cache)) +
+        row(mr ? '\u0932\u0949\u0917\u093F\u0928' : 'Signed in as', (w.u || '-') + (w.r === 'admin1' ? ' (owner)' : w.r ? ' (admin)' : '')) +
+        row(mr ? '\u092D\u093E\u0937\u093E' : 'Language', mr ? '\u092E\u0930\u093E\u0920\u0940' : 'English');
+      if(db && db.counts) h += row(mr ? '\u0928\u094B\u0902\u0926\u0940' : 'Sheet rows', 'Members ' + db.counts.Members + ' \u00B7 Loans ' + db.counts.Loans + ' \u00B7 Ledger ' + db.counts.Ledger + ' \u00B7 Audit ' + db.counts.Audit);
+      h += '</div>';
+      if(sc && sc.indexOf(BUILD_INFO.app) !== 0) h += '<div class="ap-warn">' + esc(mr ? 'Code.gs \u0928\u0935\u0940\u0928 \u0906\u0935\u0943\u0924\u094D\u0924\u0940\u0924 \u0921\u093F\u092A\u094D\u0932\u094B\u092F \u0915\u0930\u093E.' : 'The script version differs from the app. Redeploy Code.gs as a New version.') + '</div>';
+      h += '<p class="mem-note">' + esc(location.href.split('#')[0]) + '</p><div class="ap-btnrow"><button type="button" class="ap-btn ghost" data-mem="s6more">' + esc(t('s6Back')) + '</button><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>';
+      memSheetShow(h);
+    }
+    var swc = '', sc = '', db = null;
+    show('', null);
+    try{ caches.keys().then(function(k){ swc = k.filter(function(x){ return /^withus-/.test(x); }).join(', '); if(mem.kind === 's6form') show(sc, db); }).catch(function(){}); }catch(e){}
+    Promise.all([admCall({ kind:'settingsGet' }), admCall({ kind:'dbStatus' })]).then(function(rs){
+      sc = (rs[0] && rs[0].codeVer) || (mr ? '\u0905\u091C\u0942\u0928 \u0921\u093F\u092A\u094D\u0932\u094B\u092F \u0928\u093E\u0939\u0940' : 'old (not redeployed)'); db = rs[1];
+      if(mem.kind === 's6form') show(sc, db);
+    }).catch(function(){ if(mem.kind === 's6form') show(mr ? '-' : 'not reachable', null); });
+  }
   function s6SetOpen(){
     mem.kind = 's6form'; memSheetShow(s6Skel());
     admCall({ kind:'settingsGet' }).then(function(res){ if(res && res.ok){ st6.data = res; s6SetRender(''); } else { memSheetClose(); admSay(memErr(res)); } }).catch(function(){ memSheetClose(); admSay(t('memEGeneric')); });
@@ -6580,7 +6656,6 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     d.settings.forEach(function(x){
       h += '<div class="adm-act"><span>' + esc(t('stk_' + x.key)) + '<small class="mem-sm">' + esc(s6SetShow(x.key, x.value)) + '</small></span>' + (x.editable && d.canEdit ? '<button type="button" class="ap-btn ghost s6-mini" data-mem="s6setedit" data-k="' + x.key + '">' + esc(t('stEdit')) + '</button>' : (x.editable ? '' : '<small class="mem-sm">' + esc(t('stLocked')) + '</small>')) + '</div>';
     });
-    h += '<div class="adm-act"><span>' + esc(document.documentElement.lang === 'mr' ? '\u0906\u0935\u0943\u0924\u094D\u0924\u0940' : 'Version') + '<small class="mem-sm">' + esc('App ' + APP_VER + (d.codeVer ? ' \u00B7 Script ' + d.codeVer : '')) + '</small></span></div>';
     memSheetShow(h + '</div><div class="s6-btns" style="margin-top:12px;"><button type="button" class="ap-btn ghost" data-mem="s6more">' + esc(t('s6Back')) + '</button><button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button></div>');
   }
   function s6SetEdit(k){
@@ -6600,6 +6675,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(act === 's6more'){ s6MoreOpen(); return true; }
     if(act === 's6audit'){ s6RepOpen('audit', ''); return true; }
     if(act === 's6settings'){ s6SetOpen(); return true; }
+    if(act === 's6version'){ s6VerOpen(); return true; }
     if(act === 's6admins'){ memSheetClose(); document.getElementById('admBtn').click(); return true; }
     if(act === 's6lang'){ document.getElementById('langToggle').click(); s6MoreOpen(); return true; }
     if(act === 's6theme'){ document.getElementById('themeToggle').click(); return true; }
@@ -6646,6 +6722,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(fld === 's6bank'){ f.bank = v; var e1 = document.getElementById('s6diff'); if(e1) e1.textContent = s6DiffText(); return; }
     if(fld === 's6cash'){ f.cash = v; var e2 = document.getElementById('s6diff'); if(e2) e2.textContent = s6DiffText(); return; }
     if(fld === 's6mq'){ f.mq = v; s6MemRes(); return; }
+    if(fld === 's6exitref'){ s6.exit.custom = v; var nb = document.getElementById('s6exitnotebox'); if(nb) nb.style.display = (v !== '' && Math.abs(Number(v) - s6.exit.data.refund) > 0.009) ? '' : 'none'; return; }
+    if(fld === 's6exitnote'){ s6.exit.note = v; return; }
     if(fld === 's6stval'){ st6.val = v; return; }
     if(fld === 's6gltype'){ gl.typed = v; var gb = document.getElementById('glGoBtn'); if(gb) gb.disabled = !(gl.v && gl.v.canGo && v === 'GO LIVE'); return; }
     if(fld === 's6wamonth'){ wa.month = v; return; }
