@@ -1,4 +1,4 @@
-var CACHE = 'withus-v53';
+var CACHE = 'withus-v54';
 var SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'logo-128.png', 'icon-maskable-512.png'];
 self.addEventListener('install', function(e){ e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL); }).then(function(){ return self.skipWaiting(); })); });
 self.addEventListener('activate', function(e){
@@ -7,7 +7,8 @@ self.addEventListener('activate', function(e){
 self.addEventListener('fetch', function(e){
   var req = e.request;
   if(req.method !== 'GET') return;
-  var host = new URL(req.url).hostname;
+  var u0 = new URL(req.url), host = u0.hostname;
+  if(u0.pathname.slice(-11) === 'member.html' || u0.pathname.slice(-20) === 'member.webmanifest') return;   // the Member app is always loaded live
   if(host === 'script.google.com' || host.slice(-18) === 'googleusercontent.com') return; // shared data: always live
   if(req.mode === 'navigate'){
     // Open at once from the saved page; fetch the newest copy in the background and tell the page when it differs.

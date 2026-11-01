@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#134E3F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WITH US Member">
+<meta name="robots" content="noindex">
+<title>WITH US Member</title>
+<link rel="manifest" href="member.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --ink:#1A2430; --ink-soft:#4A5864; --ink-mute:#66727E;
+    --paper:#F2F4F6; --card:#FFFFFF; --line:#E3E7EB; --line-soft:#EDF0F2;
+    --green:#2B7A5B; --green-soft:#E4F1EB; --rust:#A33F2D; --rust-soft:#F6E3DE;
+    --amber:#9A6416; --amber-soft:#F7ECDA; --blue:#3A5A78; --info-soft:#E4ECF3;
+    --hdr:#134E3F; --btn:#134E3F; --on-btn:#FFFFFF; --radius:14px;
+    --shadow:0 1px 3px rgba(16,32,40,.06);
+  }
+  html[data-theme="dark"]{
+    --ink:#E6ECEA; --ink-soft:#B8C4BF; --ink-mute:#8FA39B;
+    --paper:#0E1A17; --card:#16231F; --line:#25352F; --line-soft:#1E2D28;
+    --green:#4FB68B; --green-soft:#173A2E; --rust:#E58A74; --rust-soft:#3A2420;
+    --amber:#D9A24A; --amber-soft:#3A2F18; --blue:#8DB4D8; --info-soft:#1F3040;
+    --hdr:#0B2E25; --btn:#2C7F63; --shadow:none;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; background:var(--paper); color:var(--ink); }
+  body{ font-family:'Noto Sans Devanagari','Segoe UI',Roboto,system-ui,sans-serif; font-size:16px; line-height:1.4; min-height:100vh; padding-bottom:calc(76px + env(safe-area-inset-bottom)); }
+  .band{ background:var(--hdr); color:#fff; padding:calc(14px + env(safe-area-inset-top)) 16px 14px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:5; }
+  .band img{ width:46px; height:46px; border-radius:50%; flex:none; }
+  .band .t{ flex:1; min-width:0; }
+  .band .t small{ display:block; font-size:12.5px; color:#B9D2CA; }
+  .band .t b{ display:block; font-size:18px; line-height:1.15; }
+  .band button{ background:transparent; color:#fff; border:1.5px solid rgba(255,255,255,.35); border-radius:999px; height:42px; min-width:42px; padding:0 14px; font:inherit; font-size:14px; }
+  main{ padding:14px 16px 24px; max-width:640px; margin:0 auto; }
+  h2{ font-size:20px; margin:6px 0 12px; }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin:0 0 12px; box-shadow:var(--shadow); }
+  .lbl{ font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-mute); margin:0 0 8px; }
+  .sub{ color:var(--ink-soft); font-size:14.5px; margin:4px 0; }
+  .stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 12px; }
+  .stat{ border-radius:var(--radius); padding:14px; border:1px solid var(--line); background:var(--card); }
+  .stat span{ display:block; font-size:12.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-mute); }
+  .stat b{ display:block; font-size:26px; margin-top:4px; }
+  .stat.paid{ background:var(--green-soft); } .stat.paid b{ color:var(--green); }
+  .stat.owe{ background:var(--amber-soft); } .stat.owe b{ color:var(--amber); }
+  .row{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px solid var(--line-soft); }
+  .row:last-child{ border-bottom:0; }
+  .row .n{ min-width:0; overflow-wrap:anywhere; }
+  .row .n small, .row .a small{ display:block; font-size:12.5px; color:var(--ink-mute); margin-top:2px; }
+  .row .a{ text-align:right; white-space:nowrap; }
+  .pill{ display:inline-block; font-size:12.5px; padding:3px 10px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); }
+  .pill.ok{ color:var(--green); border-color:var(--green); background:var(--green-soft); }
+  .pill.bad{ color:var(--rust); border-color:var(--rust); background:var(--rust-soft); }
+  .pill.warn{ color:var(--amber); border-color:var(--amber); background:var(--amber-soft); }
+  .note{ border-radius:var(--radius); padding:12px 14px; margin:0 0 12px; font-size:15px; }
+  .note.ok{ background:var(--green-soft); border:1px solid var(--green); }
+  .note.bad{ background:var(--rust-soft); border:1px solid var(--rust); }
+  .note.bday{ background:linear-gradient(135deg,var(--amber-soft),var(--green-soft)); border:1px solid var(--amber); text-align:center; font-size:17px; }
+  details{ margin-top:6px; } summary{ cursor:pointer; padding:10px 0; font-weight:600; }
+  .months{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .m{ border:1px solid var(--line); border-radius:10px; padding:8px 4px; text-align:center; font-size:13.5px; }
+  .m i{ display:block; font-style:normal; font-size:12px; margin-top:2px; color:var(--ink-mute); }
+  .m.p{ background:var(--green-soft); border-color:var(--green); } .m.p i{ color:var(--green); }
+  .m.d{ background:var(--rust-soft); border-color:var(--rust); } .m.d i{ color:var(--rust); }
+  .m.f{ opacity:.55; }
+  .loan .top{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px; }
+  .loan .top b{ font-size:20px; }
+  .kv{ display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid var(--line-soft); font-size:15px; }
+  .kv:last-child{ border-bottom:0; } .kv b{ text-align:right; }
+  /* login */
+  .login{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 20px calc(24px + env(safe-area-inset-bottom)); background:var(--hdr); color:#fff; }
+  .login img{ width:96px; height:96px; border-radius:50%; margin-bottom:14px; }
+  .login h1{ font-size:24px; margin:0 0 4px; } .login p{ margin:0 0 18px; color:#B9D2CA; font-size:15px; text-align:center; }
+  .login form{ width:100%; max-width:340px; display:flex; flex-direction:column; gap:12px; }
+  .login input{ width:100%; height:52px; border-radius:12px; border:0; padding:0 16px; font:inherit; font-size:18px; letter-spacing:.04em; color:#1A2430; background:#fff; }
+  .login .go{ height:52px; border-radius:12px; border:0; background:#E9C46A; color:#2b2108; font:inherit; font-size:17px; font-weight:700; }
+  .login .go[disabled]{ opacity:.6; }
+  .login .err{ background:#F6E3DE; color:#7a2a1b; border-radius:10px; padding:10px 12px; font-size:14.5px; display:none; }
+  .login .tools{ margin-top:16px; display:flex; gap:10px; }
+  .login .tools button{ background:transparent; color:#fff; border:1.5px solid rgba(255,255,255,.4); border-radius:999px; height:40px; padding:0 16px; font:inherit; font-size:14px; }
+  .login small{ margin-top:18px; color:#B9D2CA; text-align:center; max-width:320px; }
+  /* tabs */
+  nav{ position:fixed; left:0; right:0; bottom:0; background:var(--card); border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(4,1fr); padding-bottom:env(safe-area-inset-bottom); z-index:6; }
+  nav button{ background:none; border:0; padding:10px 4px 8px; font:inherit; font-size:12.5px; color:var(--ink-mute); display:flex; flex-direction:column; align-items:center; gap:3px; }
+  nav button svg{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  nav button.on{ color:var(--green); font-weight:700; }
+  nav button.on span.ic{ background:var(--green-soft); border-radius:999px; padding:3px 18px; } nav button span.ic{ padding:3px 18px; }
+  .btn{ display:block; width:100%; height:48px; border-radius:12px; border:1.5px solid var(--line); background:var(--card); color:var(--ink); font:inherit; font-size:16px; margin:8px 0 0; }
+  .btn.pri{ background:var(--btn); color:var(--on-btn); border-color:var(--btn); }
+  .skel{ height:16px; border-radius:8px; background:var(--line-soft); margin:10px 0; animation:pulse 1.2s infinite ease-in-out; }
+  @keyframes pulse{ 50%{ opacity:.45; } }
+  .toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:#10181f; color:#fff; padding:10px 16px; border-radius:999px; font-size:14px; display:none; z-index:20; max-width:90%; text-align:center; }
+  .rules p{ margin:0 0 10px; }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="loginView" class="login" hidden>
+  <img src="logo-128.png" alt="WITH US">
+  <h1 data-i="appName">WITH US Society</h1>
+  <p data-i="loginSub">Member sign-in</p>
+  <form id="loginForm" autocomplete="off">
+    <input id="inMob" type="tel" inputmode="numeric" maxlength="14" autocomplete="username" data-ph="mobile" placeholder="Mobile number">
+    <input id="inPin" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" data-ph="pin" placeholder="6-digit PIN">
+    <div id="loginErr" class="err"></div>
+    <button class="go" id="goBtn" type="submit" data-i="signIn">Sign in</button>
+  </form>
+  <div class="tools"><button type="button" id="lgLang">मराठी</button><button type="button" id="lgTheme">&#9790;</button></div>
+  <small data-i="loginHelp">Your PIN is given by the society admin. Forgot it? Ask an admin to set a new one.</small>
+</div>
+
+<div id="appView" hidden>
+  <header class="band">
+    <img src="logo-128.png" alt="">
+    <div class="t"><small id="hdrSub">Member</small><b data-i="appName">WITH US Society</b></div>
+    <button type="button" id="hdLang">मराठी</button>
+    <button type="button" id="hdTheme" aria-label="theme">&#9790;</button>
+  </header>
+  <main id="main"></main>
+  <nav>
+    <button type="button" data-tab="home"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></span><span data-i="tHome">Home</span></button>
+    <button type="button" data-tab="contrib"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 15l2.5 2.5L16 13"/></svg></span><span data-i="tContrib">Contributions</span></button>
+    <button type="button" data-tab="loans"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 8h6M9 12h6M11 8c3 0 4 2 0 4l4 4"/></svg></span><span data-i="tLoans">Loans</span></button>
+    <button type="button" data-tab="you"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span><span data-i="tYou">You</span></button>
+  </nav>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+  var SYNC_URL = 'https://script.google.com/macros/s/AKfycbzO66m2EABIAAzUZlL_u12Cl9cnuNtdRLFWfbMmP2i5D-rOxH_uKS_QpgHx2Xa5N5NM/exec';
+  var BUILD = 'M1 · 1 Nov 2026';
+  var LANG = 'en', TAB = 'home', D = null, TK = '';
+  function ls(k, v){ try{ if(v === undefined) return localStorage.getItem(k); if(v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }catch(e){} return null; }
+  LANG = ls('withusMemLang') === 'mr' ? 'mr' : 'en';
+  TK = ls('withusMemToken') || '';
+  var theme = ls('withusMemTheme'); if(theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  var dev = ls('withusMemDev'); if(!dev){ dev = 'm' + Math.random().toString(36).slice(2) + Date.now().toString(36); ls('withusMemDev', dev); }
+
+  var MON = { en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], mr:['जाने','फेब्रु','मार्च','एप्रि','मे','जून','जुलै','ऑग','सप्टें','ऑक्टो','नोव्हें','डिसें'] };
+  var T = {
+    en:{ appName:'WITH US Society', loginSub:'Member sign-in', mobile:'Mobile number', pin:'6-digit PIN', signIn:'Sign in', loginHelp:'Your PIN is given by the society admin. Forgot it? Ask an admin to set a new one.',
+      tHome:'Home', tContrib:'Contributions', tLoans:'Loans', tYou:'You', member:'Member', hello:'Hello', bday:'Happy Birthday', bdayLate:'Belated happy birthday',
+      deposits:'Deposits', owe:'You owe', whatOwed:'What is owed', nothingOwed:'Nothing is due. Thank you.', contribFor:'Contribution', dueThisMonth:'due this month', penalty:'Penalty', notCharged:'not charged yet',
+      loanStanding:'Loan standing', noLoan:'You have no open loan.', balance:'Balance', due:'Due', guarOf:'You are guarantor for', noGuar:'Not a guarantor for any open loan.', pastGuar:'Past guarantees',
+      elig:'Loan eligibility', canApply:'You can apply for a loan.', cannotApply:'You cannot apply for a loan now.', canGuar:'You can be a guarantor.', cannotGuar:'You cannot be a guarantor now.',
+      bArrears:'Unpaid contributions: {m} ({a})', bPenalty:'Unpaid penalty: {a}', bSusp:'Your account is suspended.', bExit:'Your account is closed.', bLoanSusp:'Loan suspended until {d}.', bTenure:'You need {n} months of membership.',
+      thisYear:'This year', paid:'Paid', unpaid:'Due', receipts:'Receipts', noReceipts:'No payments recorded yet.', penalties:'Penalties', noPen:'No penalties.', penOut:'owed {a}', penPaid:'Paid', penWaived:'Waived', penUnpaid:'Unpaid', penPart:'Part paid',
+      loans:'Loans', openLoans:'Open loans', pastLoans:'Past loans', taken:'Taken', amount:'Loan amount', extra:'Extra (interest)', late:'Late extra', total:'Total to return', paidSoFar:'Paid so far', guarantors:'Guarantors', status:'Status', closed:'Closed on', daysLeft:'Days left',
+      sActive:'Active', sDefaulted:'Defaulted', sClosed:'Closed', sOverdue:'Overdue', sComplete:'Closed',
+      profile:'Your details', memberId:'Member no.', since:'Member since', rules:'Society rules', language:'Language', refresh:'Refresh', signOut:'Sign out', version:'Version', dataAsOf:'Figures as of',
+      errBad:'Mobile number or PIN is wrong.', errLeft:' {n} tries left.', errLocked:'Too many wrong tries. Try again in {m} minutes or ask an admin to unlock.', errNet:'Could not connect. Check the internet and try again.', errFill:'Enter your mobile number and 6-digit PIN.', signedOut:'Please sign in again.',
+      r1:'Monthly contribution is {a}, due by the end of every month.', r2:'If a month is not paid by its end, a penalty of {p} is charged.', r3:'A member needs 6 months in the society to apply for a loan or to be a guarantor.', r4:'A member with unpaid contributions or penalties cannot apply for a loan or be a guarantor.', r5:'Only the society admins record payments. This app only shows your own figures.',
+      view:'View only. Payments are recorded by the society admin.' },
+    mr:{ appName:'WITH US Society', loginSub:'सभासद लॉगिन', mobile:'मोबाईल नंबर', pin:'०-अंकी पिन', signIn:'लॉगिन', loginHelp:'तुमचा पिन संस्थेच्या प्रशासकाने दिलेला आहे. विसरलाय? प्रशासकाला नवा पिन सेट करायला सांगा.',
+      tHome:'होम', tContrib:'हप्ते', tLoans:'कर्ज', tYou:'तुम्ही', member:'सभासद', hello:'नमस्कार', bday:'वाढदिवसाच्या शुभेच्छा', bdayLate:'वाढदिवसाच्या उशिराने शुभेच्छा',
+      deposits:'ठेवी', owe:'तुमच्याकडे बाकी', whatOwed:'बाकी काय आहे', nothingOwed:'काहीही बाकी नाही. धन्यवाद.', contribFor:'हप्ता', dueThisMonth:'या महिन्यात देय', penalty:'दंड', notCharged:'अजून लावला नाही',
+      loanStanding:'कर्जाची स्थिती', noLoan:'तुमचे कोणतेही कर्ज चालू नाही.', balance:'शिल्लक', due:'देय तारीख', guarOf:'तुम्ही जामीनदार आहात', noGuar:'कोणत्याही चालू कर्जासाठी जामीनदार नाही.', pastGuar:'मागील जामीनदारी',
+      elig:'कर्ज पात्रता', canApply:'तुम्ही कर्जासाठी अर्ज करू शकता.', cannotApply:'सध्या तुम्ही कर्जासाठी अर्ज करू शकत नाही.', canGuar:'तुम्ही जामीनदार होऊ शकता.', cannotGuar:'सध्या तुम्ही जामीनदार होऊ शकत नाही.',
+      bArrears:'थकलेली हप्ते: {m} ({a})', bPenalty:'थकलेला दंड: {a}', bSusp:'तुमचे खाते तात्पुरते बंद आहे.', bExit:'तुमचे खाते बंद आहे.', bLoanSusp:'{d} पर्यंत कर्ज बंद.', bTenure:'{n} महिने सदस्यत्व आवश्यक.',
+      thisYear:'या वर्षी', paid:'भरले', unpaid:'बाकी', receipts:'पावत्या', noReceipts:'अजून काहीही भरणा नोंदला नाही.', penalties:'दंड', noPen:'दंड नाही.', penOut:'बाकी {a}', penPaid:'भरला', penWaived:'माफ', penUnpaid:'बाकी', penPart:'अंशतः भरला',
+      loans:'कर्ज', openLoans:'चालू कर्ज', pastLoans:'मागील कर्ज', taken:'घेतले', amount:'कर्जाची रक्कम', extra:'जास्तीची रक्कम (व्याज)', late:'विलंब रक्कम', total:'एकूण परत द्यायची', paidSoFar:'आतापर्यंत भरले', guarantors:'जामीनदार', status:'स्थिती', closed:'बंद तारीख', daysLeft:'उरलेले दिवस',
+      sActive:'चालू', sDefaulted:'थकलेले', sClosed:'बंद', sOverdue:'मुदत संपली', sComplete:'बंद',
+      profile:'तुमची माहिती', memberId:'सभासद क्र.', since:'सभासद तारीख', rules:'संस्थेचे नियम', language:'भाषा', refresh:'रिफ्रेश', signOut:'लॉग आउट', version:'आवृत्ती', dataAsOf:'आकडेवारी तारीख',
+      errBad:'मोबाईल नंबर किंवा पिन चुकीचा आहे.', errLeft:' {n} प्रयत्न शिल्लक.', errLocked:'खूप चुकीचे प्रयत्न. {m} मिनिटांनी पुन्हा प्रयत्न करा किंवा प्रशासकाला अनलॉक करायला सांगा.', errNet:'कनेक्शन होऊ शकले नाही. इंटरनेट तपासून पुन्हा प्रयत्न करा.', errFill:'मोबाईल नंबर व ०-अंकी पिन टाका.', signedOut:'कृपया पुन्हा लॉगिन करा.',
+      r1:'मासिक हप्ता {a} आहे; प्रत्येक महिन्याच्या शेवटपर्यंत द्यायचा.', r2:'महिनाअखेरपर्यंत हप्ता न भरल्यास {p} दंड लागतो.', r3:'कर्जासाठी अर्ज करण्यास किंवा जामीनदार होण्यास संस्थेत किमान ० महिने असणे आवश्यक आहे.', r4:'थकलेली हप्ते किंवा दंड असलेल्या सभासदाला कर्जासाठी अर्ज करता किंवा जामीनदार होता येत नाही.', r5:'भरणा फक्त संस्थेचे प्रशासक नोंदवतात. हे अॅप फक्त तुमची स्वतःची माहिती दाखवते.',
+      view:'फक्त पाहण्यासाठी. भरणा संस्थेचे प्रशासक नोंदवतात.' }
+  };
+  function t(k, v){ var s = (T[LANG] && T[LANG][k]) || T.en[k] || k; if(v) Object.keys(v).forEach(function(x){ s = s.split('{' + x + '}').join(v[x]); }); return s; }
+  function esc(s){ return String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+  function money(n){ return '₹' + Number(n || 0).toLocaleString('en-IN'); }
+  function dmy(s){ var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; }
+  function mlabel(ym){ var m = /^(\d{4})-(\d{2})/.exec(String(ym || '')); return m ? MON[LANG][+m[2] - 1] + ' ' + m[1] : String(ym || ''); }
+  function $(id){ return document.getElementById(id); }
+  function say(txt){ var e = $('toast'); e.textContent = txt; e.style.display = 'block'; clearTimeout(say.tm); say.tm = setTimeout(function(){ e.style.display = 'none'; }, 2600); }
+
+  function call(body){
+    body.token = TK;
+    return fetch(SYNC_URL, { method:'POST', body:JSON.stringify(body) }).then(function(r){ return r.json(); });
+  }
+  function applyLang(){
+    document.documentElement.lang = LANG;
+    document.querySelectorAll('[data-i]').forEach(function(e){ e.textContent = t(e.getAttribute('data-i')); });
+    document.querySelectorAll('[data-ph]').forEach(function(e){ e.placeholder = t(e.getAttribute('data-ph')); });
+    var lb = LANG === 'mr' ? 'English' : 'मराठी';
+    $('lgLang').textContent = lb; $('hdLang').textContent = lb;
+    $('hdrSub').textContent = t('member');
+    if(D) render();
+  }
+  function setTheme(){ var d = document.documentElement.getAttribute('data-theme') === 'dark'; if(d){ document.documentElement.removeAttribute('data-theme'); ls('withusMemTheme', 'light'); } else { document.documentElement.setAttribute('data-theme', 'dark'); ls('withusMemTheme', 'dark'); } }
+  function toggleLang(){ LANG = LANG === 'mr' ? 'en' : 'mr'; ls('withusMemLang', LANG); applyLang(); }
+
+  /* ---- sign in / out ---- */
+  function showLogin(msg){
+    $('appView').hidden = true; $('loginView').hidden = false; D = null;
+    var e = $('loginErr'); if(msg){ e.textContent = msg; e.style.display = 'block'; } else e.style.display = 'none';
+  }
+  function showApp(){ $('loginView').hidden = true; $('appView').hidden = false; }
+  $('loginForm').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var mob = $('inMob').value.replace(/\D/g, ''), pin = $('inPin').value.replace(/\D/g, '');
+    if(mob.length < 10 || pin.length !== 6){ showLogin(t('errFill')); return; }
+    var b = $('goBtn'); b.disabled = true;
+    call({ kind:'memberLogin', mobile:mob, pin:pin, dev:dev }).then(function(res){
+      b.disabled = false;
+      if(res && res.ok){ TK = res.token; ls('withusMemToken', TK); $('inPin').value = ''; boot(); return; }
+      if(res && res.error === 'locked') showLogin(t('errLocked', { m:res.minutes || 15 }));
+      else showLogin(t('errBad') + (res && res.left ? t('errLeft', { n:res.left }) : ''));
+    }).catch(function(){ b.disabled = false; showLogin(t('errNet')); });
+  });
+  function signOut(){
+    var tk = TK; TK = ''; ls('withusMemToken', null); D = null;
+    try{ fetch(SYNC_URL, { method:'POST', body:JSON.stringify({ kind:'meLogout', token:tk }) }); }catch(e){}
+    showLogin('');
+  }
+
+  /* ---- data ---- */
+  function load(force){
+    if(!force){ try{ var c = JSON.parse(ls('withusMemCache') || 'null'); if(c && c.id){ D = c; render(); } }catch(e){} }
+    if(!D) $('main').innerHTML = '<div class="card"><div class="skel"></div><div class="skel" style="width:70%"></div><div class="skel" style="width:85%"></div></div>';
+    return call({ kind:'meData' }).then(function(res){
+      if(res && res.error === 'bad-session'){ TK = ''; ls('withusMemToken', null); ls('withusMemCache', null); showLogin(t('signedOut')); return; }
+      if(res && res.ok){ D = res; ls('withusMemCache', JSON.stringify(res)); render(); }
+      else if(!D) say(t('errNet'));
+    }).catch(function(){ if(!D) say(t('errNet')); });
+  }
+  function boot(){ showApp(); setTab(TAB); load(false); }
+
+  /* ---- views ---- */
+  function row(n, sub, a, asub){ return '<div class="row"><div class="n">' + esc(n) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div><div class="a"><b>' + esc(a) + '</b>' + (asub ? '<small>' + esc(asub) + '</small>' : '') + '</div></div>'; }
+  function kv(k, v){ return '<div class="kv"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>'; }
+  function loanStatus(l){ var s = String(l.status || ''); var m = { Active:['sActive', 'ok'], Defaulted:['sDefaulted', 'bad'], Closed:['sClosed', ''], Complete:['sComplete', ''], Overdue:['sOverdue', 'bad'] }[s]; return m ? '<span class="pill ' + m[1] + '">' + esc(t(m[0])) + '</span>' : '<span class="pill">' + esc(s) + '</span>'; }
+  function isOpen(l){ return l.status !== 'Closed' && l.status !== 'Complete'; }
+  function loanCard(l){
+    var h = '<div class="card loan"><div class="top"><b>' + esc(money(l.amount)) + ' · ' + esc(l.id) + '</b>' + loanStatus(l) + '</div>';
+    h += kv(t('taken'), dmy(l.taken)) + kv(t('due'), dmy(l.due));
+    h += kv(t('extra'), money(l.extra));
+    if(l.late > 0) h += kv(t('late'), money(l.late));
+    h += kv(t('total'), money(l.total)) + kv(t('paidSoFar'), money(l.paid));
+    if(isOpen(l)) h += '<div class="kv"><span>' + esc(t('balance')) + '</span><b style="color:var(--rust)">' + esc(money(l.outstanding)) + '</b></div>';
+    else if(l.closedDate) h += kv(t('closed'), dmy(l.closedDate));
+    if((l.guarantors || []).length) h += kv(t('guarantors'), l.guarantors.join(', '));
+    return h + '</div>';
+  }
+  function guarRow(g){ return row(g.borrower || '-', g.loan, money(g.amount), dmy(g.due)); }
+  function blockText(b){
+    if(b.type === 'arrears') return t('bArrears', { m:b.months.map(mlabel).join(', '), a:money(b.amount) });
+    if(b.type === 'penalty') return t('bPenalty', { a:money(b.amount) });
+    if(b.type === 'suspended') return t('bSusp');
+    if(b.type === 'exited') return t('bExit');
+    if(b.type === 'loan-suspension') return t('bLoanSusp', { d:dmy(b.until) });
+    return '';
+  }
+  function isBirthday(){
+    if(!D.dob || !D.today) return 0;
+    var m = /^\d{4}-(\d{2})-(\d{2})/.exec(D.dob); if(!m) return 0;
+    var y = +D.today.slice(0, 4), tdy = new Date(Date.UTC(y, +D.today.slice(5, 7) - 1, +D.today.slice(8, 10)));
+    var b = new Date(Date.UTC(y, +m[1] - 1, +m[2]));
+    var diff = Math.round((tdy - b) / 86400000);
+    return diff === 0 ? 1 : diff === 1 ? 2 : 0;
+  }
+  function vHome(){
+    var h = '', bd = isBirthday();
+    if(bd) h += '<div class="note bday">🎂 ' + esc(t(bd === 1 ? 'bday' : 'bdayLate')) + ', ' + esc((D.name || '').split(' ')[0]) + '!</div>';
+    h += '<h2>' + esc(t('hello')) + ', ' + esc(D.name) + '</h2>';
+    h += '<div class="stats"><div class="stat paid"><span>' + esc(t('deposits')) + '</span><b>' + esc(money(D.deposit)) + '</b></div><div class="stat owe"><span>' + esc(t('owe')) + '</span><b>' + esc(money(D.owed)) + '</b></div></div>';
+    h += '<div class="card"><p class="lbl">' + esc(t('whatOwed')) + '</p>';
+    var n = 0;
+    (D.arrears || []).forEach(function(m){ n++; h += row(t('contribFor') + ' · ' + mlabel(m), '', money(D.amount)); });
+    if(D.dueNow){ n++; h += row(t('contribFor') + ' · ' + mlabel(D.month), t('dueThisMonth'), money(D.amount)); }
+    (D.penalties || []).forEach(function(p){ if(p.outstanding > 0){ n++; h += row(t('penalty') + ' · ' + mlabel(p.month), '', money(p.outstanding)); } });
+    (D.penaltyPending || []).forEach(function(m){ n++; h += row(t('penalty') + ' · ' + mlabel(m), t('notCharged'), money(D.penaltyAmount)); });
+    if(!n) h += '<p class="sub">' + esc(t('nothingOwed')) + '</p>';
+    h += '</div>';
+    var open = (D.loans || []).filter(isOpen);
+    h += '<div class="card"><p class="lbl">' + esc(t('loanStanding')) + '</p>';
+    if(!open.length) h += '<p class="sub">' + esc(t('noLoan')) + '</p>';
+    open.forEach(function(l){ h += row(money(l.amount) + ' · ' + l.id, t('due') + ' ' + dmy(l.due), money(l.outstanding), t('balance')); });
+    h += '</div>';
+    var go = (D.guarantorFor || []).filter(function(g){ return g.st !== 'Closed'; });
+    h += '<div class="card"><p class="lbl">' + esc(t('guarOf')) + '</p>' + (go.length ? go.map(guarRow).join('') : '<p class="sub">' + esc(t('noGuar')) + '</p>') + '</div>';
+    var bl = (D.blocks || []).map(blockText).filter(Boolean);
+    h += '<div class="note ' + (D.canApply && D.canGuarantee ? 'ok' : 'bad') + '"><b>' + esc(t('elig')) + '</b><br>' + bl.map(function(x){ return esc(x); }).join('<br>') + (bl.length ? '<br>' : '') + esc(D.canApply ? t('canApply') : t('cannotApply')) + ' ' + esc(D.canGuarantee ? t('canGuar') : t('cannotGuar')) + '</div>';
+    h += '<p class="sub" style="text-align:center">' + esc(t('view')) + '</p>';
+    return h;
+  }
+  function vContrib(){
+    var y = D.today ? D.today.slice(0, 4) : String(new Date().getFullYear()), paid = {};
+    (D.paidMonths || []).forEach(function(m){ paid[m] = 1; });
+    var h = '<h2>' + esc(t('tContrib')) + '</h2><div class="card"><p class="lbl">' + esc(t('thisYear')) + ' ' + esc(y) + '</p><div class="months">';
+    for(var i = 1; i <= 12; i++){
+      var ym = y + '-' + ('0' + i).slice(-2), isPaid = !!paid[ym], future = ym > D.month, owes = (D.arrears || []).indexOf(ym) >= 0 || (ym === D.month && D.dueNow);
+      h += '<div class="m ' + (isPaid ? 'p' : owes ? 'd' : future ? 'f' : '') + '">' + esc(MON[LANG][i - 1]) + '<i>' + (isPaid ? esc(t('paid')) : owes ? esc(t('unpaid')) : '&nbsp;') + '</i></div>';
+    }
+    h += '</div></div>';
+    h += '<div class="card"><p class="lbl">' + esc(t('penalties')) + '</p>';
+    var pl = (D.penalties || []).slice().reverse();
+    if(!pl.length && !(D.penaltyPending || []).length) h += '<p class="sub">' + esc(t('noPen')) + '</p>';
+    (D.penaltyPending || []).forEach(function(m){ h += row(mlabel(m), t('notCharged'), money(D.penaltyAmount)); });
+    pl.forEach(function(p){
+      var st = p.status === 'Waived' ? t('penWaived') : p.status === 'Paid' ? t('penPaid') : p.status === 'Part paid' ? t('penPart') : t('penUnpaid');
+      h += row(mlabel(p.month), st, money(p.amount), p.outstanding > 0 ? t('penOut', { a:money(p.outstanding) }) : '');
+    });
+    h += '</div><div class="card"><p class="lbl">' + esc(t('receipts')) + '</p>';
+    var rc = D.receipts || [];
+    if(!rc.length) h += '<p class="sub">' + esc(t('noReceipts')) + '</p>';
+    rc.forEach(function(r){ h += row((r.months || []).map(function(m){ return MON[LANG][+m.slice(5, 7) - 1]; }).join(', ') + ' ' + ((r.months || [''])[0] || '').slice(0, 4), dmy(r.date) + (r.receipt ? ' · ' + r.receipt : '') + (r.mode ? ' · ' + r.mode : ''), money(r.amount)); });
+    return h + '</div>';
+  }
+  function vLoans(){
+    var all = D.loans || [], open = all.filter(isOpen), past = all.filter(function(l){ return !isOpen(l); });
+    var h = '<h2>' + esc(t('tLoans')) + '</h2>';
+    h += '<p class="lbl">' + esc(t('openLoans')) + '</p>' + (open.length ? open.map(loanCard).join('') : '<div class="card"><p class="sub">' + esc(t('noLoan')) + '</p></div>');
+    if(past.length) h += '<details class="card"><summary>' + esc(t('pastLoans')) + ' (' + past.length + ')</summary>' + past.map(loanCard).join('') + '</details>';
+    var go = (D.guarantorFor || []).filter(function(g){ return g.st !== 'Closed'; }), gp = (D.guarantorFor || []).filter(function(g){ return g.st === 'Closed'; });
+    h += '<div class="card"><p class="lbl">' + esc(t('guarOf')) + '</p>' + (go.length ? go.map(guarRow).join('') : '<p class="sub">' + esc(t('noGuar')) + '</p>');
+    if(gp.length) h += '<details><summary>' + esc(t('pastGuar')) + ' (' + gp.length + ')</summary>' + gp.map(guarRow).join('') + '</details>';
+    return h + '</div>';
+  }
+  function vYou(){
+    var h = '<h2>' + esc(t('tYou')) + '</h2><div class="card"><p class="lbl">' + esc(t('profile')) + '</p>' + kv(t('member'), D.name) + kv(t('memberId'), D.id) + (D.joinDate ? kv(t('since'), dmy(D.joinDate)) : '') + kv(t('dataAsOf'), dmy(D.today)) + '</div>';
+    var rules = (D.rules && D.rules[LANG]) ? String(D.rules[LANG]).split(/\n+/).map(function(x){ return '<p>' + esc(x) + '</p>'; }).join('') :
+      '<p>' + esc(t('r1', { a:money(D.amount) })) + '</p><p>' + esc(t('r2', { p:money(D.penaltyAmount) })) + '</p><p>' + esc(t('r3')) + '</p><p>' + esc(t('r4')) + '</p><p>' + esc(t('r5')) + '</p>';
+    h += '<details class="card rules"><summary>' + esc(t('rules')) + '</summary>' + rules + '</details>';
+    h += '<button type="button" class="btn" id="btnLang">' + esc(t('language')) + ': ' + (LANG === 'mr' ? 'English' : 'मराठी') + '</button><button type="button" class="btn" id="btnRef">' + esc(t('refresh')) + '</button><button type="button" class="btn pri" id="btnOut">' + esc(t('signOut')) + '</button>';
+    h += '<p class="sub" style="text-align:center;margin-top:14px">' + esc(t('version')) + ' ' + esc(BUILD) + '</p>';
+    return h;
+  }
+  function render(){
+    if(!D) return;
+    $('main').innerHTML = TAB === 'contrib' ? vContrib() : TAB === 'loans' ? vLoans() : TAB === 'you' ? vYou() : vHome();
+    document.querySelectorAll('nav button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-tab') === TAB); });
+    var o = $('btnOut'); if(o){ o.onclick = signOut; $('btnLang').onclick = toggleLang; $('btnRef').onclick = function(){ load(true).then(function(){ say(t('dataAsOf') + ' ' + dmy(D && D.today)); }); }; }
+  }
+  function setTab(x){ TAB = x; if(D) render(); else document.querySelectorAll('nav button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-tab') === TAB); }); window.scrollTo(0, 0); }
+  document.querySelectorAll('nav button').forEach(function(b){ b.addEventListener('click', function(){ setTab(b.getAttribute('data-tab')); }); });
+  $('lgLang').onclick = toggleLang; $('hdLang').onclick = toggleLang; $('lgTheme').onclick = setTheme; $('hdTheme').onclick = setTheme;
+
+  applyLang();
+  if(TK){ showApp(); setTab('home'); load(false); } else showLogin('');
+})();
+</script>
+</body>
+</html>

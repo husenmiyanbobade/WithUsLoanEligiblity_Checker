@@ -6413,7 +6413,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     function grp(title, items){ return items.length ? '<p class="mo-lbl">' + esc(title) + '</p><div class="mo-grp">' + items.join('') + '</div>' : ''; }
     el.innerHTML = grp(t('moGMoney'), [li('s6wa', t('waMenu')), li('s6reports', t('s6BtnReports')), li('s6close', t('s6BtnClose'))]) +
       grp(t('moGCheck'), [li('s6xc', t('xcMenu')), li('s6audit', t('moAudit'))]) +
-      grp(t('moGAdmin'), [li('s6settings', t('moSettings'))].concat(owner ? [li('s6admins', t('moAdmins')), li('s6golive', t('glMenu'))] : []).concat([li('s6version', document.documentElement.lang === 'mr' ? '\u0906\u0935\u0943\u0924\u094D\u0924\u0940' : 'Version')]));
+      grp(t('moGAdmin'), [li('s6settings', t('moSettings')), li('s6pinopen', 'Member PINs')].concat(owner ? [li('s6admins', t('moAdmins')), li('s6golive', t('glMenu'))] : []).concat([li('s6version', document.documentElement.lang === 'mr' ? '\u0906\u0935\u0943\u0924\u094D\u0924\u0940' : 'Version')]));
     xlPlace(true);
   }
   function xlPlace(on){
@@ -6624,7 +6624,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ gl.busy = false; tg.disabled = false; s6Say(t('memEGeneric')); });
   }
   var st6 = { data:null, key:'' };
-  var BUILD_INFO = { app:'V30', build:'v53', date:'1 Nov 2026', cache:'withus-v53' };
+  var BUILD_INFO = { app:'V31', build:'v54', date:'1 Nov 2026', cache:'withus-v54' };
   function s6VerOpen(){
     mem.kind = 's6form'; var mr = document.documentElement.lang === 'mr', w = getWho() || {};
     function row(l, v){ return '<div class="adm-act"><span>' + esc(l) + '</span><b style="text-align:right;">' + esc(v) + '</b></div>'; }
@@ -6692,6 +6692,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(act === 's6xc'){ xcOpen(); return true; }
     if(act === 's6golive'){ glOpen(); return true; }
     if(act === 's6glgo'){ glGo(tg); return true; }
+    if(act === 's6pinopen'){ pnOpen(); return true; }
+    if(act === 's6pincore'){ if(mem.armed !== 'pincore'){ mem.armed = 'pincore'; pnRender(); return true; } pnIssue(pnCore().map(function(m){ return m.id; }), tg); return true; }
+    if(act === 's6pinone'){ var pid = tg.getAttribute('data-id'); if(mem.armed !== 'pin:' + pid){ mem.armed = 'pin:' + pid; pnRender(); return true; } pnIssue([pid], tg); return true; }
     if(act === 's6glbackup'){ memSheetClose(); admDoExport(); return true; }
     if(act === 's6glcu'){ memSheetClose(); document.getElementById('admBtn').click(); setTimeout(function(){ var b = document.querySelector('[data-adm=cuopen]'); if(b) b.click(); }, 350); return true; }
     if(act === 's6setedit'){ s6SetEdit(tg.getAttribute('data-k')); return true; }
@@ -6722,6 +6725,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function s6Input(fld, el){
     var f = s6.form, v = el.value;
+    if(fld === 's6pinq'){ pn.q = v; var pl = document.getElementById('pnList'); if(pl){ var qq = pnKey(v); pl.innerHTML = pnRows(pn.list.filter(function(m){ return !qq || pnKey(m.name).indexOf(qq) >= 0 || String(m.mobile || '').indexOf(v) >= 0 || m.id.toUpperCase().indexOf(v.toUpperCase()) >= 0; }).slice(0, 30)); } return; }
     if(fld === 's6bank'){ f.bank = v; var e1 = document.getElementById('s6diff'); if(e1) e1.textContent = s6DiffText(); return; }
     if(fld === 's6cash'){ f.cash = v; var e2 = document.getElementById('s6diff'); if(e2) e2.textContent = s6DiffText(); return; }
     if(fld === 's6mq'){ f.mq = v; s6MemRes(); return; }
@@ -7004,6 +7008,58 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
 
 
+
+
+  /* ----- Member PINs (member module) ----- */
+  var CORE7 = ['AMIR RAFIK BOBADE','GULAM RAMJAN NACHARE','HUSENMIYAN RAFIK BOBADE','MATIN ABDUL NACHARE','NURMAHAMAD HASAN BOTHARE','YASIN HASAN BOTHARE','SIRAJ SHERPUDDIN BOBADE'];
+  var pn = { list:[], q:'', done:null };
+  function pnKey(x){ return String(x || '').toUpperCase().replace(/[^A-Zऀ-ॿ]+/g, ''); }
+  function pnUrl(){ return location.href.split('#')[0].split('?')[0].replace(/[^\/]*$/, '') + 'member.html'; }
+  function pnOpen(){
+    mem.kind = 's6form';
+    memSheetShow('<h3>Member PINs</h3>' + s6Skel());
+    admCall({ kind:'members' }).then(function(res){
+      if(!(res && res.ok)){ memSheetShow('<h3>Member PINs</h3><div class="ap-note">' + esc(memErr(res)) + '</div><div class="ap-btnrow"><button type="button" class="ap-btn ghost" data-mem="s6more">' + esc(t('s6Back')) + '</button></div>'); return; }
+      pn.list = (res.members || []).filter(function(m){ return m.status !== 'Exited'; }); pn.done = null; pnRender();
+    }).catch(function(){ admSay(t('memEGeneric')); });
+  }
+  function pnCore(){
+    var keys = {}; CORE7.forEach(function(n){ keys[pnKey(n)] = 1; });
+    return pn.list.filter(function(m){ return keys[pnKey(m.name)]; });
+  }
+  function pnRows(arr){
+    return arr.map(function(m){
+      var mob = String(m.mobile || '').replace(/\D/g, '').slice(-10);
+      return '<div class="adm-act"><span>' + esc(m.name) + '<small class="mem-sm">' + esc(m.id + ' · ' + (mob || 'no mobile') + ' · ' + (m.hasPin ? 'PIN set' : 'no PIN')) + '</small></span>' +
+        (mob ? '<button type="button" class="adm-ob" data-mem="s6pinone" data-id="' + esc(m.id) + '">' + (mem.armed === 'pin:' + m.id ? 'Tap again' : (m.hasPin ? 'Reset PIN' : 'Set PIN')) + '</button>' : '') + '</div>';
+    }).join('');
+  }
+  function pnRender(){
+    var core = pnCore(), q = pnKey(pn.q), shown = pn.list.filter(function(m){ return !q || pnKey(m.name).indexOf(q) >= 0 || String(m.mobile || '').indexOf(pn.q) >= 0 || m.id.toUpperCase().indexOf(pn.q.toUpperCase()) >= 0; }).slice(0, 30);
+    var missing = CORE7.length - core.length;
+    var h = '<h3>Member PINs</h3><div class="ap-note" id="memMsg" style="display:none;"></div><p class="adm-sub">Each member signs in to the Member app with his mobile number and a 6-digit PIN. A PIN is shown only once, right after you make it. Setting a PIN again replaces the old one and signs the member out.</p>';
+    h += '<div class="adm-card"><p class="adm-lbl">Pilot: 7 core members</p>' + pnRows(core) + (missing > 0 ? '<p class="adm-sub">' + missing + ' of the 7 names were not found in the member list.</p>' : '') + '</div>';
+    h += '<button type="button" class="ap-btn' + (mem.armed === 'pincore' ? ' ap-danger' : '') + '" data-mem="s6pincore">' + (mem.armed === 'pincore' ? 'Tap again to make PINs for the ' + core.length + ' core members' : 'Make PINs for the 7 core members') + '</button>';
+    h += '<p class="adm-lbl" style="margin-top:14px;">Any member</p><input class="adm-in" data-f="s6pinq" type="text" autocomplete="off" placeholder="Search name, number or mobile" value="' + esc(pn.q) + '"><div class="adm-card" id="pnList">' + pnRows(shown) + '</div>';
+    h += '<div class="ap-btnrow"><button type="button" class="ap-btn ghost" data-mem="s6more">' + esc(t('s6Back')) + '</button></div>';
+    var keep = mem.armed; memSheetShow(h); mem.armed = keep;
+  }
+  function pnIssue(ids, tg){
+    if(tg) tg.disabled = true;
+    admCall({ kind:'pinIssue', ids:ids }).then(function(res){
+      if(!(res && res.ok)){ if(tg) tg.disabled = false; s6Say(memErr(res)); return; }
+      pn.done = res.items; mem.armed = '';
+      var url = pnUrl();
+      var h = '<h3>PINs ready</h3><div class="ap-warn">Write these down or send them now. The PINs cannot be shown again.</div>';
+      res.items.forEach(function(x){
+        if(!x.ok){ h += '<div class="adm-card"><div class="adm-act" style="border:0;"><span>' + esc(x.name || x.id) + '</span><b>' + esc(x.reason === 'no-mobile' ? 'no mobile number' : x.reason === 'duplicate-mobile' ? 'mobile number used by another member' : 'skipped') + '</b></div></div>'; return; }
+        var msg = 'WITH US Society - Member app\nOpen: ' + url + '\nMobile: ' + x.mobile + '\nPIN: ' + x.pin + '\n\nWITH US Society - सभासद अॅप\nPIN: ' + x.pin;
+        h += '<div class="adm-card"><div class="adm-act" style="border:0;"><span>' + esc(x.name) + '<small class="mem-sm">' + esc(x.id + ' · ' + x.mobile) + '</small></span><b style="font-size:22px;letter-spacing:.12em;">' + esc(x.pin) + '</b></div><a class="ap-btn ghost" style="display:block;text-align:center;text-decoration:none;" target="_blank" rel="noopener" href="https://wa.me/91' + esc(x.mobile) + '?text=' + encodeURIComponent(msg) + '">Send on WhatsApp</a></div>';
+      });
+      h += '<div class="ap-btnrow"><button type="button" class="ap-btn ghost" data-mem="s6pinopen">Back to the list</button></div>';
+      memSheetShow(h); memLoad(true);
+    }).catch(function(){ if(tg) tg.disabled = false; s6Say(t('memEGeneric')); });
+  }
 
   /* ----- replace everything from a fresh Excel (v47) ----- */
   var ix = { ds:null, closedN:0, name:'', backup:false };
