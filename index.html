@@ -5447,14 +5447,15 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function memProfileRender(){
     var p = mem.prof; p.penalties = p.penalties || []; p.penaltyPayments = p.penaltyPayments || [];
-    var m = p.member, owedAmt = m.arrears.length * p.amount + (p.penaltyDue || 0), w = getWho(), isOwner = w && w.r === 'admin1';
+    var m = p.member, pPend = p.penaltyPending || [], owedAmt = m.arrears.length * p.amount + (p.penaltyDue || 0) + pPend.length * (p.penaltyAmount || 0), w = getWho(), isOwner = w && w.r === 'admin1';
     var ini = m.name.split(' ').filter(Boolean).slice(0, 2).map(function(x){ return x.charAt(0); }).join('');
     var h = '<div class="mem-ph"><span class="mem-av">' + esc(ini) + '</span><div class="mem-main"><b>' + esc(m.name) + '</b><span>' + esc(m.id + (m.joinDate ? ' · ' + t('memSince', { y:m.joinDate.slice(0, 4) }) : '')) + '</span></div>' + memStatusPill(m.status) + '</div>';
     h += '<div class="mc-stats" style="grid-template-columns:1fr 1fr;"><div class="mc-stat paid"><span>' + esc(t('memDeposits')) + '</span><b>' + esc(memMoney(m.deposit)) + '</b></div><div class="mc-stat pend"><span>' + esc(t('memOwed')) + '</span><b>' + esc(memMoney(owedAmt)) + '</b></div></div>';
     h += '<div class="adm-card"><p class="adm-lbl">' + esc(t('memWhatOwed')) + '</p>';
-    if(!m.arrears.length && !m.dueNow) h += '<p class="adm-sub">' + esc(t('memNothingOwed')) + '</p>';
+    if(!m.arrears.length && !m.dueNow && !pPend.length) h += '<p class="adm-sub">' + esc(t('memNothingOwed')) + '</p>';
     m.arrears.forEach(function(x){ h += '<div class="adm-act"><span>' + esc(t('memContribFor', { m:memMlabel(x) })) + '</span><b>' + esc(memMoney(p.amount)) + '</b></div>'; });
     if(m.dueNow) h += '<div class="adm-act"><span>' + esc(t('memContribFor', { m:memMlabel(p.month) })) + ' · ' + esc(t('memDue')) + '</span><b>' + esc(memMoney(p.amount)) + '</b></div>';
+    pPend.forEach(function(mo){ h += '<div class="adm-act"><span>' + esc((document.documentElement.lang === 'mr' ? '\u0926\u0902\u0921 ' : 'Penalty ') + memMlabel(mo)) + '</span><b>' + esc(memMoney(p.penaltyAmount)) + '</b></div>'; });
     h += '</div>';
     h += memEligHtml(m) + memPenCard(p, isOwner) + lnProfileHtml(p);
     h += '<div class="adm-card"><div class="adm-act" style="border:0;"><span>' + esc(t('memMobile')) + '</span><b>' + (m.mobile ? '<a href="tel:' + esc(m.mobile) + '">' + esc(m.mobile) + '</a>' : '-') + '</b></div><div class="adm-act"><span>' + esc(t('memDob')) + '</span><b>' + esc(m.dob ? memD(m.dob) : t('memNoDob')) + '</b></div><div class="adm-act"><span>' + esc(t('memJoined')) + '</span><b>' + esc(m.joinDate ? memD(m.joinDate) + ' · ' + lnDuration(m.joinDate) : '-') + '</b></div></div>';
@@ -5625,7 +5626,10 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function memPenCard(p, isOwner){
     var h = '<div class="adm-card"><p class="adm-lbl">' + esc(t('penCard')) + '</p>';
-    if(!p.penalties.length) h += '<p class="adm-sub">' + esc(t('penNone')) + '</p>';
+    var pend = p.penaltyPending || [];
+    if(!p.penalties.length && !pend.length) h += '<p class="adm-sub">' + esc(t('penNone')) + '</p>';
+    pend.forEach(function(mo){ h += '<div class="adm-act"><span>' + esc(memMlabel(mo)) + '<small class="mem-sm">' + esc(memMoney(p.penaltyAmount) + ' \u00B7 ' + (document.documentElement.lang === 'mr' ? '\u0905\u091C\u0942\u0928 \u0932\u093E\u0935\u0932\u093E \u0928\u093E\u0939\u0940' : 'not charged yet')) + '</small></span><b>' + esc(t('penOut', { a:memMoney(p.penaltyAmount) })) + '</b></div>'; });
+    if(pend.length) h += '<p class="adm-sub">' + esc(document.documentElement.lang === 'mr' ? 'More > \u092E\u0939\u093F\u0928\u093E\u0905\u0916\u0947\u0930 \u0926\u0902\u0921 \u092E\u0927\u0942\u0928 \u0926\u0902\u0921 \u0932\u093E\u0935\u093E.' : 'Charge it in More > Month-end penalties; then it can be paid here.') + '</p>';
     p.penalties.slice().reverse().forEach(function(x){
       var st = x.status === 'Waived' ? t('penWaived') : x.status === 'Paid' ? t('penPaid') : x.status === 'Part paid' ? t('penPart') : t('penUnpaid');
       var right = x.outstanding > 0 ? '<b>' + esc(t('penOut', { a:memMoney(x.outstanding) })) + '</b>' : '';
@@ -6620,7 +6624,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ gl.busy = false; tg.disabled = false; s6Say(t('memEGeneric')); });
   }
   var st6 = { data:null, key:'' };
-  var BUILD_INFO = { app:'V23', build:'v46', date:'1 Nov 2026', cache:'withus-v46' };
+  var BUILD_INFO = { app:'V24', build:'v47', date:'1 Nov 2026', cache:'withus-v47' };
   function s6VerOpen(){
     mem.kind = 's6form'; var mr = document.documentElement.lang === 'mr', w = getWho() || {};
     function row(l, v){ return '<div class="adm-act"><span>' + esc(l) + '</span><b style="text-align:right;">' + esc(v) + '</b></div>'; }
