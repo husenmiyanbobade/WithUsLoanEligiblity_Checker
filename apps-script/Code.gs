@@ -20,7 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
-var CODE_VER = 'V28 \u00B7 v51';   // shown in the app: Settings > Version
+var CODE_VER = 'V30 \u00B7 v53';   // shown in the app: Settings > Version
 var SCHEMA_VER = 5;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
@@ -407,6 +407,29 @@ function fineFigures_(ds){
 
 // Copies the Excel data already stored in the app into the Sheet (members, monthly contributions, loans, fine pot).
 // Safe to repeat while only imported data exists. Refuses once real entries or member PINs exist.
+// A date sent by the phone as 2026-04-30T18:30:00.000Z is 1 May 2026 in India. Turn any such value into plain yyyy-MM-dd (India time).
+function dateOnly_(v){
+  if(v === null || v === undefined || v === '') return '';
+  if(Object.prototype.toString.call(v) === '[object Date]') return Utilities.formatDate(v, 'Asia/Kolkata', 'yyyy-MM-dd');
+  var s = String(v);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s)){ var d = new Date(s); if(!isNaN(d.getTime())) return Utilities.formatDate(d, 'Asia/Kolkata', 'yyyy-MM-dd'); }
+  return s;
+}
+// Repair dates already stored in the Sheet in the long form. Returns how many cells changed.
+function fixDates_(){
+  var plan = { Members:['JoinDate','DOB'], Loans:['TakenDate','DueDate','ClosedDate'] }, changed = 0;
+  Object.keys(plan).forEach(function(n){
+    var s = tab_(n), last = s.getLastRow(); if(last < 2) return;
+    plan[n].forEach(function(col){
+      var ci = TABS[n].indexOf(col) + 1, rng = s.getRange(2, ci, last - 1, 1), v = rng.getValues(), dirty = false;
+      var nv = v.map(function(r){ var o = r[0], x = dateOnly_(o); if(x !== o && String(x) !== String(o)){ dirty = true; changed++; } return [x]; });
+      if(dirty) rng.setValues(nv);
+    });
+  });
+  if(changed){ delete ROWS_.Members; delete ROWS_.Loans; markDirty_(); }
+  return changed;
+}
 function importDataset_(S, body){
   var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
   if(goLiveInfo_()) return out_({ ok:false, error:'golive-locked' });
@@ -435,7 +458,7 @@ function importDataset_(S, body){
     md.members.forEach(function(m, i){
       var id = 'M-' + pad_(i + 1, 4), key = nameKey_(m.name);
       if(byName[key]) dupes.push(m.name); else byName[key] = id;
-      members.push({ MemberID:id, Name:String(m.name).trim(), Mobile:'', DOB:'', JoinDate:m.joinDate || '', Status:'Active', OpeningDeposit:num_(m.depositPrior), JoiningFee:0, FailedTries:0, Source:'import', CreatedAt:at, CreatedBy:'import' });
+      members.push({ MemberID:id, Name:String(m.name).trim(), Mobile:'', DOB:'', JoinDate:dateOnly_(m.joinDate), Status:'Active', OpeningDeposit:num_(m.depositPrior), JoiningFee:0, FailedTries:0, Source:'import', CreatedAt:at, CreatedBy:'import' });
       if(num_(m.depositPrior)) ledger.push({ LedgerID:newId_('L'), Date:today, Pot:'deposit', Type:'opening', MemberID:id, Amount:num_(m.depositPrior), Note:'Opening deposit (imported)', EnteredBy:'import', EnteredAt:at });
       (m.months || []).forEach(function(c, k){
         var amt = num_(c.amount); if(!amt) return;
@@ -448,7 +471,7 @@ function importDataset_(S, body){
     (ds.rows || []).forEach(function(r, i){
       var lid = 'L-' + pad_(r.srno || (i + 1), 4), mid = byName[nameKey_(r.applicant)] || '';
       if(!mid) unmatched++;
-      loans.push({ LoanID:lid, MemberID:mid, ApplicantName:r.applicant, Amount:num_(r.takenAmt), TakenDate:r.takenDate || '', DueDate:r.repayDate || '', ReturnAmount:num_(r.repayAmt), Fine:num_(r.fine), LateExtra:0, Status:r.status || '', Suspended:r.suspended || '', Source:'import', CreatedAt:at });
+      loans.push({ LoanID:lid, MemberID:mid, ApplicantName:r.applicant, Amount:num_(r.takenAmt), TakenDate:dateOnly_(r.takenDate), DueDate:dateOnly_(r.repayDate), ReturnAmount:num_(r.repayAmt), Fine:num_(r.fine), LateExtra:0, Status:r.status || '', Suspended:r.suspended || '', Source:'import', CreatedAt:at });
       String(r.guarantor || '').split(/\s*(?:,|&|\+|\n|;|\band\b)\s*/i).forEach(function(g){
         g = String(g).trim(); if(!g || /^(none|nil|n\/a|-|not specified)$/i.test(g)) return;
         var gid = byName[nameKey_(g)] || ''; if(!gid) gUnmatched++;
@@ -1813,6 +1836,7 @@ function cleanupApply_(S, body){
   if(goLiveInfo_()) return out_({ ok:false, error:'golive-locked' });
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
   try{
+    var datesFixed = fixDates_();
     var plan = cleanupPlan_(body.closed), at = nowIso_(), ids = {};        // 'closed:<sr>' -> MemberID
     rows_('ClosedAccounts').forEach(function(c){ ids['closed:' + c.SrNo] = c.MemberID; });
     var closedAll = closedRows_(body.closed || []), addC = [], addM = [];
@@ -1865,7 +1889,7 @@ function cleanupApply_(S, body){
         var r = exByNo[x.srno]; if(!r) return;
         var lid = 'L-' + pad_(x.srno, 4); if(haveIds[lid]){ nextN++; lid = 'L-' + pad_(nextN, 4); } haveIds[lid] = 1;
         var m = byName[nameKey_(r.applicant)];
-        nl.push({ LoanID:lid, MemberID:m ? m.MemberID : '', ApplicantName:r.applicant, Amount:num_(r.takenAmt), TakenDate:r.takenDate || '', DueDate:r.repayDate || '', ReturnAmount:num_(r.repayAmt), Fine:num_(r.fine), LateExtra:0, Status:r.status || '', Suspended:r.suspended || '', Source:'import', CreatedAt:at });
+        nl.push({ LoanID:lid, MemberID:m ? m.MemberID : '', ApplicantName:r.applicant, Amount:num_(r.takenAmt), TakenDate:dateOnly_(r.takenDate), DueDate:dateOnly_(r.repayDate), ReturnAmount:num_(r.repayAmt), Fine:num_(r.fine), LateExtra:0, Status:r.status || '', Suspended:r.suspended || '', Source:'import', CreatedAt:at });
         String(r.guarantor || '').split(/\s*(?:,|&|\+|\n|;|\band\b)\s*/i).forEach(function(g){
           g = String(g).trim(); if(!g || /^(none|nil|n\/a|-|not specified)$/i.test(g)) return;
           var gm = byName[nameKey_(g)]; ng.push({ LoanID:lid, MemberID:gm ? gm.MemberID : '', Name:g, Source:'import' });
@@ -1874,7 +1898,7 @@ function cleanupApply_(S, body){
       if(nl.length){ appendMany_('Loans', nl); if(ng.length) appendMany_('Guarantors', ng); addedL = nl.length; }
     }
     audit_(S, 'cleanup-import', 'closed accounts', addM.length + ' closed accounts added, ' + plan.adopt.length + ' adopted, ' + linked + ' loans linked, ' + linkedApproved + ' approved links, ' + removed + ' blank loan rows removed, ' + addedL + ' loans added, ' + renamedN + ' names corrected');
-    return out_({ ok:true, added:addM.length, adopted:plan.adopt.length, linked:linked, linkedApproved:linkedApproved, removedBlank:removed, addedLoans:addedL, renamed:renamedN });
+    return out_({ ok:true, added:addM.length, adopted:plan.adopt.length, linked:linked, linkedApproved:linkedApproved, removedBlank:removed, addedLoans:addedL, renamed:renamedN, datesFixed:datesFixed });
   } finally { lock.releaseLock(); }
 }
 
