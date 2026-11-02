@@ -737,7 +737,20 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
 </style>
 <style id="p6css">
-  .ap-count{ display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; margin-left:8px; padding:0 6px; box-sizing:border-box; border-radius:999px; background:var(--gold-soft, #F6E8C8); color:var(--gold, #8A5F14); font-size:12px; font-weight:600; vertical-align:middle; }
+  #apChips{ display:block; margin:4px 0 8px; }
+  #apChips .ap-flt{ display:grid; width:100%; box-sizing:border-box; }
+  .ap-sum{ margin:2px 0 10px; font-size:13px; color:var(--ink-soft); line-height:1.5; }
+  .ap-sum b{ color:var(--ink); font-weight:600; }
+  .ap-flt{ margin-bottom:10px; }
+  .ap-flt .mc-seg{ min-height:40px; padding:0 2px; font-size:13px; white-space:nowrap; }
+  .ap-flt{ grid-template-columns:repeat(4,1fr); }
+  .ap-tiers{ display:flex; gap:6px; overflow-x:auto; padding:0 0 4px; margin:0 0 6px; scrollbar-width:none; }
+  .ap-tiers::-webkit-scrollbar{ display:none; }
+  .ap-tier{ flex:none; min-height:34px; padding:0 14px; border-radius:999px; border:1px solid var(--line-strong, var(--line)); background:transparent; color:var(--ink-soft); font:inherit; font-size:13px; cursor:pointer; }
+  .ap-tier.active{ color:var(--ink); border-color:var(--ink); font-weight:600; }
+  .ap-grp{ margin:16px 2px 2px; font-size:13px; font-weight:600; letter-spacing:.02em; color:var(--ink-soft); }
+  .ap-count{ display:none !important; }
+  .ap-count--old{ display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; margin-left:8px; padding:0 6px; box-sizing:border-box; border-radius:999px; background:var(--gold-soft, #F6E8C8); color:var(--gold, #8A5F14); font-size:12px; font-weight:600; vertical-align:middle; }
   .ap-count:empty{ display:none; }
   .mc-seg.active .ap-count{ background:#F6E8C8; color:#6B4A0E; }
   .ap-split{ display:flex; flex-direction:column; gap:8px; margin:12px 0 4px; padding:12px 14px; border:1px solid var(--line-soft); border-radius:16px; background:var(--paper); }
@@ -1491,7 +1504,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
 
     <div class="mc-switch" id="eligSwitch">
       <button type="button" class="mc-seg active" data-epane="check" data-i18n="apSwCheck">Check</button>
-      <button type="button" class="mc-seg" data-epane="apps"><span data-i18n="apSwApps">Applications</span><span class="ap-count" id="apCount"></span></button>
+      <button type="button" class="mc-seg" data-epane="apps"><span data-i18n="apSwApps">Applications</span></button>
       <button type="button" class="mc-seg" data-epane="lists" data-i18n="tabLists">Lists</button>
       <button type="button" class="mc-seg" data-epane="book" style="display:none;" data-i18n="lnBook">Loan book</button>
     </div>
@@ -1782,6 +1795,18 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   I18N.en.xlOld = 'Old Excel records (totals, loans, deposits)'; I18N.mr.xlOld = 'जुन्या एक्सेल नोंदी (एकूण, कर्जे, ठेवी)';
   I18N.en.lgAsk = 'Sign out of this device?'; I18N.mr.lgAsk = 'या फोनवरून साइन आउट करायचे?';
   I18N.en.apNotDisbChip = 'Not disbursed'; I18N.mr.apNotDisbChip = 'वितरित नाही'; I18N.en.apNotDisbHint = 'Accepted applications where the amount is not yet given.'; I18N.mr.apNotDisbHint = 'मंजूर अर्ज ज्यांची रक्कम अजून दिलेली नाही.';
+  I18N.en.apFltAcc='Accepted'; I18N.mr.apFltAcc='मंजूर'; I18N.en.apFltPend='Pending'; I18N.mr.apFltPend='प्रलंबित';
+  I18N.en.apAllAmt='All amounts'; I18N.mr.apAllAmt='सर्व रक्कम';
+  I18N.en.apSumPend='pending'; I18N.mr.apSumPend='प्रलंबित'; I18N.en.apSumDisb='disbursed'; I18N.mr.apSumDisb='वितरित'; I18N.en.apSumRej='rejected'; I18N.mr.apSumRej='नाकारले';
+  I18N.en.apConflict='Jamin {g} is already jamin for {n}\'s {a} application — one of the two must be changed.'; I18N.mr.apConflict='जामीनदार {g} हा {n} यांच्या {a} च्या अर्जाला आधीच जामीनदार आहे — दोन पैकी एक बदला.';
+  I18N.en.c_gPend='Guarantor{i} not already jamin for another pending application'; I18N.mr.c_gPend='जामीनदार{i} दुसऱ्या प्रलंबित अर्जाला जामीनदार नाही';
+  I18N.en.c_gPendYes='{name} is already jamin for {app}\'s {amt} loan application'; I18N.mr.c_gPendYes='{name} हा {app} यांच्या {amt} च्या कर्ज अर्जाला आधीच जामीनदार आहे';
+  I18N.en.c_gPendNo='Not on any other pending application'; I18N.mr.c_gPendNo='दुसऱ्या कोणत्याही प्रलंबित अर्जावर नाही';
+  I18N.en.c_gSelf='Guarantor{i} is not the applicant'; I18N.mr.c_gSelf='जामीनदार{i} अर्जदार स्वतः नाही';
+  I18N.en.c_gSelfYes='Applicant cannot be their own guarantor'; I18N.mr.c_gSelfYes='अर्जदार स्वतःचा जामीनदार होऊ शकत नाही';
+  I18N.en.c_gDup='Guarantor{i} is different from the other guarantor'; I18N.mr.c_gDup='जामीनदार{i} दुसऱ्या जामीनदारापेक्षा वेगळा आहे';
+  I18N.en.c_gDupYes='{name} is selected twice as guarantor'; I18N.mr.c_gDupYes='{name} दोनदा जामीनदार म्हणून निवडला आहे';
+  I18N.en.apDisbGWarn='{g} is already jamin for another active loan, so this loan cannot be disbursed.'; I18N.mr.apDisbGWarn='{g} हा आधीच दुसऱ्या चालू कर्जाला जामीनदार आहे, म्हणून हे कर्ज वितरित करता येत नाही.';
   I18N.en.viewCards = 'Cards'; I18N.mr.viewCards = 'कार्ड'; I18N.en.viewTable = 'Table'; I18N.mr.viewTable = 'तक्ता';
   I18N.en.cuNewLoans = 'Loans in the Excel not yet in the app (will be added)'; I18N.mr.cuNewLoans = 'एक्सेलमध्ये असलेली पण अ‍ॅपमध्ये नसलेली कर्जे (जोडली जातील)';
   I18N.en.cuRenamed = 'Loan names corrected to the Excel spelling'; I18N.mr.cuRenamed = 'एक्सेलप्रमाणे दुरुस्त होणारी कर्ज नावे';
@@ -2994,6 +3019,20 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var amt = hit.arrears.length * mem.amount + (hit.penDue || 0);
     return { amount:amt, months:hit.arrears.length, pen:hit.penDue || 0, blocked:hit.status === 'Suspended' || hit.status === 'Exited' };
   }
+  /* accepted-but-not-yet-disbursed applications (any month) where this person is an accepted jamin for someone else */
+  function apPendingGuarantee(gName, applicantName, skipId){
+    var k = normKeyName(gName), ak = normKeyName(applicantName), hit = null;
+    if(!k) return null;
+    Object.keys(apps.months || {}).sort().forEach(function(mk){
+      var m = apps.months[mk] || {};
+      Object.keys(m).forEach(function(id){
+        var e = m[id];
+        if(hit || !e || id === skipId || e.st === 'r' || apDisb(e) || normKeyName(e.n) === ak) return;
+        (e.g || []).forEach(function(g, j){ if(!hit && normKeyName(g) === k && !(e.gb && e.gb[j])) hit = e; });
+      });
+    });
+    return hit;
+  }
   function runEligibilityCheck(opts){
     opts = opts || {};
     var applicantName = document.getElementById('eligApplicantInput').value.trim();
@@ -3102,6 +3141,17 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
         c.g = i; c.k = j === 0 ? 'gdur' : 'gact';
         c.d = j === 0 ? { member: !!gMember } : { act: (activeGuarantees && activeGuarantees.length) ? activeGuarantees[0] : null };
       });
+      if(gName){
+        var gSelf = normKeyName(gName) === normKeyName(applicantName);
+        checks.push({ g:i, k:'gself', label:t('c_gSelf', {i: gSuffix}), pass:!gSelf, detail:gSelf ? t('c_gSelfYes') : '-' });
+        var gp = apPendingGuarantee(gName, applicantName);
+        checks.push({ g:i, k:'gpend', d:gp ? { app:gp.n, amt:gp.a } : null, label:t('c_gPend', {i: gSuffix}), pass:!gp, detail:gp ? t('c_gPendYes', {name:gName, app:gp.n, amt:fmtMoney(gp.a)}) : t('c_gPendNo') });
+        if(i > 1){
+          var gDup = false;
+          for(var pj = 1; pj < i; pj++){ var pin = document.getElementById('eligGuarantor' + pj + 'Input'); if(pin && normKeyName(pin.value) === normKeyName(gName)) gDup = true; }
+          checks.push({ g:i, k:'gdup', label:t('c_gDup', {i: gSuffix}), pass:!gDup, detail:gDup ? t('c_gDupYes', {name:gName}) : '-' });
+        }
+      }
       var gDues = gName ? dbDues(gName) : null;
       if(gDues) checks.push({ g:i, k:'gdues', d:gDues.amount, label:t('c_gdues', { n:gSuffix.trim() }).replace(/\s+:/, ':'), pass:gDues.amount === 0 && !gDues.blocked, detail:gDues.amount ? t('c_gduesYes', { n:gName, a:fmtMoney(gDues.amount) }) : t('c_duesNo') });
     }
@@ -4226,7 +4276,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   var APPS_KEY = 'withusApps';
   var apps = loadApps();
   var appsPending = 0, appsQueue = Promise.resolve(), appsServerOk = false;
-  var apState = { month:null, filter:'all', draft:null, editId:null, dupOk:false };
+  var apState = { month:null, filter:'all', tier:'all', draft:null, editId:null, dupOk:false };
   var AP_TIERS = [100000, 50000, 25000, 10000];
   var AP_MATCHED = 'Loan Eligibility Criteria Matched';
 
@@ -4352,6 +4402,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       if(!c.d || !c.d.member) return pre + 'मेंबर यादीत सापडला नाही';
       return pre + 'मेंबर ला ' + mrDur(tier.guarantorMinMonths) + ' पूर्ण नाहीत';
     }
+    if(c.k === 'gself') return pre + 'अर्जदार स्वतःचा जामीनदार होऊ शकत नाही';
+    if(c.k === 'gdup') return pre + 'तोच जामीनदार दोनदा निवडला आहे';
+    if(c.k === 'gpend') return pre + (c.d ? 'आधीच ' + c.d.app + ' यांच्या ' + apRupee(c.d.amt) + ' च्या कर्ज अर्जाला जामीनदार आहे, दुसऱ्या कर्ज अर्जासाठी जामीनदार म्हणून स्वीकारता येणार नाही' : 'आधीच दुसऱ्या कर्ज अर्जाला जामीनदार आहे');
     if(c.k === 'gdues') return pre + (c.d ? 'मासिक योगदान किंवा दंड थकलेला आहे: ' + apRupee(c.d) : 'सदस्य निलंबित आहे');
     var a = c.d && c.d.act;
     return pre + (a ? a.applicant + ' ने घेतलेल्या ' + apRupee(a.takenAmt) + ' च्या लोनला आधीच जामीनदार आहे' : 'आधीच दुसऱ्या लोनला जामीनदार आहे');
@@ -4483,26 +4536,40 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     document.getElementById('apNext').disabled = idx === ms.length - 1;
     var all = apEntries(mo.key), acc = all.filter(function(e){ return apStatus(e) === 'a'; }), rej = all.filter(function(e){ return apStatus(e) === 'r'; });
     var dis = acc.filter(apDisb);
-    var nowAcc = apEntries(apNowKey()).filter(function(e){ return apStatus(e) === 'a' && !apDisb(e); }).length;
-    var cnt = document.getElementById('apCount'); if(cnt) cnt.textContent = nowAcc ? String(nowAcc) : '';
-    var f = apState.filter, ch = '';
-    function chip(key, label, n){ return '<button type="button" class="mc-chip ap-chip' + (f === key ? ' active' : '') + '" data-f="' + key + '">' + esc(label) + ' <b style="opacity:.7;">' + n + '</b></button>'; }
-    ch += chip('all', t('apAll'), acc.length);
-    AP_TIERS.forEach(function(a){ ch += chip(String(a), indian(a), acc.filter(function(e){ return e.a === a; }).length); });
-    ch += chip('nd', t('apNotDisbChip'), acc.length - dis.length);
-    ch += chip('dis', t('apDisbChip'), dis.length);
-    ch += chip('rej', t('apRejTab'), rej.length);
+    var f = apState.filter, tf = apState.tier || 'all', ch = '';
+    var pend = acc.length - dis.length;
+    ch += '<p class="ap-sum">' + esc(t('apFltAcc')) + ': <b>' + acc.length + '</b>' + ' &middot; ' + esc(t('apSumPend')) + ' <b>' + pend + '</b> &middot; ' + esc(t('apSumDisb')) + ' <b>' + dis.length + '</b> &middot; ' + esc(t('apSumRej')) + ' <b>' + rej.length + '</b></p>';
+    function seg(key, label){ return '<button type="button" class="mc-seg ap-chip' + (f === key ? ' active' : '') + '" data-f="' + key + '">' + esc(label) + '</button>'; }
+    ch += '<div class="mc-switch ap-flt">' + seg('all', t('apFltAcc')) + seg('nd', t('apFltPend')) + seg('dis', t('apDisbChip')) + seg('rej', t('apRejTab')) + '</div>';
+    if(f !== 'rej'){
+      ch += '<div class="ap-tiers"><button type="button" class="ap-tier' + (tf === 'all' ? ' active' : '') + '" data-t="all">' + esc(t('apAllAmt')) + '</button>';
+      AP_TIERS.forEach(function(a){ ch += '<button type="button" class="ap-tier' + (tf === String(a) ? ' active' : '') + '" data-t="' + a + '">' + indian(a) + '</button>'; });
+      ch += '</div>';
+    }
     document.getElementById('apChips').innerHTML = ch;
 
-    var shown = f === 'rej' ? rej : (f === 'dis' ? dis : (f === 'nd' ? acc.filter(function(e){ return !apDisb(e); }) : acc.filter(function(e){ return f === 'all' || String(e.a) === f; })));
+    var base = f === 'rej' ? rej : (f === 'dis' ? dis : (f === 'nd' ? acc.filter(function(e){ return !apDisb(e); }) : acc));
+    var shown = f === 'rej' ? base : base.filter(function(e){ return tf === 'all' || String(e.a) === tf; });
     var nums = {}, cntBy = {};
     acc.forEach(function(e){ cntBy[e.a] = (cntBy[e.a] || 0) + 1; nums[e.id] = cntBy[e.a]; });
+    var seenG = {}, conflict = {};
+    Object.keys(apps.months || {}).sort().forEach(function(mk){
+      apEntries(mk).forEach(function(e){
+        if(apStatus(e) !== 'a' || apDisb(e)) return;
+        (e.g || []).forEach(function(g, j){
+          var k = normKeyName(g); if(!k || (e.gb && e.gb[j])) return;
+          if(seenG[k] && seenG[k].id !== e.id) conflict[e.id] = { g:g, n:seenG[k].n, a:seenG[k].a }; else if(!seenG[k]) seenG[k] = e;
+        });
+      });
+    });
     var html = '';
+    var lastTier = null;
     if(f === 'rej' && rej.length) html += '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px;">' + esc(t('apRejHint')) + '</p>';
     if(f === 'nd' && shown.length) html += '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px;">' + esc(t('apNotDisbHint')) + '</p>';
     if(f === 'dis' && dis.length) html += '<p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 4px;">' + esc(t('apDisbHint')) + '</p>';
     if(!shown.length) html += '<p class="member-empty" style="margin:14px 0;">' + esc(t(f === 'dis' ? 'apNoDisb' : 'apNone')) + '</p>';
     shown.slice().sort(function(a, b){ return f === 'rej' ? 0 : (b.a - a.a); }).forEach(function(e){
+      if(f !== 'rej' && e.a !== lastTier){ lastTier = e.a; html += '<h4 class="ap-grp">' + esc(apRupee(e.a)) + '</h4>'; }
       var isRej = apStatus(e) === 'r', rejG = e.gb && e.gb.some(Boolean);
       html += '<div class="ap-card"><div class="ap-top"><span class="ap-name">' + esc(e.n) + '</span><span class="ap-pill' + (isRej ? ' bad' : '') + '">' + esc(isRej ? t('apRejected') : (apDisb(e) ? t('apDisbPill') : t('apAccepted'))) + '</span></div>' +
         '<small class="ap-amt"><b>' + esc(apRupee(e.a)) + '</b></small>';
@@ -4513,6 +4580,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
           '<div class="ap-acts"><button type="button" class="ap-del del" data-id="' + esc(e.id) + '">' + esc(t('apRemove')) + '</button></div></div>';
         return;
       }
+      if(conflict[e.id]) html += '<small class="bad">&#9888; ' + esc(t('apConflict', { g:conflict[e.id].g, n:conflict[e.id].n, a:apRupee(conflict[e.id].a) })) + '</small>';
       if(isRej || rejG || (e.rm && e.rm !== AP_MATCHED)) html += '<small class="bad">' + esc(e.rm || AP_MATCHED) + '</small>';
       html += '<div class="ap-acts">';
       if(!isRej) html += '<button type="button" class="ap-disb" data-id="' + esc(e.id) + '">' + esc(t('apDisbBtn')) + '</button>';
@@ -4573,6 +4641,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var d = apState.disb, inp = document.getElementById('apDisbDate'); if(!d || !inp) return;
     var cur = (apps.months[d.month] || {})[d.id];
     if(!cur || apDisb(cur) || !/^\d{4}-\d{2}-\d{2}$/.test(inp.value)) return;
+    var busy = null;
+    (cur.g || []).forEach(function(g, j){ if(!busy && g && !(cur.gb && cur.gb[j]) && activeGuaranteedLoans(g).length) busy = g; });
+    if(busy){ apCloseSheet(); apState.disb = null; apSay(t('apDisbGWarn', { g:busy }), 'warn'); return; }
     var entry = { n:cur.n, a:cur.a, g:(cur.g || []).slice(), gb:(cur.gb || []).slice(), st:'a', rm:cur.rm || AP_MATCHED, ts:cur.ts || Date.now(), ds:inp.value };
     var ops = {}; ops[d.id] = entry;
     apCloseSheet(); apState.disb = null;
@@ -4688,6 +4759,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       apOpenSheet(apDraftEntry(lastElig), null);
       return;
     }
+    var tr = tg.closest('.ap-tier');
+    if(tr){ apState.tier = tr.getAttribute('data-t'); renderApps(); return; }
     var chip = tg.closest('.ap-chip');
     if(chip){ apState.filter = chip.getAttribute('data-f'); renderApps(); return; }
     var db = tg.closest('.ap-disb');
@@ -6624,7 +6697,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ gl.busy = false; tg.disabled = false; s6Say(t('memEGeneric')); });
   }
   var st6 = { data:null, key:'' };
-  var BUILD_INFO = { app:'V31', build:'v54', date:'1 Nov 2026', cache:'withus-v54' };
+  var BUILD_INFO = { app:'V32', build:'v55', date:'2 Nov 2026', cache:'withus-v55' };
   function s6VerOpen(){
     mem.kind = 's6form'; var mr = document.documentElement.lang === 'mr', w = getWho() || {};
     function row(l, v){ return '<div class="adm-act"><span>' + esc(l) + '</span><b style="text-align:right;">' + esc(v) + '</b></div>'; }

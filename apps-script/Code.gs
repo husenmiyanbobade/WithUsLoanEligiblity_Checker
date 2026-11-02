@@ -20,7 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
-var CODE_VER = 'V30 \u00B7 v53';   // shown in the app: Settings > Version
+var CODE_VER = 'V32 \u00B7 v55';   // shown in the app: Settings > Version
 var SCHEMA_VER = 5;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
@@ -2184,6 +2184,123 @@ function wipeAllData(phrase){
   Logger.log('All data tabs emptied. Sign in as withusadmin1 and import the Excel data again.');
 }
 
+/* ---------- Member module (read-only, own figures only) ---------- */
+// Members sign in with mobile number + 6-digit PIN set by an admin. Their sessions live in a separate store, so a member token is never an admin session.
+var MSESS_MAX_ = 600, MSESS_DAYS_ = 30, MPIN_TRIES_ = 5, MPIN_LOCK_MIN_ = 15, ME_KINDS_ = { meData:1, meCheck:1, meLogout:1 };
+function mobileKey_(v){ var d = String(v === undefined || v === null ? '' : v).replace(/\D/g, ''); return d.length > 10 ? d.slice(-10) : d; }
+function msessions_(){ var raw = props_().getProperty('msessions'); try{ return raw ? JSON.parse(raw) : {}; }catch(e){ return {}; } }
+function saveMsess_(s){ props_().setProperty('msessions', JSON.stringify(s)); }
+function msess_(t){
+  if(typeof t !== 'string' || t.length < 32) return null;
+  var s = msessions_()[t];
+  if(!s || !s.id) return null;
+  if(Date.now() - (s.t || 0) > MSESS_DAYS_ * 86400000) return null;
+  return s;
+}
+function memberByMobile_(mobile){
+  var k = mobileKey_(mobile); if(k.length !== 10) return null;
+  var hits = rows_('Members').filter(function(m){ return String(m.Status) !== 'Exited' && mobileKey_(m.Mobile) === k; });
+  return hits.length === 1 ? hits[0] : null;       // two members with one number: nobody can sign in with it until fixed
+}
+function memberLogin_(body){
+  var bad = needDb_(); if(bad) return bad;
+  var cache = CacheService.getScriptCache(), lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try{
+    var dev = String(body.dev || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || 'unknown', now = Date.now();
+    var kLock = 'mlock_' + dev, kFail = 'mfail_' + dev, until = Number(cache.get(kLock) || 0);
+    if(until > now) return out_({ ok:false, error:'locked', minutes:Math.ceil((until - now) / 60000) });
+    var mem = memberByMobile_(body.mobile), pin = String(body.pin || '').replace(/\D/g, '');
+    var fail = function(){
+      var f = Number(cache.get(kFail) || 0) + 1;
+      if(f >= 10){ cache.put(kLock, String(now + MPIN_LOCK_MIN_ * 60000), MPIN_LOCK_MIN_ * 60); cache.remove(kFail); } else cache.put(kFail, String(f), MPIN_LOCK_MIN_ * 60);
+      return out_({ ok:false, error:'bad-login' });
+    };
+    if(!mem || !mem.PinHash || !mem.PinSalt || pin.length !== 6) return fail();
+    var lu = Number(mem.LockedUntil || 0);
+    if(lu > now) return out_({ ok:false, error:'locked', minutes:Math.ceil((lu - now) / 60000) });
+    if(hash_(pin, String(mem.PinSalt)) !== String(mem.PinHash)){
+      var n = num_(mem.FailedTries) + 1;
+      if(n >= MPIN_TRIES_){ update_('Members', mem._row, { FailedTries:0, LockedUntil:String(now + MPIN_LOCK_MIN_ * 60000) }); audit_({ u:mem.MemberID, r:'member' }, 'member-pin-locked', mem.MemberID, ''); return out_({ ok:false, error:'locked', minutes:MPIN_LOCK_MIN_ }); }
+      update_('Members', mem._row, { FailedTries:n });
+      return out_({ ok:false, error:'bad-login', left:MPIN_TRIES_ - n });
+    }
+    cache.remove(kFail);
+    if(num_(mem.FailedTries) || mem.LockedUntil) update_('Members', mem._row, { FailedTries:0, LockedUntil:'' });
+    var token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+    var s = msessions_(), ids = Object.keys(s);
+    ids.forEach(function(k){ if(now - (s[k].t || 0) > MSESS_DAYS_ * 86400000) delete s[k]; });
+    ids = Object.keys(s);
+    if(ids.length >= MSESS_MAX_){ ids.sort(function(a, b){ return (s[a].t || 0) - (s[b].t || 0); }); for(var i = 0; i <= ids.length - MSESS_MAX_; i++) delete s[ids[i]]; }
+    s[token] = { t:now, id:mem.MemberID }; saveMsess_(s);
+    audit_({ u:mem.MemberID, r:'member' }, 'member-login', mem.MemberID, '');
+    return out_({ ok:true, token:token, name:mem.Name });
+  } finally { lock.releaseLock(); }
+}
+function memberApi_(body){
+  var M = msess_(body.token);
+  if(!M) return out_({ ok:false, error:'bad-session' });
+  if(body.kind === 'meLogout'){
+    var lock = LockService.getScriptLock(); lock.waitLock(20000);
+    try{ var s = msessions_(); delete s[body.token]; saveMsess_(s); } finally { lock.releaseLock(); }
+    return out_({ ok:true });
+  }
+  var bad = needDb_(); if(bad) return bad;
+  ensureSchema_();
+  var mem = memberById_(M.id);
+  if(!mem || String(mem.Status) === 'Exited' || !mem.PinHash) return out_({ ok:false, error:'bad-session' });
+  if(body.kind === 'meCheck') return out_({ ok:true, name:mem.Name });
+  return cachedCall_('me|' + M.id, function(){ return meData_(mem); });
+}
+// Everything one member may see about himself. Admin names, other members' details and society totals are left out.
+function meData_(mem){
+  var p = JSON.parse(memberProfile_({ u:'member', r:'admin1' }, { id:mem.MemberID }).getContent());
+  if(!p || !p.ok) return out_({ ok:false, error:'not-found' });
+  var m = p.member;
+  var pend = p.penaltyPending || [], penAmt = p.penaltyAmount || 0;
+  var owed = m.arrears.length * p.amount + (p.penaltyDue || 0) + pend.length * penAmt;
+  var rules = { en:String(setting_('RulesEN', '') || ''), mr:String(setting_('RulesMR', '') || '') };
+  return out_({ ok:true, id:m.id, name:m.name, joinDate:m.joinDate, dob:m.dob, status:m.status, deposit:m.deposit,
+    arrears:m.arrears, dueNow:m.dueNow, amount:p.amount, month:p.month, today:todayStr_(), owed:owed,
+    penalties:(p.penalties || []).map(function(x){ return { month:x.month, amount:x.amount, status:x.status, paid:x.paid, outstanding:x.outstanding }; }),
+    penaltyPending:pend, penaltyAmount:penAmt,
+    penaltyPayments:(p.penaltyPayments || []).map(function(x){ return { receipt:x.receipt, amount:x.amount, date:x.date, months:x.months }; }),
+    canApply:m.canApply, canGuarantee:m.canGuarantee, blocks:m.blocks,
+    receipts:(p.receipts || []).map(function(r){ return { receipt:r.receipt, months:r.months, amount:r.amount, date:r.date, mode:r.mode }; }),
+    paidMonths:p.paidMonths, loans:p.loans, loanCount:p.loanCount, guarantorFor:p.guarantorFor, rules:rules });
+}
+// Admin: set or reset PINs. The PIN is returned once in this answer and is never stored in readable form.
+function pinIssue_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var ids = Array.isArray(body.ids) ? body.ids.slice(0, 25) : [];
+  if(!ids.length) return out_({ ok:false, error:'bad-request' });
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var items = [], s = msessions_(), drop = false;
+    ids.forEach(function(id){
+      var mem = memberById_(id);
+      if(!mem || String(mem.Status) === 'Exited'){ items.push({ id:String(id), ok:false, reason:'not-active' }); return; }
+      var mk = mobileKey_(mem.Mobile);
+      if(mk.length !== 10){ items.push({ id:mem.MemberID, name:mem.Name, ok:false, reason:'no-mobile' }); return; }
+      if(memberByMobile_(mem.Mobile) === null){ items.push({ id:mem.MemberID, name:mem.Name, ok:false, reason:'duplicate-mobile' }); return; }
+      var pin = ('000000' + (parseInt(Utilities.getUuid().replace(/-/g, '').slice(0, 8), 16) % 1000000)).slice(-6), salt = newSalt_();
+      update_('Members', mem._row, { PinHash:hash_(pin, salt), PinSalt:salt, PinSetAt:nowIso_(), FailedTries:0, LockedUntil:'' });
+      Object.keys(s).forEach(function(k){ if(s[k].id === mem.MemberID){ delete s[k]; drop = true; } });
+      audit_(S, 'pin-issued', mem.MemberID, '');
+      items.push({ id:mem.MemberID, name:mem.Name, mobile:mk, pin:pin, ok:true });
+    });
+    if(drop) saveMsess_(s);
+    return out_({ ok:true, items:items });
+  } finally { lock.releaseLock(); }
+}
+function pinUnlock_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var mem = memberById_(body.id); if(!mem) return out_({ ok:false, error:'no-member' });
+  update_('Members', mem._row, { FailedTries:0, LockedUntil:'' });
+  audit_(S, 'pin-unlocked', mem.MemberID, '');
+  return out_({ ok:true });
+}
+
 /* ---------- reading (needs a signed-in session) ---------- */
 function doGet(e){
   resetCache_();
@@ -2222,6 +2339,8 @@ function doPost(e){
     var body = JSON.parse(e.postData.contents);
     if(body.kind === 'login') return login_(body);
     if(body.kind === 'logout') return logout_(body);
+    if(body.kind === 'memberLogin') return memberLogin_(body);
+    if(ME_KINDS_[body.kind]) return memberApi_(body);
     var S = sess_(body.token);
     if(!S) return out_({ ok:false, error:'bad-session' });
     if(body.kind === 'check') return out_({ ok:true, user:S.u, role:S.r, mustChange:!!S.mc, db:sheetReady_() });
@@ -2233,6 +2352,8 @@ function doPost(e){
     if(body.kind === 'members') return cachedCall_('members', function(){ return membersList_(S); });
     if(body.kind === 'memberProfile') return cachedCall_('mp|' + String(body.id), function(){ return memberProfile_(S, body); });
     if(body.kind === 'memberProfiles') return memberProfiles_(S, body);
+    if(body.kind === 'pinIssue') return pinIssue_(S, body);
+    if(body.kind === 'pinUnlock') return pinUnlock_(S, body);
     if(body.kind === 'memberAdd') return memberAdd_(S, body);
     if(body.kind === 'memberEdit') return memberEdit_(S, body);
     if(body.kind === 'memberStatus') return memberStatus_(S, body);
