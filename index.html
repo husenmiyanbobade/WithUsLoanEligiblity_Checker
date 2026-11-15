@@ -37,7 +37,7 @@
     guard = setTimeout(function(){ n.w = n.r = n.l = 0; ov.classList.remove('on'); }, 45000);   // never leave the screen greyed out
   }
   function sheetOpen(){ var a = document.getElementById('memSheet'), b = document.getElementById('admSheet'); return !!((a && a.style.display !== 'none' && a.innerHTML) || (b && b.style.display !== 'none' && b.innerHTML)); }
-  var QUIET = /^(check|contrib|repay|apply|dataset|memberProfiles)$/;
+  var QUIET = /^(check|dataset|memberProfiles)$/;   // every other save shows "Saving..."
   var READS = /^(members|memberProfile|monthView|monthsSummary|loansList|loansDue|loanDetail|dashboard|finePot|closeView|report|penaltyPreview|settingsGet|adminList|auditList|dbStatus|goLiveView|excelCheck|totalsCheck|cleanupPreview|settlePreview|exitPreview|waPlan|exportAll)$/;
   window.fetch = function(url, opt){
     var u = String(url && url.url || url || ''), p = native.apply(this, arguments);
@@ -48,7 +48,7 @@
     if(QUIET.test(kind)) return p;
     var slot = kind === 'login' ? 'l' : (READS.test(kind) ? 'r' : 'w');
     var done = false, started = false;
-    var t0 = setTimeout(function(){ if(done) return; if(slot === 'r' && !sheetOpen()) return; n[slot]++; started = true; refresh(); }, slot === 'r' ? 400 : 250);
+    var t0 = setTimeout(function(){ if(done) return; n[slot]++; started = true; refresh(); }, slot === 'r' ? 500 : 150);
     function end(){ if(done) return; done = true; clearTimeout(t0); if(started){ n[slot] = Math.max(0, n[slot] - 1); refresh(); } }
     p.then(end, end);
     return p;
@@ -1136,7 +1136,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   .mem-row{ display:flex; align-items:center; gap:10px; padding:8px 12px 8px 14px; min-height:60px; box-sizing:border-box; border-bottom:1px solid var(--line-soft); cursor:pointer; }
   .mem-row:last-child{ border-bottom:0; }
   .mem-main{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; }
-  .mem-main b{ font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mem-main b{ font-size:15px; font-weight:600; white-space:normal; overflow-wrap:anywhere; line-height:1.25; }
   .mem-main span{ font-size:12.5px; color:var(--ink-soft); }
   .mem-side{ flex:none; display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
   .mem-side b{ font-size:14px; }
@@ -1632,7 +1632,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       <div class="mc-bar"><i id="monBar" style="width:0%"></i></div>
       <p class="mc-msg" id="monMsg" role="status" aria-live="polite"></p>
 
-      <div class="mc-search"><input type="text" id="monSearch" data-i18n-ph="monSearchPh" placeholder="Search member name" autocomplete="off"></div>
+      <div class="mc-search"><input type="search" id="monSearch" data-i18n-ph="monSearchPh" placeholder="Search member name" autocomplete="off"></div>
       <div class="mc-chips">
         <button type="button" class="mc-chip active" data-f="all" data-i18n="monAll">All</button>
         <button type="button" class="mc-chip" data-f="unpaid" data-i18n="monUnpaid">Unpaid</button>
@@ -1671,7 +1671,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
         <div class="mc-bar"><i id="rpBar" style="width:0%"></i></div>
         <p class="mc-msg" id="rpMsg" role="status" aria-live="polite"></p>
 
-        <div class="mc-search"><input type="text" id="rpSearch" data-i18n-ph="monSearchPh" placeholder="Search member name" autocomplete="off"></div>
+        <div class="mc-search"><input type="search" id="rpSearch" data-i18n-ph="monSearchPh" placeholder="Search member name" autocomplete="off"></div>
         <div class="mc-chips">
           <button type="button" class="mc-chip rp-chip active" data-f="all" data-i18n="monAll">All</button>
           <button type="button" class="mc-chip rp-chip" data-f="pending" data-i18n="rpPending">Pending</button>
@@ -3003,6 +3003,11 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
 
   function monthlyIssuedCount(tierAmount){
     var now = new Date();
+    if(useLoanDb()){
+      var nDb = (ln.book.takenMonth || []).filter(function(x){ return Math.abs(x.amount - tierAmount) < 500; }).length;
+      virtRows().forEach(function(r){ if(r.takenDate && r.takenDate.getFullYear() === now.getFullYear() && r.takenDate.getMonth() === now.getMonth() && Math.abs(r.takenAmt - tierAmount) < 500) nDb++; });
+      return nDb;
+    }
     return rowsX().filter(function(r){
       return r.takenDate && r.takenDate.getFullYear()===now.getFullYear() && r.takenDate.getMonth()===now.getMonth() &&
         Math.abs(r.takenAmt - tierAmount) < 500;
@@ -3035,6 +3040,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function runEligibilityCheck(opts){
     opts = opts || {};
+    if(!opts.ready && dbMon()){ var o2 = {}; Object.keys(opts).forEach(function(k){ o2[k] = opts[k]; }); o2.ready = true; loanBookEnsure(function(){ runEligibilityCheck(o2); }); return; }
     var applicantName = document.getElementById('eligApplicantInput').value.trim();
     var tier = LOAN_TIERS[selectedEligAmount];
     var resultEl = document.getElementById('eligResult');
@@ -3236,6 +3242,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var months = monthsMembership(member.joinDate);
     if(months === null || months < tier.guarantorMinMonths) return false;
     if(activeGuaranteedLoans(member.name).length) return false;
+    if(apPendingGuarantee(member.name, '')) return false;
     return true;
   }
 
@@ -3254,7 +3261,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     return html;
   }
 
-  function runEligList(){
+  function runEligList(ready){
+    if(ready !== true && dbMon()){ loanBookEnsure(function(){ runEligList(true); }); return; }
     lastListMode = 'tier';
     var tier = LOAN_TIERS[selectedListAmount];
     var resultEl = document.getElementById('listResult');
@@ -3389,7 +3397,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     return top + body + '<p style="font-size:12px; color:var(--ink-soft); margin:18px 0 0;">' + esc(t('listNote')) + '</p>';
   }
 
-  function runAllGuarantorLists(){
+  function runAllGuarantorLists(ready){
+    if(ready !== true && dbMon()){ loanBookEnsure(function(){ runAllGuarantorLists(true); }); return; }
     lastListMode = 'allguar';
     var resultEl = document.getElementById('listResult');
     resultEl.style.display = '';
@@ -3397,7 +3406,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   document.getElementById('listAllGuarBtn').addEventListener('click', function(){ closeAllDropdowns(); runAllGuarantorLists(); });
 
-  function runAllEligibleLists(){
+  function runAllEligibleLists(ready){
+    if(ready !== true && dbMon()){ loanBookEnsure(function(){ runAllEligibleLists(true); }); return; }
     lastListMode = 'alleligible';
     var resultEl = document.getElementById('listResult');
     resultEl.style.display = '';
@@ -4504,6 +4514,11 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function virtHasExcel(r){
     var k = normKeyName(r.applicant);
+    if(useLoanDb()){
+      var dup = false, sameM = function(x){ return x.name && normKeyName(x.name) === k && x.amount === r.takenAmt && String(x.taken || '').slice(0, 7) === dayStr(r.takenDate).slice(0, 7); };
+      ((ln.book.loans || []).concat(ln.book.takenMonth || [])).forEach(function(x){ if(sameM(x)) dup = true; });
+      if(dup) return true;
+    }
     return (allRows || []).some(function(x){
       return x.takenDate && normKeyName(x.applicant) === k && x.takenAmt === r.takenAmt &&
         x.takenDate.getFullYear() === r.takenDate.getFullYear() && x.takenDate.getMonth() === r.takenDate.getMonth();
@@ -4524,7 +4539,39 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     });
     return out;
   }
-  function rowsX(){ return (allRows || []).concat(virtRows()); }
+  /* After go-live the Sheet is the master: loans come from the database (active loans + loans repaid this month),
+     so a repayment marked in the app frees the borrower and the jamin straight away. Excel rows are kept only as closed history. */
+  function dbLoanRows(){
+    var b = ln && ln.book; if(!b || !b.loans) return null;
+    var out = [];
+    (b.loans || []).forEach(function(f){
+      out.push({ applicant:f.name || '', takenDate:rpD(f.taken), takenAmt:f.amount, repayDate:rpD(f.due), repayAmt:0, fine:0, status:'In Process', suspended:'',
+        guarantor:(f.guarantors || []).map(function(g){ return g.name; }).join(' / '), db:f, _d:true });
+    });
+    (b.closedRecent || []).forEach(function(f){
+      out.push({ applicant:f.name || '', takenDate:rpD(f.taken), takenAmt:f.amount, repayDate:rpD(f.closedDate), repayAmt:f.amount, fine:0, status:'Closed', suspended:'',
+        guarantor:(f.guarantors || []).join(' / '), db:f, _d:true });
+    });
+    return out;
+  }
+  function useLoanDb(){ return !!(dbMon() && ln && ln.book && ln.book.loans); }
+  function rowsX(){
+    if(useLoanDb()){
+      var hist = (allRows || []).filter(function(r){ return /closed|paid|complete|repaid|received/i.test(r.status || '') || (r.takenAmt > 0 && r.repayAmt >= r.takenAmt); });
+      return hist.concat(dbLoanRows() || [], virtRows());
+    }
+    return (allRows || []).concat(virtRows());
+  }
+  /* load the loan book from the database before a check, so the answer reflects repayments already saved */
+  function loanBookEnsure(cb){
+    if(!dbMon() || (ln.book && ln.bookAt && Date.now() - ln.bookAt < 15000)){ cb(); return; }
+    var done = false;
+    function fin(){ if(done) return; done = true; cb(); }
+    admCall({ kind:'loansList' }).then(function(res){
+      if(res && res.ok){ ln.book = res; ln.bookAt = Date.now(); try{ localStorage.setItem('withusLnCache', JSON.stringify(res)); }catch(e){} }
+      fin();
+    }).catch(fin);
+  }
 
   function apStatus(e){ return e.st === 'r' ? 'r' : 'a'; }
   function renderApps(){
@@ -5849,7 +5896,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     if(ln.fetching) return; ln.fetching = true;
     admCall({ kind:'loansList' }).then(function(res){
       ln.fetching = false;
-      if(res && res.ok){ ln.book = res; try{ localStorage.setItem('withusLnCache', JSON.stringify(res)); }catch(e){} lnBookRender(); }
+      if(res && res.ok){ ln.book = res; ln.bookAt = Date.now(); try{ localStorage.setItem('withusLnCache', JSON.stringify(res)); }catch(e){} lnBookRender(); }
     }).catch(function(){ ln.fetching = false; });
   }
   function lnBookRender(){
@@ -6697,7 +6744,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ gl.busy = false; tg.disabled = false; s6Say(t('memEGeneric')); });
   }
   var st6 = { data:null, key:'' };
-  var BUILD_INFO = { app:'V32', build:'v55', date:'2 Nov 2026', cache:'withus-v55' };
+  var BUILD_INFO = { app:'V33', build:'v56', date:'15 Nov 2026', cache:'withus-v56' };
   function s6VerOpen(){
     mem.kind = 's6form'; var mr = document.documentElement.lang === 'mr', w = getWho() || {};
     function row(l, v){ return '<div class="adm-act"><span>' + esc(l) + '</span><b style="text-align:right;">' + esc(v) + '</b></div>'; }

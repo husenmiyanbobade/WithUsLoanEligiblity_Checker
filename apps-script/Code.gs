@@ -20,7 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
-var CODE_VER = 'V32 \u00B7 v55';   // shown in the app: Settings > Version
+var CODE_VER = 'V33 \u00B7 v56';   // shown in the app: Settings > Version
 var SCHEMA_VER = 5;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
@@ -969,18 +969,24 @@ function loanView_(f, gs, extraLists){
 function loansList_(S, body){
   var bad = needDb_(); if(bad) return bad;
   loanSweep_(S, false);
-  var today = todayStr_(), pi = loanPaidIndex_(), gi = guarantorsOf_(), figs = [], closedN = 0;
+  var today = todayStr_(), pi = loanPaidIndex_(), gi = guarantorsOf_(), figs = [], closedN = 0, curM = today.slice(0, 7), closedRecent = [], takenMonth = [];
   rows_('Loans').forEach(function(l){
     if(!num_(l.Amount)) return;
     var f = loanFig_(l, pi, today);
-    if(f.status === 'Closed'){ closedN++; return; }
+    if(String(f.taken || '').slice(0, 7) === curM) takenMonth.push({ amount:f.amount, name:f.name, taken:f.taken });
+    if(f.status === 'Closed'){
+      closedN++;
+      // loans repaid this month: the borrower cannot take a new loan until next month, and the guarantors are free
+      if(String(f.closedDate || '').slice(0, 7) === curM) closedRecent.push({ id:f.id, name:f.name, amount:f.amount, taken:f.taken, due:f.due, closedDate:f.closedDate, guarantors:(gi[f.id] || []).map(function(g){ return g.name; }) });
+      return;
+    }
     loanView_(f, gi[f.id]); figs.push(f);
   });
   var order = { Defaulted:0, Overdue:1, Active:2 };
   figs.sort(function(a, b){ return (order[a.status] - order[b.status]) || a.due.localeCompare(b.due) || (a.name < b.name ? -1 : 1); });
   var pot = depositPot_(), out = principalOut_(figs), counts = { Active:0, Overdue:0, Defaulted:0 };
   figs.forEach(function(f){ counts[f.status]++; });
-  return out_({ ok:true, today:today, loans:figs, counts:counts, closedCount:closedN, principalOut:out, depositPot:pot, available:pot - out,
+  return out_({ ok:true, today:today, loans:figs, closedRecent:closedRecent, takenMonth:takenMonth, counts:counts, closedCount:closedN, principalOut:out, depositPot:pot, available:pot - out,
     toCollect:figs.reduce(function(s2, f){ return s2 + f.outstanding; }, 0) });
 }
 
