@@ -48,7 +48,7 @@
     if(QUIET.test(kind)) return p;
     var slot = kind === 'login' ? 'l' : (READS.test(kind) ? 'r' : 'w');
     var done = false, started = false;
-    var t0 = setTimeout(function(){ if(done) return; n[slot]++; started = true; refresh(); }, slot === 'r' ? 500 : 150);
+    var t0 = setTimeout(function(){ if(done) return; if(slot === 'r' && !sheetOpen()) return; n[slot]++; started = true; refresh(); }, slot === 'r' ? 400 : 150);
     function end(){ if(done) return; done = true; clearTimeout(t0); if(started){ n[slot] = Math.max(0, n[slot] - 1); refresh(); } }
     p.then(end, end);
     return p;
@@ -1795,6 +1795,19 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   I18N.en.xlOld = 'Old Excel records (totals, loans, deposits)'; I18N.mr.xlOld = 'जुन्या एक्सेल नोंदी (एकूण, कर्जे, ठेवी)';
   I18N.en.lgAsk = 'Sign out of this device?'; I18N.mr.lgAsk = 'या फोनवरून साइन आउट करायचे?';
   I18N.en.apNotDisbChip = 'Not disbursed'; I18N.mr.apNotDisbChip = 'वितरित नाही'; I18N.en.apNotDisbHint = 'Accepted applications where the amount is not yet given.'; I18N.mr.apNotDisbHint = 'मंजूर अर्ज ज्यांची रक्कम अजून दिलेली नाही.';
+  I18N.en.s6PastDue1='Past due date, not marked overdue'; I18N.mr.s6PastDue1='मुदत संपली, थकीत नोंदवलेले नाही';
+  I18N.en.lnPastDue='Past due date'; I18N.mr.lnPastDue='मुदत संपली';
+  I18N.en.lnMarkOd='Mark overdue'; I18N.mr.lnMarkOd='थकीत म्हणून नोंदवा';
+  I18N.en.lnMarkOdQ='Mark {n} overdue? The fine will be doubled ({a} more) and the loan suspension starts.'; I18N.mr.lnMarkOdQ='{n} यांचे कर्ज थकीत म्हणून नोंदवायचे? दंड दुप्पट होईल (आणखी {a}) आणि कर्ज निलंबन सुरू होईल.';
+  I18N.en.lnMarkedOd='Marked overdue'; I18N.mr.lnMarkedOd='थकीत नोंदवले';
+  I18N.en.lnUnmarkOd='Remove overdue'; I18N.mr.lnUnmarkOd='थकीत काढा';
+  I18N.en.lnUnmarkTitle='Remove overdue mark'; I18N.mr.lnUnmarkTitle='थकीत नोंद काढा';
+  I18N.en.lnUnmarkSub='This takes the doubled fine and the suspension off this loan. If nothing else is left to pay, the loan is closed.'; I18N.mr.lnUnmarkSub='यामुळे या कर्जावरील दुप्पट दंड आणि निलंबन निघेल. आणखी काही भरायचे नसल्यास कर्ज बंद होईल.';
+  I18N.en.lnPastDueNote='Past due date. Mark it overdue only if the money has not come.'; I18N.mr.lnPastDueNote='मुदत संपली. पैसे आले नसतील तरच थकीत नोंदवा.';
+  I18N.en.lnEAlready='This loan is already overdue.'; I18N.mr.lnEAlready='हे कर्ज आधीच थकीत आहे.';
+  I18N.en.lnENotPast='The due date has not passed yet.'; I18N.mr.lnENotPast='मुदत अजून संपलेली नाही.';
+  I18N.en.lnENotOd='This loan is not marked overdue.'; I18N.mr.lnENotOd='हे कर्ज थकीत नोंदवलेले नाही.';
+  I18N.en.lnEDefd='A defaulted loan cannot be changed here.'; I18N.mr.lnEDefd='चुकवलेले कर्ज येथे बदलता येत नाही.';
   I18N.en.apFltAcc='Accepted'; I18N.mr.apFltAcc='मंजूर'; I18N.en.apFltPend='Pending'; I18N.mr.apFltPend='प्रलंबित';
   I18N.en.apAllAmt='All amounts'; I18N.mr.apAllAmt='सर्व रक्कम';
   I18N.en.apSumPend='pending'; I18N.mr.apSumPend='प्रलंबित'; I18N.en.apSumDisb='disbursed'; I18N.mr.apSumDisb='वितरित'; I18N.en.apSumRej='rejected'; I18N.mr.apSumRej='नाकारले';
@@ -3948,12 +3961,13 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function rpDbCard(f, mo){
     var rec = f.status === 'Closed', part = !rec && f.paid > 0, od = f.status === 'Overdue' || f.status === 'Defaulted';
-    var pill = rec ? t('rpReceived') : od ? t('rpDbOverdue') : part ? t('rpDbPartPill') : t('rpPending');
+    var pill = rec ? t('rpReceived') : od ? t('rpDbOverdue') : f.pastDue ? t('lnPastDue') : part ? t('rpDbPartPill') : t('rpPending');
     var g = (f.guarantors || []).map(function(n, i, a){ return '<div>' + esc(a.length > 1 ? 'JAMIN' + (i + 1) : 'JAMIN') + ': ' + esc(n) + '</div>'; }).join('') || '<div>' + esc(t('rpNoGuar')) + '</div>';
-    var h = '<div class="rp-card"><div class="rp-top"><span class="rp-name">' + esc(f.name || '(no name)') + '</span><span class="rp-pill' + (rec ? ' ok' : od ? ' bad' : '') + '">' + esc(pill) + '</span></div>';
+    var h = '<div class="rp-card"><div class="rp-top"><span class="rp-name">' + esc(f.name || '(no name)') + '</span><span class="rp-pill' + (rec ? ' ok' : (od || f.pastDue) ? ' bad' : '') + '">' + esc(pill) + '</span></div>';
     h += '<div class="rp-ret">₹' + indian(f.amount) + ' · ' + esc(t('rpDbOwed')) + '<strong>₹' + indian(rec ? f.total : f.outstanding) + '</strong></div>';
     var meta = esc(t('rpTaken', { d:memD(f.taken) })) + ' · ' + esc(t('rpDue', { d:memD(f.due) }));
     if(f.late > 0 && !rec) meta += '<div>' + esc(t('rpDbDoubled', { e:memMoney(f.extra) })) + (od ? esc(lnDays(f)) : '') + '</div>';
+    if(f.pastDue) meta += '<div>' + esc(t('lnPastDueNote')) + '</div>';
     if(part) meta += '<div><b>' + esc(t('rpDbPaidBal', { p:memMoney(f.paid), b:memMoney(f.outstanding) })) + '</b></div>';
     h += '<div class="rp-meta">' + meta + g + '</div>';
     (f.payments || []).forEach(function(p){
@@ -3964,7 +3978,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       if(!(f.payments || []).length) h += '<div class="rp-recrow"><span class="rp-recon">' + esc(f.closedDate ? t('rpRecOn', { d:memD(f.closedDate) }) : t('rpReceived')) + '</span></div>';
       else if(early) h += '<div class="rp-recrow"><span class="rp-recon">' + esc(t('rpDbEarly', { d:memD(f.closedDate) })) + '</span></div>';
     } else {
-      h += '<div class="rp-dbbtns"><button type="button" class="rp-btn rp-pay" data-id="' + esc(f.id) + '">' + esc(t('rpDbMarkAll', { a:memMoney(f.outstanding) })) + '</button><button type="button" class="rp-btn rp-part ghost" data-id="' + esc(f.id) + '">' + esc(t('rpDbPart')) + '</button></div>';
+      h += '<div class="rp-dbbtns"><button type="button" class="rp-btn rp-pay" data-id="' + esc(f.id) + '">' + esc(t('rpDbMarkAll', { a:memMoney(f.outstanding) })) + '</button><button type="button" class="rp-btn rp-part ghost" data-id="' + esc(f.id) + '">' + esc(t('rpDbPart')) + '</button>' + (f.pastDue ? '<button type="button" class="rp-btn ghost rp-od" data-id="' + esc(f.id) + '">' + esc(t('lnMarkOd')) + '</button>' : '') + (f.status === 'Overdue' && (getWho() || {}).r === 'admin1' ? '<button type="button" class="rp-btn ghost rp-unod" data-id="' + esc(f.id) + '">' + esc(t('lnUnmarkOd')) + '</button>' : '') + '</div>';
     }
     return h + '</div>';
   }
@@ -4022,6 +4036,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   function rpDbClick(e){
     var b;
     if((b = e.target.closest('.rp-pay'))){ rpDbPay(b.getAttribute('data-id'), b); return true; }
+    if((b = e.target.closest('.rp-od'))){ lnMarkOverdue(b.getAttribute('data-id'), b); return true; }
+    if((b = e.target.closest('.rp-unod'))){ ln.ctx = b.getAttribute('data-id'); lnReasonSheet('unmark', t('lnUnmarkTitle'), t('lnUnmarkSub'), b.getAttribute('data-id')); return true; }
     if((b = e.target.closest('.rp-part'))){ rpDbPart(b.getAttribute('data-id')); return true; }
     if((b = e.target.closest('.rp-prm'))){ rpDbRemove(b); return true; }
     if(e.target.id === 'rpUndoBtn'){ rpDbUndo(); return true; }
@@ -5860,7 +5876,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   }
   function lnStName(s2){ return t('lnSt' + s2); }
   function lnPill(s2){ return '<span class="mem-pill ' + (s2 === 'Overdue' || s2 === 'Defaulted' ? 'red' : s2 === 'Closed' ? 'off' : 'green') + '">' + esc(lnStName(s2)) + '</span>'; }
-  function lnDays(l){ return l.status === 'Overdue' ? ' · ' + (l.daysLeft === 1 ? t('lnDaysLeft1') : t('lnDaysLeft', { n:l.daysLeft })) : ''; }
+  function lnDays(l){ if(l.pastDue) return ' · ' + t('lnPastDue'); return l.status === 'Overdue' ? ' · ' + (l.daysLeft === 1 ? t('lnDaysLeft1') : t('lnDaysLeft', { n:l.daysLeft })) : ''; }
   function lnRow(k, v){ return '<div class="adm-act"><span>' + esc(k) + '</span><b>' + v + '</b></div>'; }
 
   function lnProfileHtml(p){
@@ -5906,13 +5922,14 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var h = '<div class="mc-stats"><div class="mc-stat"><span>' + esc(t('lnPrincipalOut')) + '</span><b>' + esc(memMoney(b.principalOut)) + '</b></div><div class="mc-stat paid"><span>' + esc(t('lnAvailable')) + '</span><b>' + esc(memMoney(b.available)) + '</b></div><div class="mc-stat pend"><span>' + esc(t('lnToCollect')) + '</span><b>' + esc(memMoney(b.toCollect)) + '</b></div></div>';
     h += '<div class="mem-top"><div class="mc-search"><input id="lnQ" type="search" value="' + esc(ln.q) + '" placeholder="' + esc(t('lnSearch')) + '" autocomplete="off"></div><button type="button" class="clear-filter-btn mem-addbtn" data-mem="lnnew">+ ' + esc(t('lnNew')) + '</button></div>';
     var chips = [['all', t('lnFAll'), b.loans.length], ['Defaulted', t('lnFDefaulted'), b.counts.Defaulted], ['Overdue', t('lnFOverdue'), b.counts.Overdue], ['Active', t('lnFActive'), b.counts.Active]];
+    var pdN = b.loans.filter(function(x){ return x.pastDue; }).length; if(pdN) chips.splice(3, 0, ['pastdue', t('lnPastDue'), pdN]);
     h += '<div class="mc-chips">' + chips.map(function(c){ return '<button type="button" class="mc-chip' + (ln.filter === c[0] ? ' active' : '') + '" data-mem="lnfilter" data-f="' + c[0] + '">' + esc(c[1]) + ' · ' + c[2] + '</button>'; }).join('') + '</div>';
     h += '<div class="mc-list" id="lnRows">' + lnRowsHtml() + '</div><p class="mem-note">' + esc(t('lnDbNote')) + '</p>';
     var ae = document.activeElement; if(ae && ae.id === 'lnQ' && document.getElementById('lnRows')){ document.getElementById('lnRows').innerHTML = lnRowsHtml(); return; }
     el.innerHTML = h;
   }
   function lnRowsHtml(){
-    var q = ln.q.trim().toLowerCase(), l = ln.book.loans.filter(function(x){ return (ln.filter === 'all' || x.status === ln.filter) && (!q || x.name.toLowerCase().indexOf(q) >= 0 || x.id.toLowerCase().indexOf(q) >= 0); });
+    var q = ln.q.trim().toLowerCase(), l = ln.book.loans.filter(function(x){ return (ln.filter === 'all' || (ln.filter === 'pastdue' ? x.pastDue : x.status === ln.filter)) && (!q || x.name.toLowerCase().indexOf(q) >= 0 || x.id.toLowerCase().indexOf(q) >= 0); });
     if(!l.length) return '<p class="mem-empty">' + esc(t('lnNone')) + '</p>';
     return l.map(function(x){
       return '<div class="mem-row" data-mem="lnopen" data-lid="' + esc(x.id) + '" role="button" tabindex="0"><div class="mem-main"><b>' + esc(x.name) + '</b><span>' + esc(x.id + ' · ' + t('lnDue', { d:memD(x.due) }) + lnDays(x)) + '</span></div><div class="mem-side"><b>' + esc(memMoney(x.outstanding)) + '</b>' + lnPill(x.status) + '</div></div>';
@@ -5945,6 +5962,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var btns = [];
     if(open) btns.push('<button type="button" class="ap-btn" data-mem="lnpay" data-lid="' + esc(l.id) + '">' + esc(t('lnPay')) + '</button>');
     if(open && isOwner && l.status === 'Defaulted') btns.push('<button type="button" class="ap-btn ghost" data-mem="lnsettle" data-lid="' + esc(l.id) + '">' + esc(t('lnSettle')) + '</button>');
+    if(open && l.pastDue) btns.push('<button type="button" class="ap-btn ghost" data-mem="lnmarkod" data-lid="' + esc(l.id) + '">' + esc(t('lnMarkOd')) + '</button>');
+    if(open && isOwner && l.status === 'Overdue') btns.push('<button type="button" class="ap-btn ghost" data-mem="lnunmarkod" data-lid="' + esc(l.id) + '">' + esc(t('lnUnmarkOd')) + '</button>');
     if(open && isOwner && l.late > 0 && !l.lateWaived) btns.push('<button type="button" class="ap-btn ghost" data-mem="lnwaive" data-lid="' + esc(l.id) + '" data-a="' + l.late + '">' + esc(t('lnWaiveLate')) + '</button>');
     if(l.memberId) btns.push('<button type="button" class="ap-btn ghost" data-mem="open" data-id="' + esc(l.memberId) + '">' + esc(t('memMember')) + '</button>');
     btns.push('<button type="button" class="ap-btn ghost" data-mem="close">' + esc(t('memClose')) + '</button>');
@@ -5953,6 +5972,10 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   function lnErr(res){
     var e = res && res.error;
     if(e === 'loan-closed') return t('lnEClosed');
+    if(e === 'already-overdue') return t('lnEAlready');
+    if(e === 'not-past-due') return t('lnENotPast');
+    if(e === 'not-overdue') return t('lnENotOd');
+    if(e === 'loan-defaulted') return t('lnEDefd');
     if(e === 'late-already-paid') return t('lnELate');
     if(e === 'not-defaulted') return t('lnENotDef');
     if(e === 'nothing-to-take') return t('lnSettleNone');
@@ -6000,6 +6023,19 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ btn.disabled = false; say(t('memEGeneric')); });
   }
 
+  /* admin marks a loan overdue: the fine doubles and the suspension starts */
+  function lnMarkOverdue(id, btn){
+    var f = null; ((ln.book && ln.book.loans) || []).forEach(function(x){ if(x.id === id) f = x; });
+    if(!f){ Object.keys(rpDb.months || {}).forEach(function(k){ (rpDb.months[k].loans || []).forEach(function(x){ if(x.id === id) f = x; }); }); }
+    if(!f && ln.det && ln.det.loan && ln.det.loan.id === id) f = ln.det.loan;
+    if(!window.confirm(t('lnMarkOdQ', { n:f ? f.name : id, a:memMoney(f ? f.extra : 0) }))) return;
+    if(btn) btn.disabled = true;
+    admCall({ kind:'loanMarkOverdue', loanId:id }).then(function(res){
+      if(res && res.ok){ admSay(t('lnMarkedOd')); memLoad(true); lnBookLoad(); try{ rpDbRefresh(); }catch(e){} if(ln.det && ln.det.loan && ln.det.loan.id === id){ ln.ctx = id; lnOpen(id); } }
+      else { if(btn) btn.disabled = false; admSay(lnErr(res)); }
+    }).catch(function(){ if(btn) btn.disabled = false; admSay(t('memEGeneric')); });
+  }
+
   /* reason sheet: waive late extra, lift suspension */
   function lnReasonSheet(kind, title, sub, payload){
     ln.form = { mode:'reason', kind:kind, payload:payload, reason:'' }; mem.kind = 'lnreason';
@@ -6009,9 +6045,9 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var f = ln.form, say = function(m){ var e = document.getElementById('memMsg'); if(e){ e.textContent = m; e.style.display = 'block'; } };
     if(String(f.reason || '').trim().length < 3){ say(t('penReasonShort')); return; }
     btn.disabled = true;
-    var req = f.kind === 'waive' ? { kind:'loanWaiveLate', loanId:f.payload, reason:f.reason } : { kind:'suspensionLift', id:f.payload, reason:f.reason };
+    var req = f.kind === 'waive' ? { kind:'loanWaiveLate', loanId:f.payload, reason:f.reason } : f.kind === 'unmark' ? { kind:'loanUnmarkOverdue', loanId:f.payload, reason:f.reason } : { kind:'suspensionLift', id:f.payload, reason:f.reason };
     admCall(req).then(function(res){
-      if(res && res.ok){ admSay(t('lnDone')); memLoad(true); lnBookLoad(); lnOpen(ln.ctx); } else { btn.disabled = false; say(lnErr(res)); }
+      if(res && res.ok){ admSay(t('lnDone')); memLoad(true); lnBookLoad(); try{ rpDbRefresh(); }catch(e){} lnOpen(ln.ctx); } else { btn.disabled = false; say(lnErr(res)); }
     }).catch(function(){ btn.disabled = false; say(t('memEGeneric')); });
   }
 
@@ -6115,6 +6151,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       admCall({ kind:'loanPayVoid', receipt:key }).then(function(res){ if(res && res.ok){ admSay(t('memRemoved')); memLoad(true); lnBookLoad(); lnOpen(ln.ctx); } else { tg.disabled = false; admSay(lnErr(res)); } }).catch(function(){ tg.disabled = false; admSay(t('memEGeneric')); });
       return true;
     }
+    if(act === 'lnmarkod'){ lnMarkOverdue(lid, tg); return true; }
+    if(act === 'lnunmarkod'){ lnReasonSheet('unmark', t('lnUnmarkTitle'), t('lnUnmarkSub'), lid); return true; }
     if(act === 'lnwaive'){ lnReasonSheet('waive', t('lnWaiveTitle'), t('lnWaiveSub', { a:memMoney(Number(tg.getAttribute('data-a'))) }), lid); return true; }
     if(act === 'lnlift'){ lnReasonSheet('lift', t('lnLiftTitle'), t('lnLiftSub'), tg.getAttribute('data-id')); return true; }
     if(act === 'lnreasonsave'){ lnReasonSave(tg); return true; }
@@ -6280,11 +6318,12 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var bd = ''; try{ var bl = memBirthdays(); if(bl.length) bd = '<div class="mem-birth" style="margin:0 0 10px;">' + esc(t('s6Bday', { n:bl.map(function(x){ return x.n + ' (' + x.a + ')'; }).join(', ') })) + '</div>'; }catch(e){}
     el.innerHTML = '<div class="s6-hd"><h3>' + esc(t('s6Dash')) + '</h3><small>' + esc(t('s6Today', { d:memD(mem.today || d.today) })) + '</small></div>' + bd +
       '<div class="s6-tiles">' + tile('main', 's6DepPot', d.depositPot) + tile('main', 's6Avail', d.available) + tile('', 's6LoansOut', d.loansOut) + tile('', 's6FinePot', d.finePot) + '</div>' +
-      '<p class="s6-lbl">' + esc(t('s6Attn')) + '</p><div class="s6-attns">' + row(d.defaulters, 's6Arrears1', 'arrears') + row(d.overdueLoans, 's6Overdue1', 'overdue') + row(d.dueThisMonth, 's6Due1', 'due') + '</div>' +
+      '<p class="s6-lbl">' + esc(t('s6Attn')) + '</p><div class="s6-attns">' + row(d.defaulters, 's6Arrears1', 'arrears') + row(d.overdueLoans, 's6Overdue1', 'overdue') + (d.pastDueLoans > 0 ? row(d.pastDueLoans, 's6PastDue1', 'pastdue') : '') + row(d.dueThisMonth, 's6Due1', 'due') + '</div>' +
       '<div class="s6-acts"><button type="button" data-mem="s6reports">' + esc(t('s6BtnReports')) + '</button><button type="button" data-mem="s6close">' + esc(t('s6BtnClose')) + '</button></div>';
   }
   function s6Go(v){
     if(v === 'arrears'){ mem.filter = 'owes'; showTab('members'); memRender(); return; }
+    if(v === 'pastdue'){ showTab('eligibility'); var b2 = document.querySelector('#eligSwitch [data-epane="book"]'); if(b2) b2.click(); ln.filter = 'pastdue'; try{ lnBookRender(); }catch(e){} return; }
     if(v === 'overdue'){ showTab('eligibility'); var b = document.querySelector('#eligSwitch [data-epane="book"]'); if(b) b.click(); ln.filter = 'Overdue'; try{ lnBookRender(); }catch(e){} return; }
     if(v === 'due'){ showTab('monthly'); var sg = document.querySelector('#monCard .mc-seg[data-pane="loan"]'); if(sg) sg.click(); var fb = document.querySelector('.mc-foldbtn[data-fold="rpList"]'), ff = document.getElementById('fold_rpList'); if(fb && ff && ff.hidden) fb.click(); window.scrollTo(0, 0); return; }
   }
@@ -6744,7 +6783,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ gl.busy = false; tg.disabled = false; s6Say(t('memEGeneric')); });
   }
   var st6 = { data:null, key:'' };
-  var BUILD_INFO = { app:'V33', build:'v56', date:'15 Nov 2026', cache:'withus-v56' };
+  var BUILD_INFO = { app:'V34', build:'v57', date:'17 Nov 2026', cache:'withus-v57' };
   function s6VerOpen(){
     mem.kind = 's6form'; var mr = document.documentElement.lang === 'mr', w = getWho() || {};
     function row(l, v){ return '<div class="adm-act"><span>' + esc(l) + '</span><b style="text-align:right;">' + esc(v) + '</b></div>'; }

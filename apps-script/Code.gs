@@ -20,8 +20,8 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
-var CODE_VER = 'V33 \u00B7 v56';   // shown in the app: Settings > Version
-var SCHEMA_VER = 5;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
+var CODE_VER = 'V34 \u00B7 v57';   // shown in the app: Settings > Version
+var SCHEMA_VER = 6;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
 var CONTRIB_FILE = 'withus-contributions.json';     // monthly contribution marks
@@ -35,7 +35,7 @@ var ADMIN1 = 'withusadmin1', ADMIN2 = 'withusadmin2';
 var TABS = {
   Members: ['MemberID','Name','Mobile','DOB','JoinDate','Status','OpeningDeposit','JoiningFee','PinHash','PinSalt','PinSetAt','FailedTries','LockedUntil','Source','CreatedAt','CreatedBy'],
   Contributions: ['ContribID','MemberID','Month','Amount','PaidDate','Mode','Ref','Source','EnteredBy','EnteredAt','Voided','ReceiptNo','VoidedBy','VoidedAt'],
-  Loans: ['LoanID','MemberID','ApplicantName','Amount','TakenDate','DueDate','ReturnAmount','Fine','LateExtra','Status','Suspended','ClosedDate','Source','CreatedAt','LateWaived','WaiveNote'],
+  Loans: ['LoanID','MemberID','ApplicantName','Amount','TakenDate','DueDate','ReturnAmount','Fine','LateExtra','Status','Suspended','ClosedDate','Source','CreatedAt','LateWaived','WaiveNote','OverdueOn'],
   Guarantors: ['LoanID','MemberID','Name','Source'],
   LoanPayments: ['PaymentID','LoanID','Date','Amount','PaidBy','ToPrincipal','ToExtra','ToLateExtra','Mode','Ref','EnteredBy','EnteredAt','Voided'],
   Applications: ['AppID','Month','MemberID','Name','Amount','Guarantors','Status','Remark','CreatedAt'],
@@ -917,13 +917,16 @@ function loanFig_(l, pi, today){
   var due = String(l.DueDate || ''), dm = due.slice(0, 7), od = dm ? dm + '-16' : '', lastD = dm ? lastDay_(dm) : '';
   var def = dm ? addMonths_(dm, 1) + '-01' : '';
   var legacyPaid = closed && pd.n === 0;
-  var status = closed ? 'Closed' : (def && today >= def ? 'Defaulted' : (od && today >= od ? 'Overdue' : 'Active'));
+  // Overdue is set by the admin (Mark overdue), never by the calendar. A loan that has the late extra on it already counts as marked.
+  var marked = !!String(l.OverdueOn || '').trim() || num_(l.LateExtra) > 0 || isTrue_(l.LateWaived);
+  var pastDue = !closed && !marked && !!od && today >= od && !(def && today >= def);
+  var status = closed ? 'Closed' : (def && today >= def ? 'Defaulted' : (marked && od && today >= od ? 'Overdue' : 'Active'));
   var late = isTrue_(l.LateWaived) ? 0 : (num_(l.LateExtra) > 0 ? num_(l.LateExtra) : ((status === 'Overdue' || status === 'Defaulted') ? extra : 0));
   var total = amt + extra + late, paid = legacyPaid ? num_(l.ReturnAmount) : pd.p + pd.e + pd.l;
   var oP = Math.max(0, amt - pd.p), oE = Math.max(0, extra - pd.e), oL = Math.max(0, late - pd.l);
   var out = closed ? 0 : oP + oE + oL;
   return { id:l.LoanID, memberId:l.MemberID || '', name:l.ApplicantName || '', amount:amt, extra:extra, late:late, lateWaived:isTrue_(l.LateWaived), total:total, paid:paid, outstanding:out, oP:closed ? 0 : oP, oE:closed ? 0 : oE, oL:closed ? 0 : oL,
-    taken:String(l.TakenDate || ''), due:due, closedDate:String(l.ClosedDate || ''), status:status, overdueFrom:od, lastDay:lastD, daysLeft:(status === 'Overdue' && lastD) ? Math.max(0, dayDiff_(today, lastD)) : 0, defaultFrom:def, source:String(l.Source || ''), row:l._row };
+    taken:String(l.TakenDate || ''), due:due, closedDate:String(l.ClosedDate || ''), status:status, overdueFrom:od, lastDay:lastD, daysLeft:(status === 'Overdue' && lastD) ? Math.max(0, dayDiff_(today, lastD)) : 0, defaultFrom:def, source:String(l.Source || ''), pastDue:pastDue, overdueOn:String(l.OverdueOn || ''), row:l._row };
 }
 function guarantorsOf_(){
   var g = {};
@@ -1088,6 +1091,53 @@ function loanPayVoid_(S, body){
     else if(loan && String(loan.Source) === 'import' && loanClosedText_(loan) && loan.ClosedDate){ update_('Loans', loan._row, { Status:'In Process', ClosedDate:'' }); }
     audit_(S, 'loan-payment-voided', loanId, key + ' · ' + String(body.reason || '').slice(0, 100));
     return out_({ ok:true, voided:pays.length });
+  } finally { lock.releaseLock(); }
+}
+
+// Any admin: mark a loan overdue. The late extra (a second fine) is added now and the 6-month loan suspension starts.
+function loanMarkOverdue_(S, body){
+  var bad = needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var l = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(body.loanId); })[0];
+    if(!l) return out_({ ok:false, error:'not-found' });
+    var today = todayStr_(), f = loanFig_(l, loanPaidIndex_(), today);
+    if(f.status === 'Closed') return out_({ ok:false, error:'loan-closed' });
+    if(f.status === 'Overdue' || f.status === 'Defaulted') return out_({ ok:false, error:'already-overdue' });
+    if(!f.pastDue) return out_({ ok:false, error:'not-past-due', from:f.overdueFrom });
+    var upd = { OverdueOn:today }; if(f.extra > 0) upd.LateExtra = f.extra;
+    update_('Loans', l._row, upd);
+    var have = rows_('Suspensions').some(function(x){ return String(x.LoanID) === String(f.id); });
+    if(!have && f.memberId) appendMany_('Suspensions', [{ SuspensionID:newId_('S'), MemberID:f.memberId, Reason:'Overdue loan', LoanID:f.id, StartDate:f.overdueFrom, EndDate:addMonths_(f.overdueFrom.slice(0, 7), SUSPEND_MONTHS) + '-' + f.overdueFrom.slice(8, 10) }]);
+    audit_(S, 'loan-marked-overdue', f.id, f.name + ' · late extra ' + f.extra);
+    return out_({ ok:true });
+  } finally { lock.releaseLock(); }
+}
+
+// admin1 only: take the overdue mark back (marked by mistake, or the money came on time). Removes the late extra and the suspension; closes the loan if nothing is left to pay.
+function loanUnmarkOverdue_(S, body){
+  var bad = need_(S, 'admin1') || needDb_(); if(bad) return bad;
+  var lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    var reason = String(body.reason || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    if(reason.length < 3) return out_({ ok:false, error:'reason-needed' });
+    var l = rows_('Loans').filter(function(x){ return String(x.LoanID) === String(body.loanId); })[0];
+    if(!l) return out_({ ok:false, error:'not-found' });
+    var today = todayStr_(), pi = loanPaidIndex_(), f = loanFig_(l, pi, today);
+    if(f.status === 'Closed') return out_({ ok:false, error:'loan-closed' });
+    if(f.status === 'Defaulted') return out_({ ok:false, error:'loan-defaulted' });
+    if(f.status !== 'Overdue') return out_({ ok:false, error:'not-overdue' });
+    var pd = pi[f.id]; if(pd && pd.l > 0) return out_({ ok:false, error:'late-already-paid' });
+    var upd = { OverdueOn:'', LateExtra:0, LateWaived:false, WaiveNote:'' };
+    var left = Math.max(0, f.amount - (pd ? pd.p : 0)) + Math.max(0, f.extra - (pd ? pd.e : 0)), closes = left <= 0.001, lastPay = '';
+    if(closes){
+      rows_('LoanPayments').forEach(function(x){ if(String(x.LoanID) === String(f.id) && !isTrue_(x.Voided) && String(x.Date) > lastPay) lastPay = String(x.Date); });
+      upd.Status = 'Complete'; upd.ClosedDate = lastPay || today;
+    }
+    update_('Loans', l._row, upd);
+    rows_('Suspensions').forEach(function(x){ if(String(x.LoanID) === String(f.id) && !x.LiftedBy) update_('Suspensions', x._row, { LiftedBy:S.u }); });
+    audit_(S, 'loan-overdue-removed', f.id, reason + (closes ? ' · closed' : ''));
+    return out_({ ok:true, closed:closes });
   } finally { lock.releaseLock(); }
 }
 
@@ -1436,7 +1486,7 @@ function dashboard_(S){
   var ci = contribIndex_(), defaulters = 0;
   rows_('Members').forEach(function(m){ if(String(m.Status) !== 'Exited' && standing_(m, ci[m.MemberID], cur).arrears.length) defaulters++; });
   return out_({ ok:true, depositPot:ex.deposit, finePot:ex.fine, loansOut:ex.principalOut, available:r2_(ex.deposit - ex.principalOut), defaulters:defaulters,
-    overdueLoans:open.filter(function(f){ return f.status === 'Overdue' || f.status === 'Defaulted'; }).length, dueThisMonth:open.filter(function(f){ return f.due.slice(0, 7) === cur; }).length });
+    overdueLoans:open.filter(function(f){ return f.status === 'Overdue' || f.status === 'Defaulted'; }).length, pastDueLoans:open.filter(function(f){ return f.pastDue; }).length, dueThisMonth:open.filter(function(f){ return f.due.slice(0, 7) === cur; }).length });
 }
 
 /* reports: read-only, both admins. Every report returns { title, cols:[labels], rows:[[...]], foot:[...] | null, numeric:[col indexes] } */
@@ -2379,6 +2429,8 @@ function doPost(e){
     if(body.kind === 'loanPay') return loanPay_(S, body);
     if(body.kind === 'loanPayVoid') return loanPayVoid_(S, body);
     if(body.kind === 'loanWaiveLate') return loanWaiveLate_(S, body);
+    if(body.kind === 'loanMarkOverdue') return loanMarkOverdue_(S, body);
+    if(body.kind === 'loanUnmarkOverdue') return loanUnmarkOverdue_(S, body);
     if(body.kind === 'suspensionLift') return suspensionLift_(S, body);
     if(body.kind === 'settlePreview') return settlePreview_(S, body);
     if(body.kind === 'settleConfirm') return settleConfirm_(S, body);
