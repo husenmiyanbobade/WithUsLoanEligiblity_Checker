@@ -20,7 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
-var CODE_VER = 'V34 \u00B7 v57';   // shown in the app: Settings > Version
+var CODE_VER = 'V36 \u00B7 v59';   // shown in the app: Settings > Version
 var SCHEMA_VER = 6;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
@@ -895,6 +895,14 @@ function penaltyWaive_(S, body){
 // Loan sizes: extra charge and months to repay, number of guarantors. 5000 is an old size that is no longer given.
 var LOAN_TIERS_ = { 5000:{ extra:200, months:2, g:0 }, 10000:{ extra:500, months:3, g:0 }, 25000:{ extra:1000, months:4, g:1 }, 50000:{ extra:2000, months:5, g:1 }, 100000:{ extra:4000, months:5, g:2 } };
 var SUSPEND_MONTHS = 6;
+// society rules per loan size: months of membership for the borrower and for each guarantor, and how many such loans may be given in one month
+var LOAN_RULES_ = { 10000:{ minM:6, gMin:0, cap:0 }, 25000:{ minM:24, gMin:24, cap:13 }, 50000:{ minM:60, gMin:60, cap:5 }, 100000:{ minM:60, gMin:60, cap:1 } };
+function memberMonths_(mem, onDate){
+  var j = String(mem.JoinDate || '').slice(0, 10); if(!validDate_(j)) return null;
+  var m = (+onDate.slice(0, 4) - +j.slice(0, 4)) * 12 + (+onDate.slice(5, 7) - +j.slice(5, 7));
+  if(+onDate.slice(8, 10) < +j.slice(8, 10)) m--;
+  return Math.max(0, m);
+}
 function lastDay_(month){ var y = parseInt(month.slice(0, 4), 10), m = parseInt(month.slice(5, 7), 10); return month + '-' + pad_(new Date(y, m, 0).getDate(), 2); }
 function addDays_(d, n){ var t = new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) + n * 86400000); return t.getUTCFullYear() + '-' + ('0' + (t.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + t.getUTCDate()).slice(-2); }
 function dayDiff_(a, b){ return Math.round((Date.UTC(+b.slice(0, 4), +b.slice(5, 7) - 1, +b.slice(8, 10)) - Date.UTC(+a.slice(0, 4), +a.slice(5, 7) - 1, +a.slice(8, 10))) / 86400000); }
@@ -1240,6 +1248,11 @@ function loanDisburse_(S, body){
   var bad = needDb_(); if(bad) return bad;
   var lock = LockService.getScriptLock(); lock.waitLock(30000);
   try{
+    var appKey = String(body.appKey || '').replace(/[^\w|\-]/g, '').slice(0, 40);
+    if(appKey){   // the same application is never turned into two loans
+      var dupL = rows_('Loans').filter(function(x){ return String(x.Source) === 'app:' + appKey; })[0];
+      if(dupL) return out_({ ok:true, loanId:String(dupL.LoanID), again:true });
+    }
     var mem = memberById_(body.memberId); if(!mem) return out_({ ok:false, error:'no-member' });
     var amount = Math.round(num_(body.amount)), tier = loanTierFor_(amount); if(!tier) return out_({ ok:false, error:'bad-amount' });
     var today = todayStr_(), date = body.date ? String(body.date) : today;
@@ -1248,6 +1261,19 @@ function loanDisburse_(S, body){
     var cur = curMonth_(), ci = contribIndex_(), pi = penaltyIndex_(), si = suspensionIndex_();
     var el = eligibility_(mem, standing_(mem, ci[mem.MemberID], cur), (pi[mem.MemberID] || { due:0 }).due, si[mem.MemberID]);
     if(!el.canApply) return out_({ ok:false, error:'not-eligible', reasons:el.reasons });
+    var rule = LOAN_RULES_[amount], dm = date.slice(0, 7);
+    var mm = memberMonths_(mem, date);
+    if(mm === null) return out_({ ok:false, error:'no-join-date', name:mem.Name });
+    if(mm < rule.minM) return out_({ ok:false, error:'member-too-new', name:mem.Name, need:rule.minM, have:mm });
+    var allLoans = rows_('Loans');
+    for(var q = 0; q < allLoans.length; q++){
+      var lq = allLoans[q];
+      if(String(lq.MemberID) === mem.MemberID && String(lq.ClosedDate || '').slice(0, 7) === dm) return out_({ ok:false, error:'repaid-this-month', loanId:String(lq.LoanID) });
+    }
+    if(rule.cap){
+      var issuedN = allLoans.filter(function(lq){ return String(lq.TakenDate || '').slice(0, 7) === dm && Math.abs(num_(lq.Amount) - amount) < 500; }).length;
+      if(issuedN >= rule.cap) return out_({ ok:false, error:'monthly-cap', cap:rule.cap, amount:amount });
+    }
     var figs = rows_('Loans').map(function(l){ return loanFig_(l, loanPaidIndex_(), today); }), gi = guarantorsOf_();
     for(var i = 0; i < figs.length; i++) if(figs[i].memberId === mem.MemberID && figs[i].status !== 'Closed') return out_({ ok:false, error:'open-loan', loanId:figs[i].id });
     var gids = Array.isArray(body.guarantors) ? body.guarantors.map(String) : [];
@@ -1258,6 +1284,8 @@ function loanDisburse_(S, body){
       var gm = memberById_(gids[k]); if(!gm || gm.MemberID === mem.MemberID) return out_({ ok:false, error:'bad-guarantors', need:tier.g });
       var ge = eligibility_(gm, standing_(gm, ci[gm.MemberID], cur), (pi[gm.MemberID] || { due:0 }).due, si[gm.MemberID]);
       if(!ge.canGuarantee) return out_({ ok:false, error:'guarantor-blocked', member:gm.MemberID, name:gm.Name, reasons:ge.reasons });
+      var gmm = memberMonths_(gm, date);
+      if(gmm === null || gmm < rule.gMin) return out_({ ok:false, error:'guarantor-too-new', name:gm.Name, need:rule.gMin, have:gmm });
       for(var j = 0; j < figs.length; j++) if(figs[j].status !== 'Closed' && (gi[figs[j].id] || []).some(function(g){ return g.id === gm.MemberID; })) return out_({ ok:false, error:'guarantor-busy', member:gm.MemberID, name:gm.Name, loanId:figs[j].id });
       names.push(gm.Name);
     }
@@ -1265,7 +1293,7 @@ function loanDisburse_(S, body){
     if(amount > pot - out + 0.001) return out_({ ok:false, error:'no-funds', available:pot - out });
     var n = 0; rows_('Loans').forEach(function(l){ var m = /^L-(\d+)$/.exec(String(l.LoanID)); if(m) n = Math.max(n, parseInt(m[1], 10)); });
     var lid = 'L-' + pad_(n + 1, 4), due = addMonths_(date.slice(0, 7), tier.months) + '-' + date.slice(8, 10);
-    appendMany_('Loans', [{ LoanID:lid, MemberID:mem.MemberID, ApplicantName:mem.Name, Amount:amount, TakenDate:date, DueDate:due, ReturnAmount:0, Fine:tier.extra, LateExtra:0, Status:'In Process', Suspended:'', ClosedDate:'', Source:'app', CreatedAt:nowIso_() }]);
+    appendMany_('Loans', [{ LoanID:lid, MemberID:mem.MemberID, ApplicantName:mem.Name, Amount:amount, TakenDate:date, DueDate:due, ReturnAmount:0, Fine:tier.extra, LateExtra:0, Status:'In Process', Suspended:'', ClosedDate:'', Source:appKey ? 'app:' + appKey : 'app', CreatedAt:nowIso_() }]);
     if(gids.length) appendMany_('Guarantors', gids.map(function(g, q){ return { LoanID:lid, MemberID:g, Name:names[q], Source:'app' }; }));
     audit_(S, 'loan-disbursed', lid, mem.MemberID + ' · ' + amount + ' · guarantors ' + (gids.join(', ') || 'none'));
     return out_({ ok:true, loanId:lid, due:due, extra:tier.extra, total:amount + tier.extra });
@@ -2467,6 +2495,8 @@ function doPost(e){
     if(body.kind === 'exportAll') return exportAll_(S);
 
     // existing app data (unchanged)
+    // once the Sheet database is set up it is the only record: the old Drive files must not take new contributions or repayments
+    if((body.kind === 'contrib' || body.kind === 'repay') && sheetReady_()) return out_({ ok:false, error:'use-sheet' });
     if(body.kind === 'contrib') return saveMarks_(body, CONTRIB_FILE, false);
     if(body.kind === 'repay') return saveMarks_(body, REPAY_FILE, true);
     if(body.kind === 'apply') return saveMarks_(body, APPS_FILE, 'apply');
@@ -2533,5 +2563,6 @@ function cleanApp_(v){
   });
   var out = { n: v.n.slice(0, 80), a: amt, g: g, gb: gb, st: v.st === 'r' ? 'r' : 'a', rm: String(v.rm || '').slice(0, 400), ts: Number(v.ts) || Date.now() };
   if(typeof v.ds === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.ds)) out.ds = v.ds;   // disbursed loan date
+  if(typeof v.lid === 'string' && /^L-\d{1,8}$/.test(v.lid)) out.lid = v.lid;   // the loan created in the Sheet for this application
   return out;
 }

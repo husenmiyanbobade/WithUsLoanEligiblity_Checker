@@ -739,6 +739,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
 <style id="p6css">
   #apChips{ display:block; margin:4px 0 8px; }
   #apChips .ap-flt{ display:grid; width:100%; box-sizing:border-box; }
+  .ap-sync{ border:1px solid var(--line, #ddd); border-radius:12px; padding:10px 12px; margin:0 0 10px; }
+  .ap-sync p{ margin:0 0 8px; font-size:13px; line-height:1.45; color:var(--ink-soft); }
   .ap-sum{ margin:2px 0 10px; font-size:13px; color:var(--ink-soft); line-height:1.5; }
   .ap-sum b{ color:var(--ink); font-weight:600; }
   .ap-flt{ margin-bottom:10px; }
@@ -1795,6 +1797,17 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   I18N.en.xlOld = 'Old Excel records (totals, loans, deposits)'; I18N.mr.xlOld = 'जुन्या एक्सेल नोंदी (एकूण, कर्जे, ठेवी)';
   I18N.en.lgAsk = 'Sign out of this device?'; I18N.mr.lgAsk = 'या फोनवरून साइन आउट करायचे?';
   I18N.en.apNotDisbChip = 'Not disbursed'; I18N.mr.apNotDisbChip = 'वितरित नाही'; I18N.en.apNotDisbHint = 'Accepted applications where the amount is not yet given.'; I18N.mr.apNotDisbHint = 'मंजूर अर्ज ज्यांची रक्कम अजून दिलेली नाही.';
+  I18N.en.apDisbNoMem='{n} was not found as one member in the member list, so the loan could not be created.'; I18N.mr.apDisbNoMem='{n} सदस्य यादीत एकच सदस्य म्हणून सापडला नाही, म्हणून कर्ज तयार करता आले नाही.';
+  I18N.en.apDisbFail='Not disbursed. {n}: {r}'; I18N.mr.apDisbFail='वितरित झाले नाही. {n}: {r}';
+  I18N.en.apSyncMsg='{n} disbursed application(s) are not in the Sheet as loans yet: {l}. They are not counted in Loans out and cannot be marked received in Monthly.'; I18N.mr.apSyncMsg='{n} वितरित अर्ज अजून शीटमध्ये कर्ज म्हणून नाहीत: {l}. ते दिलेल्या कर्जांमध्ये मोजले जात नाहीत आणि मासिक मध्ये रक्कम मिळाली म्हणून नोंदवता येत नाहीत.';
+  I18N.en.apSyncBtn='Create these loans in the Sheet'; I18N.mr.apSyncBtn='ही कर्जे शीटमध्ये तयार करा';
+  I18N.en.apSyncAsk='Create {n} loan(s) in the Sheet, using the disbursed date of each?\n{l}'; I18N.mr.apSyncAsk='{n} कर्ज(जे) शीटमध्ये तयार करायची, प्रत्येकाच्या वितरण तारखेसह?\n{l}';
+  I18N.en.apSyncDone='Created {n} loan(s) in the Sheet.'; I18N.mr.apSyncDone='{n} कर्ज(जे) शीटमध्ये तयार केली.';
+  I18N.en.lnETooNew='{n} has been a member for {b} months. At least {a} months are needed for this loan.'; I18N.mr.lnETooNew='{n} यांना सदस्य होऊन {b} महिने झाले. या कर्जासाठी किमान {a} महिने लागतात.';
+  I18N.en.lnEGTooNew='Guarantor {n} needs at least {a} months of membership.'; I18N.mr.lnEGTooNew='जामीनदार {n} यांना किमान {a} महिने सदस्यत्व हवे.';
+  I18N.en.lnECap='The limit of {c} loan(s) of {a} for this month is already reached.'; I18N.mr.lnECap='या महिन्यासाठी {a} च्या {c} कर्जांची मर्यादा आधीच पूर्ण झाली आहे.';
+  I18N.en.lnERepaid='This member repaid a loan this month. A new loan can be given from next month.'; I18N.mr.lnERepaid='या सदस्याने या महिन्यात कर्ज फेडले आहे. नवीन कर्ज पुढील महिन्यापासून देता येईल.';
+  I18N.en.lnENoJoin='{n} has no joining date, so membership length cannot be checked.'; I18N.mr.lnENoJoin='{n} यांची सामील होण्याची तारीख नाही, म्हणून सदस्यत्वाचा कालावधी तपासता येत नाही.';
   I18N.en.s6PastDue1='Past due date, not marked overdue'; I18N.mr.s6PastDue1='मुदत संपली, थकीत नोंदवलेले नाही';
   I18N.en.lnPastDue='Past due date'; I18N.mr.lnPastDue='मुदत संपली';
   I18N.en.lnMarkOd='Mark overdue'; I18N.mr.lnMarkOd='थकीत म्हणून नोंदवा';
@@ -4546,7 +4559,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       var m = apps.months[mk] || {};
       Object.keys(m).forEach(function(id){
         var e = m[id];
-        if(!e || e.st === 'r' || !apDisb(e)) return;
+        if(!e || e.st === 'r' || !apDisb(e) || e.lid) return;
         var inf = apLoanInfo(e);
         var r = { applicant:e.n, guarantor:(e.g || []).filter(Boolean).join(' / '), takenDate:inf.taken, repayDate:inf.ret,
           takenAmt:e.a, repayAmt:0, fine:0, status:'In Process', suspended:'', _v:true };
@@ -4601,6 +4614,8 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     var dis = acc.filter(apDisb);
     var f = apState.filter, tf = apState.tier || 'all', ch = '';
     var pend = acc.length - dis.length;
+    var uns = apUnsynced();
+    if(uns.length) ch += '<div class="ap-sync"><p>' + esc(t('apSyncMsg', { n:uns.length, l:uns.map(function(u){ return u.e.n; }).join(', ') })) + '</p><button type="button" class="ap-btn ghost ap-syncbtn">' + esc(t('apSyncBtn')) + '</button></div>';
     ch += '<p class="ap-sum">' + esc(t('apFltAcc')) + ': <b>' + acc.length + '</b>' + ' &middot; ' + esc(t('apSumPend')) + ' <b>' + pend + '</b> &middot; ' + esc(t('apSumDisb')) + ' <b>' + dis.length + '</b> &middot; ' + esc(t('apSumRej')) + ' <b>' + rej.length + '</b></p>';
     function seg(key, label){ return '<button type="button" class="mc-seg ap-chip' + (f === key ? ' active' : '') + '" data-f="' + key + '">' + esc(label) + '</button>'; }
     ch += '<div class="mc-switch ap-flt">' + seg('all', t('apFltAcc')) + seg('nd', t('apFltPend')) + seg('dis', t('apDisbChip')) + seg('rej', t('apRejTab')) + '</div>';
@@ -4708,9 +4723,66 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     (cur.g || []).forEach(function(g, j){ if(!busy && g && !(cur.gb && cur.gb[j]) && activeGuaranteedLoans(g).length) busy = g; });
     if(busy){ apCloseSheet(); apState.disb = null; apSay(t('apDisbGWarn', { g:busy }), 'warn'); return; }
     var entry = { n:cur.n, a:cur.a, g:(cur.g || []).slice(), gb:(cur.gb || []).slice(), st:'a', rm:cur.rm || AP_MATCHED, ts:cur.ts || Date.now(), ds:inp.value };
-    var ops = {}; ops[d.id] = entry;
+    if(cur.lid) entry.lid = cur.lid;
+    var ops = {}; ops[d.id] = entry, month = d.month, id = d.id, date = inp.value;
     apCloseSheet(); apState.disb = null;
-    setApps(d.month, ops).then(function(ok){ if(ok) apSay(t('apDisbDone', { n:entry.n }), 'ok'); });
+    function finish(){ setApps(month, ops).then(function(ok){ if(ok) apSay(t('apDisbDone', { n:entry.n }), 'ok'); }); }
+    if(!(dbMon() && mem.ready)){ finish(); return; }
+    /* the Sheet is the master: create the loan there first, then mark the application disbursed */
+    apCreateSheetLoan(entry, month + '|' + id, date).then(function(r){
+      if(r.ok){ entry.lid = r.loanId; try{ lnBookLoad(); memLoad(true); }catch(e){} finish(); }
+      else apSay(r.msg, 'warn');
+    });
+  }
+  /* looks up the members by name, asks the Sheet to create the loan. Resolves { ok, loanId } or { ok:false, msg } */
+  function memIdByName(name){
+    var k = normKeyName(name), all = (mem.list || []).filter(function(m){ return normKeyName(m.name) === k; });
+    if(all.length > 1){   // same name twice (second number, closed entry): prefer the exact name, then the active member
+      var ex = all.filter(function(m){ return String(m.name).trim().toUpperCase() === String(name).trim().toUpperCase(); }); if(ex.length) all = ex;
+      var ac = all.filter(function(m){ return m.status === 'Active'; }); if(ac.length) all = ac;
+    }
+    return all.length === 1 ? all[0].id : '';
+  }
+  /* disbursed applications that have no loan in the Sheet yet (marked disbursed before this version) */
+  function apUnsynced(){
+    var out = [];
+    if(!(dbMon() && mem.ready && useLoanDb())) return out;
+    Object.keys(apps.months || {}).sort().forEach(function(mk){
+      var m = apps.months[mk] || {};
+      Object.keys(m).forEach(function(id){
+        var e = m[id];
+        if(!e || e.st === 'r' || !apDisb(e) || e.lid) return;
+        var r = { applicant:e.n, takenAmt:e.a, takenDate:parseDay(e.ds) };
+        if(!virtHasExcel(r)) out.push({ mk:mk, id:id, e:e });
+      });
+    });
+    return out;
+  }
+  function apSyncRun(btn){
+    var list = apUnsynced(); if(!list.length) return;
+    if(!window.confirm(t('apSyncAsk', { n:list.length, l:list.map(function(u){ return u.e.n + ' ' + indian(u.e.a); }).join('\n') }))) return;
+    btn.disabled = true;
+    var i = 0, done = 0;
+    function next(){
+      if(i >= list.length){ try{ lnBookLoad(); memLoad(true); }catch(x){} apSay(t('apSyncDone', { n:done }), 'ok'); renderApps(); return; }
+      var u = list[i++];
+      apCreateSheetLoan(u.e, u.mk + '|' + u.id, u.e.ds).then(function(r){
+        if(!r.ok){ btn.disabled = false; try{ lnBookLoad(); memLoad(true); }catch(x){} apSay(r.msg, 'warn'); renderApps(); return; }
+        var ne = {}; Object.keys(u.e).forEach(function(k){ ne[k] = u.e[k]; }); ne.lid = r.loanId;
+        var ops = {}; ops[u.id] = ne;
+        setApps(u.mk, ops).then(function(ok){ if(ok) done++; next(); });
+      });
+    }
+    next();
+  }
+  function apCreateSheetLoan(e, key, date){
+    var mid = memIdByName(e.n); if(!mid) return Promise.resolve({ ok:false, msg:t('apDisbNoMem', { n:e.n }) });
+    var gids = [], bad = '';
+    (e.g || []).forEach(function(g, j){ if(!g || (e.gb && e.gb[j])) return; var gid = memIdByName(g); if(!gid) bad = g; else gids.push(gid); });
+    if(bad) return Promise.resolve({ ok:false, msg:t('apDisbNoMem', { n:bad }) });
+    return admCall({ kind:'loanDisburse', memberId:mid, amount:e.a, date:date, guarantors:gids, appKey:key }).then(function(res){
+      return res && res.ok ? { ok:true, loanId:res.loanId } : { ok:false, msg:t('apDisbFail', { n:e.n, r:lnErr(res) }) };
+    }).catch(function(){ return { ok:false, msg:t('apDisbFail', { n:e.n, r:t('memEGeneric') }) }; });
   }
   function buildDisbText(){
     var mo = apCurMonth(), es = apEntries(mo.key).filter(function(e){ return apStatus(e) === 'a' && apDisb(e); });
@@ -4822,6 +4894,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
       apOpenSheet(apDraftEntry(lastElig), null);
       return;
     }
+    if(tg.closest('.ap-syncbtn')){ apSyncRun(tg.closest('.ap-syncbtn')); return; }
     var tr = tg.closest('.ap-tier');
     if(tr){ apState.tier = tr.getAttribute('data-t'); renderApps(); return; }
     var chip = tg.closest('.ap-chip');
@@ -5972,6 +6045,11 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
   function lnErr(res){
     var e = res && res.error;
     if(e === 'loan-closed') return t('lnEClosed');
+    if(e === 'member-too-new') return t('lnETooNew', { n:res.name, a:res.need, b:res.have });
+    if(e === 'guarantor-too-new') return t('lnEGTooNew', { n:res.name, a:res.need });
+    if(e === 'monthly-cap') return t('lnECap', { a:memMoney(res.amount), c:res.cap });
+    if(e === 'repaid-this-month') return t('lnERepaid');
+    if(e === 'no-join-date') return t('lnENoJoin', { n:res.name });
     if(e === 'already-overdue') return t('lnEAlready');
     if(e === 'not-past-due') return t('lnENotPast');
     if(e === 'not-overdue') return t('lnENotOd');
@@ -6783,7 +6861,7 @@ window.addEventListener('load', function(){ setTimeout(function(){ loadXlsx(func
     }).catch(function(){ gl.busy = false; tg.disabled = false; s6Say(t('memEGeneric')); });
   }
   var st6 = { data:null, key:'' };
-  var BUILD_INFO = { app:'V34', build:'v57', date:'17 Nov 2026', cache:'withus-v57' };
+  var BUILD_INFO = { app:'V36', build:'v59', date:'17 Nov 2026', cache:'withus-v59' };
   function s6VerOpen(){
     mem.kind = 's6form'; var mr = document.documentElement.lang === 'mr', w = getWho() || {};
     function row(l, v){ return '<div class="adm-act"><span>' + esc(l) + '</span><b style="text-align:right;">' + esc(v) + '</b></div>'; }
