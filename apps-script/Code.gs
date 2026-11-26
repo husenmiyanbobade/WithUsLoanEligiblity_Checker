@@ -20,7 +20,7 @@ var MAX_SESSIONS = 30;      // phones that can be signed in at once (oldest is s
 var HASH_ROUNDS = 800;      // password hashing strength
 var MIN_PASS = 8;           // shortest admin password
 var BACKUPS_KEEP = 30;
-var CODE_VER = 'V36 \u00B7 v59';   // shown in the app: Settings > Version
+var CODE_VER = 'V38 \u00B7 v61';   // shown in the app: Settings > Version
 var SCHEMA_VER = 6;          // bump when a tab gets new columns; the Sheet is upgraded automatically on the next sign-in
 
 var FILE_NAME = 'withus-dataset.json';              // Excel dataset
@@ -764,8 +764,8 @@ function eligibility_(mem, st, penDue, susp){
   var r = [], status = String(mem.Status || 'Active'), apply = true, guar = true;
   if(status === 'Exited'){ r.push({ type:'exited' }); apply = false; guar = false; }
   else if(status === 'Suspended'){ r.push({ type:'suspended' }); apply = false; guar = false; }
-  if(st.arrears && st.arrears.length){ r.push({ type:'arrears', months:st.arrears, amount:st.arrears.length * contribAmount_() }); apply = false; guar = false; }
-  if(penDue > 0){ r.push({ type:'penalty', amount:penDue }); apply = false; guar = false; }
+  if(st.arrears && st.arrears.length){ r.push({ type:'arrears', months:st.arrears, amount:st.arrears.length * contribAmount_() }); apply = false; }   // unpaid contributions do not stop a member standing as guarantor
+  if(penDue > 0){ r.push({ type:'penalty', amount:penDue }); apply = false; }   // nor does an unpaid penalty
   if(susp){ r.push({ type:'loan-suspension', until:susp.until }); apply = false; }
   return { canApply:apply, canGuarantee:guar, reasons:r };
 }
